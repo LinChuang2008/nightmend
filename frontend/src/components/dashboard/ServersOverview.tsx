@@ -1,8 +1,8 @@
 /**
  * 服务器健康总览条组件
- * 显示所有服务器的健康状态概览
  */
 import { Card, Row, Col, Space, Progress, Tooltip, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { DesktopOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,6 +33,7 @@ interface ServersOverviewProps {
 
 export default function ServersOverview({ hosts }: ServersOverviewProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   if (hosts.length === 0) {
     return null;
@@ -40,7 +41,7 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
 
   return (
     <Card
-      title={<Space><DesktopOutlined /> 服务器健康总览</Space>}
+      title={<Space><DesktopOutlined /> {t('dashboard.serverHealthOverview')}</Space>}
       size="small"
       styles={{ body: { padding: '12px 16px' } }}
     >
@@ -88,9 +89,9 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
                         <Text style={{ fontSize: 11, color: cpuHigh ? '#ff4d4f' : undefined }}>{m.cpu_percent}%</Text>
                       </div>
                     </Tooltip>
-                    <Tooltip title={`内存: ${m.memory_percent}%`}>
+                    <Tooltip title={`${t('dashboard.memTrend').split(' ')[0]}: ${m.memory_percent}%`}>
                       <div style={{ flex: 1 }}>
-                        <Text type="secondary" style={{ fontSize: 11 }}>内存</Text>
+                        <Text type="secondary" style={{ fontSize: 11 }}>{t('common.memory', { defaultValue: 'Mem' })}</Text>
                         <Progress
                           percent={m.memory_percent}
                           size="small"
@@ -101,9 +102,9 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
                       </div>
                     </Tooltip>
                     {m.disk_percent != null && (
-                      <Tooltip title={`磁盘: ${m.disk_percent}%`}>
+                      <Tooltip title={`Disk: ${m.disk_percent}%`}>
                         <div style={{ flex: 1 }}>
-                          <Text type="secondary" style={{ fontSize: 11 }}>磁盘</Text>
+                          <Text type="secondary" style={{ fontSize: 11 }}>{t('common.disk', { defaultValue: 'Disk' })}</Text>
                           <Progress
                             percent={m.disk_percent}
                             size="small"
@@ -116,7 +117,7 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
                     )}
                   </div>
                 ) : (
-                  <Text type="secondary" style={{ fontSize: 12 }}>暂无指标数据</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>{t('dashboard.noMetrics')}</Text>
                 )}
               </Card>
             </Col>

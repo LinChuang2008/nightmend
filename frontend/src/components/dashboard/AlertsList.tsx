@@ -1,8 +1,8 @@
 /**
  * 最新告警列表组件
- * 显示最新的告警信息
  */
 import { Card, Table, Tag } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 interface AlertItem {
   id: string;
@@ -17,6 +17,8 @@ interface AlertsListProps {
 }
 
 export default function AlertsList({ alerts }: AlertsListProps) {
+  const { t } = useTranslation();
+
   const severityColor: Record<string, string> = { 
     critical: 'red', 
     warning: 'orange', 
@@ -25,12 +27,12 @@ export default function AlertsList({ alerts }: AlertsListProps) {
 
   const columns = [
     { 
-      title: '标题', 
+      title: t('dashboard.alertTitle'), 
       dataIndex: 'title', 
       key: 'title' 
     },
     { 
-      title: '严重级别', 
+      title: t('dashboard.alertSeverity'), 
       dataIndex: 'severity', 
       key: 'severity',
       render: (severity: string) => (
@@ -40,7 +42,7 @@ export default function AlertsList({ alerts }: AlertsListProps) {
       )
     },
     { 
-      title: '触发时间', 
+      title: t('dashboard.alertFiredAt'), 
       dataIndex: 'fired_at', 
       key: 'fired_at',
       render: (time: string) => new Date(time).toLocaleString()
@@ -48,14 +50,14 @@ export default function AlertsList({ alerts }: AlertsListProps) {
   ];
 
   return (
-    <Card title="最新告警">
+    <Card title={t('dashboard.recentAlertsTitle')}>
       <Table
         dataSource={alerts}
         rowKey="id"
         columns={columns}
         pagination={false}
         size="small"
-        locale={{ emptyText: '暂无活跃告警' }}
+        locale={{ emptyText: t('dashboard.noActiveAlerts') }}
       />
     </Card>
   );

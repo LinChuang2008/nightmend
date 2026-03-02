@@ -1,8 +1,8 @@
 /**
  * 日志统计组件
- * 显示最近1小时的日志统计数据和分布图
  */
 import { Card, Row, Col, Statistic, Tag, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import ReactECharts from '../ThemedECharts';
 import type { LogStats as LogStatsType } from '../../services/logs';
 
@@ -13,10 +13,12 @@ interface LogStatsProps {
 }
 
 export default function LogStats({ logStats }: LogStatsProps) {
+  const { t } = useTranslation();
+
   if (!logStats || logStats.by_level.length === 0) {
     return (
-      <Card title="最近 1 小时日志统计">
-        <Text type="secondary">暂无数据</Text>
+      <Card title={t('dashboard.logStatTitle')}>
+        <Text type="secondary">{t('dashboard.noData')}</Text>
       </Card>
     );
   }
@@ -56,10 +58,10 @@ export default function LogStats({ logStats }: LogStatsProps) {
   };
 
   return (
-    <Card title="最近 1 小时日志统计">
+    <Card title={t('dashboard.logStatTitle')}>
       <Row gutter={16} align="middle">
         <Col xs={24} md={8}>
-          <Statistic title="日志总量" value={totalLogs} />
+          <Statistic title={t('dashboard.logTotal')} value={totalLogs} />
           <div style={{ marginTop: 8 }}>
             {logStats.by_level.map(({ level, count }) => (
               <Tag 

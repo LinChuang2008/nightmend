@@ -3,6 +3,7 @@
  * 支持拖拽布局、显示控制、配置保存
  */
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { 
   Button, Space, Typography, Dropdown, message, 
@@ -110,8 +111,12 @@ export default function CustomizableDashboard() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [containerWidth, setContainerWidth] = useState(1200);
+  const [debouncedHealthScore, setDebouncedHealthScore] = useState<number>(100);
+  const healthScoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -136,10 +141,10 @@ export default function CustomizableDashboard() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
       setConfig(newConfig);
       if (newConfig.settings.autoSave) {
-        message.success('布局已自动保存', 1);
+        message.success(t('dashboard.layoutAutoSaved'), 1);
       }
     } catch (error) {
-      message.error('配置保存失败');
+      message.error(t('dashboard.layoutSaveFailed'));
     }
   }, []);
 
@@ -243,6 +248,18 @@ export default function CustomizableDashboard() {
     }
   }, [startPolling, stopPolling]);
 
+  // P1-2: 健康评分防抖 — 延迟 800ms 更新，避免频繁跳动
+  useEffect(() => {
+    const rawScore = wsData?.health_score ?? 100;
+    if (healthScoreTimerRef.current) clearTimeout(healthScoreTimerRef.current);
+    healthScoreTimerRef.current = setTimeout(() => {
+      setDebouncedHealthScore(rawScore);
+    }, 800);
+    return () => {
+      if (healthScoreTimerRef.current) clearTimeout(healthScoreTimerRef.current);
+    };
+  }, [wsData?.health_score]);
+
   // 布局变更处理
   const handleLayoutChange = useCallback((layout: any) => {
     if (!isEditing) return;
@@ -280,7 +297,7 @@ export default function CustomizableDashboard() {
   // 重置布局
   const resetLayout = useCallback(() => {
     saveConfig(DEFAULT_CONFIG);
-    message.success('布局已重置');
+    message.success(t('dashboard.layoutReset'));
   }, [saveConfig]);
 
   // 导出 CSV
@@ -320,16 +337,18 @@ export default function CustomizableDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  // 监听窗口大小变化
+  // 监听容器大小变化（使用 ResizeObserver 准确测量实际可用宽度）
   useEffect(() => {
-    const updateWidth = () => {
-      const width = window.innerWidth - 32; // 减去页面边距
-      setContainerWidth(Math.max(320, width)); // 最小宽度 320px
-    };
-    
-    updateWidth(); // 初始化
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setContainerWidth(Math.max(320, width));
+    });
+    observer.observe(el);
+    // 初始设置
+    setContainerWidth(Math.max(320, el.getBoundingClientRect().width));
+    return () => observer.disconnect();
   }, []);
 
   // 组件初始化
@@ -357,7 +376,8 @@ export default function CustomizableDashboard() {
     const svcHealthy = wsData?.services.up ?? data.services.healthy;
     const svcUnhealthy = wsData?.services.down ?? data.services.unhealthy;
     const alertFiring = wsData?.alerts.firing ?? data.alerts.firing;
-    const healthScore = wsData?.health_score ?? 100;
+    // Use debounced health score to avoid rapid visual jumps
+    const healthScore = debouncedHealthScore;
 
     switch (widget.component) {
       case 'MetricsCards':
@@ -390,7 +410,7 @@ export default function CustomizableDashboard() {
   }, [data, dbItems, trends, logStats, wsData]);
 
   if (loading) {
-    return <PageLoading tip="正在加载仪表盘..." fullScreen />;
+    return <PageLoading tip={t('dashboard.loadingDashboard')} fullScreen />;
   }
 
   if (loadError) {
@@ -406,7 +426,7 @@ export default function CustomizableDashboard() {
   if (d.hosts.total === 0 && d.services.total === 0) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <EmptyState scene="dashboard" onAction={() => navigate('/hosts')} actionText="添加你的第一台服务器" />
+        <EmptyState scene="dashboard" onAction={() => navigate('/hosts')} actionText={t('state.empty.dashboard.actionText')} />
       </div>
     );
   }
@@ -429,29 +449,29 @@ export default function CustomizableDashboard() {
   };
 
   return (
-    <div>
+    <div ref={containerRef} style={{ width: '100%', overflow: 'hidden' }}>
       {/* 标题栏 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Space>
-          <Title level={4} style={{ margin: 0 }}>系统概览</Title>
+          <Title level={4} style={{ margin: 0 }}>{t('dashboard.systemOverview')}</Title>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#999' }}>
             <span style={{ 
               width: 8, height: 8, borderRadius: '50%', 
               backgroundColor: wsConnected ? '#52c41a' : '#d9d9d9', 
               display: 'inline-block' 
             }} />
-            {wsConnected ? '实时' : '轮询'}
+            {wsConnected ? t('dashboard.realtime') : t('dashboard.polling')}
           </span>
           {isEditing && (
-            <Tooltip title="编辑模式：可拖拽调整布局">
+            <Tooltip title={t('dashboard.editModeTooltip')}>
               <span style={{ color: '#faad14', fontSize: 12 }}>
-                <DragOutlined /> 编辑模式
+                <DragOutlined /> {t('dashboard.editMode')}
               </span>
             </Tooltip>
           )}
         </Space>
         <Space>
-          <Tooltip title={isEditing ? "锁定布局" : "解锁编辑"}>
+          <Tooltip title={isEditing ? t('dashboard.lockLayout') : t('dashboard.unlockLayout')}>
             <Button
               icon={isEditing ? <LockOutlined /> : <UnlockOutlined />}
               onClick={() => setIsEditing(!isEditing)}
@@ -462,14 +482,14 @@ export default function CustomizableDashboard() {
             icon={<SettingOutlined />} 
             onClick={() => setSettingsVisible(true)}
           >
-            设置
+            {t('dashboard.settings')}
           </Button>
           <Dropdown 
             menu={{ 
-              items: [{ key: 'csv', label: '导出 CSV', onClick: exportCSV }] 
+              items: [{ key: 'csv', label: t('dashboard.exportCsv'), onClick: exportCSV }] 
             }}
           >
-            <Button icon={<DownloadOutlined />}>导出数据</Button>
+            <Button icon={<DownloadOutlined />}>{t('dashboard.exportData')}</Button>
           </Dropdown>
         </Space>
       </div>

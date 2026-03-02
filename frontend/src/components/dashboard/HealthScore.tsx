@@ -32,10 +32,10 @@ const HealthScore: React.FC<HealthScoreProps> = ({ score }) => {
         <Progress 
           type="circle" 
           percent={score} 
-          size={80} 
+          size={100} 
           strokeColor={scoreColor}
           format={(p) => (
-            <span style={{ color: scoreColor, fontWeight: 'bold' }}>
+            <span style={{ color: scoreColor, fontWeight: 'bold', fontSize: 16 }}>
               {p}
             </span>
           )} 
