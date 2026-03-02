@@ -44,7 +44,7 @@ import {
 const { Header, Sider, Content } = Layout;
 
 /** viewer 可见的菜单 key */
-const viewerKeys = new Set(['/', '/hosts', '/services', '/topology', '/topology/servers', '/topology/service-groups', '/logs', '/databases', '/alerts', '/ai-analysis']);
+const viewerKeys = new Set(['/', '/hosts', '/services', '/topology', '/topology/servers', '/topology/service-groups', '/logs', '/databases', '/alerts', '/ai-analysis', '/remediations']);
 /** member 隐藏的菜单 key */
 const memberHiddenKeys = new Set(['/users', '/settings']);
 

@@ -199,7 +199,7 @@ export default function Login() {
       justifyContent: 'center',
       background: 'linear-gradient(135deg, #1677ff 0%, #722ed1 50%, #eb2f96 100%)',
       backgroundAttachment: 'fixed',
-      position: 'relative' as const,
+      position: 'relative',
       overflow: 'hidden',
     }}>
       {/* 背景装饰圆圈 */}
@@ -240,18 +240,18 @@ export default function Login() {
         marginBottom: 32,
         animation: 'slideDown 0.6s ease-out',
         zIndex: 1,
-        position: 'relative'
+        position: 'relative',
       }}>
         <div style={{
           width: 80,
           height: 80,
           margin: '0 auto 16px',
-          background: 'rgba(255,255,255,0.95)',
+          background: 'transparent',
           borderRadius: '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          boxShadow: 'none',
           backdropFilter: 'blur(10px)',
         }}>
           {/* VigilOps Shield+Eye Logo */}
@@ -294,7 +294,7 @@ export default function Login() {
         </Button>
       </div>
       <Card style={{ 
-        width: 900, 
+        width: 960, 
         maxWidth: '95vw', 
         boxShadow: '0 24px 48px rgba(0,0,0,0.2)', 
         borderRadius: '16px',
@@ -303,15 +303,17 @@ export default function Login() {
         background: 'rgba(255,255,255,0.98)',
         animation: 'slideUp 0.8s ease-out',
         zIndex: 1,
-        position: 'relative'
+        position: 'relative',
+        overflow: 'auto',
+        maxHeight: '85vh'
       }}>
         <Row gutter={32}>
           {/* 左侧产品特性 */}
-          <Col xs={0} md={12} style={{ 
+          <Col xs={0} md={11} style={{ 
             borderRight: '1px solid #f0f0f0', 
             display: 'flex', 
             alignItems: 'center',
-            background: 'linear-gradient(135deg, rgba(22,119,255,0.02) 0%, rgba(114,46,209,0.03) 100%)'
+            background: '#ffffff'
           }}>
             <div style={{ padding: '32px 24px' }}>
               <div style={{ textAlign: 'center', marginBottom: 32 }}>
@@ -387,9 +389,9 @@ export default function Login() {
                       {item.icon}
                     </div>
                     <div>
-                      <Typography.Text strong style={{ fontSize: 15 }}>{item.title}</Typography.Text>
+                      <Typography.Text strong style={{ fontSize: 15, color: '#1a1a2e' }}>{item.title}</Typography.Text>
                       <br />
-                      <Typography.Text type="secondary" style={{ fontSize: 13, lineHeight: 1.5 }}>{item.desc}</Typography.Text>
+                      <Typography.Text style={{ fontSize: 13, lineHeight: 1.5, color: '#555' }}>{item.desc}</Typography.Text>
                     </div>
                   </div>
                 ))}
@@ -397,7 +399,7 @@ export default function Login() {
             </div>
           </Col>
           {/* 右侧登录表单 */}
-          <Col xs={24} md={12}>
+          <Col xs={24} md={13}>
             <div style={{ padding: '32px 24px' }}>
               {/* Mobile-only title */}
               <div style={{ 
@@ -600,7 +602,7 @@ export default function Login() {
         fontSize: 14, 
         lineHeight: 1.6,
         zIndex: 1,
-        position: 'relative'
+        position: 'relative',
       }}>
         <div style={{ fontWeight: 500, marginBottom: 4 }}>{t('login.footer.company')}</div>
         <div>

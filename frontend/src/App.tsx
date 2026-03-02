@@ -41,7 +41,7 @@ import OnCall from './pages/OnCall';
 import ErrorBoundary from './components/ErrorBoundary';
 
 /** 路由权限守卫：根据角色限制可访问的页面 */
-const viewerAllowedPrefixes = ['/', '/hosts', '/services', '/topology', '/logs', '/databases', '/alerts', '/ai-analysis'];
+const viewerAllowedPrefixes = ['/', '/hosts', '/services', '/topology', '/logs', '/databases', '/alerts', '/ai-analysis', '/remediations'];
 function RoleGuard({ children }: { children: React.ReactElement }) {
   const location = useLocation();
   const role = localStorage.getItem('user_role') || 'viewer';
