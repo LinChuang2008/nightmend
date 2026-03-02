@@ -39,15 +39,15 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     title: '核心指标',
     component: 'MetricsCards',
     visible: true,
-    x: 0, y: 0, w: 12, h: 3,
-    minW: 8, minH: 3
+    x: 0, y: 0, w: 12, h: 5,
+    minW: 8, minH: 5
   },
   {
     id: 'servers-overview',
     title: '服务器总览',
     component: 'ServersOverview',
     visible: true,
-    x: 0, y: 3, w: 12, h: 4,
+    x: 0, y: 5, w: 12, h: 4,
     minW: 6, minH: 3
   },
   {
@@ -55,7 +55,7 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     title: '趋势图表',
     component: 'TrendCharts',
     visible: true,
-    x: 0, y: 7, w: 12, h: 3,
+    x: 0, y: 9, w: 12, h: 3,
     minW: 8, minH: 2
   },
   {
@@ -63,7 +63,7 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     title: '资源对比',
     component: 'ResourceCharts',
     visible: true,
-    x: 0, y: 10, w: 12, h: 6,
+    x: 0, y: 12, w: 12, h: 6,
     minW: 8, minH: 4
   },
   {
@@ -71,7 +71,7 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     title: '日志统计',
     component: 'LogStats',
     visible: true,
-    x: 0, y: 16, w: 12, h: 5,
+    x: 0, y: 18, w: 12, h: 5,
     minW: 6, minH: 4
   },
   {
@@ -79,7 +79,7 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     title: '最新告警',
     component: 'AlertsList',
     visible: true,
-    x: 0, y: 21, w: 12, h: 4,
+    x: 0, y: 23, w: 12, h: 4,
     minW: 6, minH: 3
   }
 ];
