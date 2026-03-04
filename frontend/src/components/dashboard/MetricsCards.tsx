@@ -1,17 +1,15 @@
 /**
  * 核心指标卡片组件
- * 显示服务器、服务、数据库统计和健康评分
+ * 显示服务器、服务、数据库统计；第5列为异常日志 KPI（健康评分圆环已移至 ZONE A）
  */
-import { Row, Col, Card, Statistic, Tag, Progress } from 'antd';
+import { Row, Col, Card, Statistic, Tag, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import {
   CloudServerOutlined, ApiOutlined, AlertOutlined,
   CheckCircleOutlined, CloseCircleOutlined, DatabaseOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
-import { Typography } from 'antd';
 import type { DatabaseItem } from '../../services/databases';
-
-const { Text } = Typography;
 
 interface MetricsCardsProps {
   hostTotal: number;
@@ -21,21 +19,23 @@ interface MetricsCardsProps {
   svcHealthy: number;
   svcUnhealthy: number;
   alertFiring: number;
-  healthScore: number;
   dbItems: DatabaseItem[];
+  fatalCount: number;
+  errorCount: number;
+  onAIAnalyze: () => void;
 }
 
 export default function MetricsCards({
   hostTotal, hostOnline, hostOffline,
   svcTotal, svcHealthy, svcUnhealthy,
-  alertFiring, healthScore, dbItems,
+  alertFiring, dbItems,
+  fatalCount, errorCount, onAIAnalyze,
 }: MetricsCardsProps) {
   const { t } = useTranslation();
-  const scoreColor = healthScore > 80 ? '#52c41a' : healthScore >= 60 ? '#faad14' : '#ff4d4f';
+  const abnormalCount = fatalCount + errorCount;
 
   return (
     <Row gutter={[16, 16]}>
-      {/* 响应式：小屏2列、中屏3列（每行最多3个）、超大屏5列 */}
       <Col xs={12} sm={12} md={8} xxl={5}>
         <Card>
           <Statistic title={t('dashboard.servers')} value={hostTotal} prefix={<CloudServerOutlined />} />
@@ -65,25 +65,37 @@ export default function MetricsCards({
       </Col>
       <Col xs={12} sm={12} md={12} xxl={5}>
         <Card>
-          <Statistic 
-            title={t('dashboard.activeAlerts')} 
-            value={alertFiring} 
+          <Statistic
+            title={t('dashboard.activeAlerts')}
+            value={alertFiring}
             prefix={<AlertOutlined />}
-            valueStyle={{ color: alertFiring > 0 ? '#cf1322' : '#3f8600' }} 
+            valueStyle={{ color: alertFiring > 0 ? '#cf1322' : '#3f8600' }}
           />
         </Card>
       </Col>
+      {/* 第5列：异常日志 KPI（替换原健康评分圆环） */}
       <Col xs={24} sm={12} md={12} xxl={4}>
-        <Card style={{ textAlign: 'center' }}>
-          <Text type="secondary" style={{ fontSize: 14 }}>{t('dashboard.healthScore')}</Text>
-          <div style={{ marginTop: 8 }}>
-            <Progress 
-              type="circle" 
-              percent={healthScore} 
-              size={80} 
-              strokeColor={scoreColor}
-              format={(p) => <span style={{ color: scoreColor, fontWeight: 'bold' }}>{p}</span>} 
+        <Card
+          style={{
+            borderTop: abnormalCount > 0 ? '3px solid #ff4d4f' : '3px solid #f0f0f0',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Statistic
+              title={t('dashboard.abnormalLogs')}
+              value={abnormalCount}
+              prefix={<WarningOutlined />}
+              valueStyle={{ color: abnormalCount > 0 ? '#cf1322' : '#3f8600' }}
             />
+            {abnormalCount > 0 && (
+              <Button type="primary" danger size="small" onClick={onAIAnalyze}>
+                {t('dashboard.aiAnalyzeLog')}
+              </Button>
+            )}
+          </div>
+          <div style={{ marginTop: 8 }}>
+            {fatalCount > 0 && <Tag color="purple">FATAL {fatalCount}</Tag>}
+            {errorCount > 0 && <Tag color="red">ERROR {errorCount}</Tag>}
           </div>
         </Card>
       </Col>

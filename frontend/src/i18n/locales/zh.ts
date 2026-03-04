@@ -209,6 +209,29 @@ const zh = {
     errorLogTrend: '错误日志 (24h)',
     loadingDashboard: '正在加载仪表盘...',
     networkBandwidth: '网络带宽 (KB/s)',
+    // ZONE A: AI 洞察 + 健康评分
+    aiInsightTitle: 'AI 智能洞察',
+    aiAnalyzing: 'AI 正在分析中，请稍后...',
+    viewFullAnalysis: '查看 AI 完整分析 →',
+    scoreHealthy: '健康',
+    scoreWarning: '警告',
+    scoreDanger: '危险',
+    // 日志统计增强
+    aiAnalyzeLog: '→ AI 分析',
+    abnormalLogs: '异常日志',
+    // 告警-日志联动
+    alertsLogLinkedMsg: '注意：日志中存在 {{counts}} 异常',
+    alertsLogLinkedDesc: '虽未触发规则告警，但建议立即进行 AI 排查',
+    viewAIAnalysis: '查看 AI 分析',
+    viewLogsPage: '前往日志页面',
+    // 趋势图标题
+    cpuTrendFull: 'CPU 使用率趋势',
+    memTrendFull: '内存使用率趋势',
+    alertTrendFull: '告警趋势',
+    errorLogTrendFull: '错误日志趋势',
+    last24h: '近 24 小时',
+    thresholdLabel: '警告阈值 80%',
+    avgLabel: '均值',
   },
 
   // ========== 告警 ==========

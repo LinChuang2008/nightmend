@@ -1,6 +1,6 @@
 /**
  * 24小时趋势图组件
- * 显示 CPU、内存、告警、错误日志的24小时趋势
+ * 带图表标题、副标题及阈值 markLine
  */
 import { Row, Col, Card } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -25,36 +25,90 @@ export default function TrendCharts({ trends }: TrendChartsProps) {
     return null;
   }
 
-  const sparklineOption = (values: (number | null)[], color: string, title: string) => ({
-    title: { 
-      text: title, 
-      left: 'center', 
-      top: 0, 
-      textStyle: { fontSize: 12, color: '#666' } 
-    },
-    tooltip: { 
-      trigger: 'axis' as const, 
-      formatter: (params: any) => params[0]?.value != null ? `${params[0].value}` : t('dashboard.noData')
-    },
-    xAxis: { 
-      type: 'category' as const, 
-      show: false, 
-      data: values.map((_, i) => i) 
-    },
-    yAxis: { 
-      type: 'value' as const, 
-      show: false 
-    },
-    series: [{
-      type: 'line' as const,
-      data: values,
-      smooth: true,
-      symbol: 'none',
-      lineStyle: { color, width: 2 },
-      areaStyle: { color: `${color}33` }
-    }],
-    grid: { top: 30, bottom: 10, left: 10, right: 10 },
-  });
+  const makeOption = (
+    values: (number | null)[],
+    color: string,
+    titleText: string,
+    opts?: {
+      thresholdY?: number;
+      thresholdLabel?: string;
+      showAvgLine?: boolean;
+    }
+  ) => {
+    const markLineData: any[] = [];
+
+    if (opts?.thresholdY != null) {
+      markLineData.push({
+        yAxis: opts.thresholdY,
+        lineStyle: { color: '#faad14', type: 'dashed', width: 1.5 },
+        label: {
+          formatter: opts.thresholdLabel ?? `${opts.thresholdY}%`,
+          position: 'insideEndTop',
+          color: '#faad14',
+          fontSize: 10,
+        },
+      });
+    }
+
+    if (opts?.showAvgLine) {
+      markLineData.push({
+        type: 'average',
+        name: t('dashboard.avgLabel'),
+        lineStyle: { color: '#1677ff', type: 'dotted', width: 1.5 },
+        label: {
+          formatter: t('dashboard.avgLabel'),
+          position: 'insideEndTop',
+          color: '#1677ff',
+          fontSize: 10,
+        },
+      });
+    }
+
+    return {
+      title: {
+        text: titleText,
+        subtext: t('dashboard.last24h'),
+        left: 'left',
+        top: 0,
+        textStyle: { fontSize: 13, fontWeight: 600, color: '#333' },
+        subtextStyle: { fontSize: 11, color: '#999' },
+      },
+      tooltip: {
+        trigger: 'axis' as const,
+        formatter: (params: any) =>
+          params[0]?.value != null ? `${params[0].value}` : t('dashboard.noData'),
+      },
+      xAxis: {
+        type: 'category' as const,
+        show: false,
+        data: values.map((_, i) => i),
+      },
+      yAxis: {
+        type: 'value' as const,
+        show: false,
+      },
+      series: [
+        {
+          type: 'line' as const,
+          data: values,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { color, width: 2 },
+          areaStyle: { color: `${color}33` },
+          ...(markLineData.length > 0
+            ? {
+                markLine: {
+                  silent: true,
+                  symbol: 'none',
+                  data: markLineData,
+                },
+              }
+            : {}),
+        },
+      ],
+      grid: { top: 52, bottom: 10, left: 10, right: 10 },
+    };
+  };
 
   const cpuTrend = trends.map(tp => tp.avg_cpu);
   const memTrend = trends.map(tp => tp.avg_mem);
@@ -65,33 +119,41 @@ export default function TrendCharts({ trends }: TrendChartsProps) {
     <Row gutter={[16, 16]}>
       <Col xs={24} sm={12} md={6}>
         <Card styles={{ body: { padding: '12px' } }}>
-          <ReactECharts 
-            option={sparklineOption(cpuTrend, '#1677ff', t('dashboard.cpuTrend'))} 
-            style={{ height: 200 }} 
+          <ReactECharts
+            option={makeOption(cpuTrend, '#1677ff', t('dashboard.cpuTrendFull'), {
+              thresholdY: 80,
+              thresholdLabel: t('dashboard.thresholdLabel'),
+            })}
+            style={{ height: 200 }}
           />
         </Card>
       </Col>
       <Col xs={24} sm={12} md={6}>
         <Card styles={{ body: { padding: '12px' } }}>
-          <ReactECharts 
-            option={sparklineOption(memTrend, '#52c41a', t('dashboard.memTrend'))} 
-            style={{ height: 200 }} 
+          <ReactECharts
+            option={makeOption(memTrend, '#52c41a', t('dashboard.memTrendFull'), {
+              thresholdY: 80,
+              thresholdLabel: t('dashboard.thresholdLabel'),
+            })}
+            style={{ height: 200 }}
           />
         </Card>
       </Col>
       <Col xs={24} sm={12} md={6}>
         <Card styles={{ body: { padding: '12px' } }}>
-          <ReactECharts 
-            option={sparklineOption(alertTrend, '#faad14', t('dashboard.alertTrend'))} 
-            style={{ height: 200 }} 
+          <ReactECharts
+            option={makeOption(alertTrend, '#fa8c16', t('dashboard.alertTrendFull'))}
+            style={{ height: 200 }}
           />
         </Card>
       </Col>
       <Col xs={24} sm={12} md={6}>
         <Card styles={{ body: { padding: '12px' } }}>
-          <ReactECharts 
-            option={sparklineOption(errorTrend, '#ff4d4f', t('dashboard.errorLogTrend'))} 
-            style={{ height: 200 }} 
+          <ReactECharts
+            option={makeOption(errorTrend, '#ff4d4f', t('dashboard.errorLogTrendFull'), {
+              showAvgLine: true,
+            })}
+            style={{ height: 200 }}
           />
         </Card>
       </Col>

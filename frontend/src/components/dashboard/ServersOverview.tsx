@@ -1,5 +1,6 @@
 /**
  * 服务器健康总览条组件
+ * 三色进度条（绿/黄/红），四状态卡片边框
  */
 import { Card, Row, Col, Space, Progress, Tooltip, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +32,16 @@ interface ServersOverviewProps {
   hosts: HostItem[];
 }
 
+/**
+ * 三色语义进度条颜色
+ * <60%: 绿色安全，60-threshold: 黄色警告，>threshold: 红色危险
+ */
+function getMetricColor(percent: number, dangerThreshold = 80): string {
+  if (percent < 60) return '#52c41a';
+  if (percent < dangerThreshold) return '#faad14';
+  return '#ff4d4f';
+}
+
 export default function ServersOverview({ hosts }: ServersOverviewProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -49,10 +60,25 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
         {hosts.map(host => {
           const m = host.latest_metrics;
           const isOnline = host.status === 'online';
-          const cpuHigh = (m?.cpu_percent ?? 0) > 80;
-          const memHigh = (m?.memory_percent ?? 0) > 80;
-          const diskHigh = (m?.disk_percent ?? 0) > 85;
-          const hasWarning = cpuHigh || memHigh || diskHigh;
+
+          const hasDanger =
+            (m?.cpu_percent ?? 0) > 80 ||
+            (m?.memory_percent ?? 0) > 80 ||
+            (m?.disk_percent ?? 0) > 85;
+
+          const hasWarning =
+            !hasDanger &&
+            ((m?.cpu_percent ?? 0) > 60 ||
+              (m?.memory_percent ?? 0) > 60 ||
+              (m?.disk_percent ?? 0) > 60);
+
+          const borderColor = !isOnline
+            ? '#ff4d4f'
+            : hasDanger
+            ? '#ff4d4f'
+            : hasWarning
+            ? '#faad14'
+            : '#52c41a';
 
           return (
             <Col key={host.id} xs={24} sm={12} md={8} lg={6}>
@@ -61,17 +87,31 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
                 hoverable
                 onClick={() => navigate(`/hosts/${host.id}`)}
                 style={{
-                  borderLeft: `3px solid ${!isOnline ? '#ff4d4f' : hasWarning ? '#faad14' : '#52c41a'}`,
+                  borderLeft: `3px solid ${borderColor}`,
                   cursor: 'pointer',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 8,
+                  }}
+                >
                   <Space size={4}>
-                    <span style={{
-                      width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
-                      backgroundColor: isOnline ? '#52c41a' : '#ff4d4f',
-                    }} />
-                    <Text strong style={{ fontSize: 13 }}>{host.hostname}</Text>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        display: 'inline-block',
+                        backgroundColor: isOnline ? '#52c41a' : '#ff4d4f',
+                      }}
+                    />
+                    <Text strong style={{ fontSize: 13 }}>
+                      {host.hostname}
+                    </Text>
                   </Space>
                   <ArrowRightOutlined style={{ color: '#999', fontSize: 11 }} />
                 </div>
@@ -84,40 +124,67 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
                           percent={m.cpu_percent}
                           size="small"
                           showInfo={false}
-                          strokeColor={cpuHigh ? '#ff4d4f' : '#1677ff'}
+                          strokeColor={getMetricColor(m.cpu_percent)}
                         />
-                        <Text style={{ fontSize: 11, color: cpuHigh ? '#ff4d4f' : undefined }}>{m.cpu_percent}%</Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: getMetricColor(m.cpu_percent),
+                          }}
+                        >
+                          {m.cpu_percent}%
+                        </Text>
                       </div>
                     </Tooltip>
-                    <Tooltip title={`${t('dashboard.memTrend').split(' ')[0]}: ${m.memory_percent}%`}>
+                    <Tooltip title={`${t('common.memory', { defaultValue: 'Mem' })}: ${m.memory_percent}%`}>
                       <div style={{ flex: 1 }}>
-                        <Text type="secondary" style={{ fontSize: 11 }}>{t('common.memory', { defaultValue: 'Mem' })}</Text>
+                        <Text type="secondary" style={{ fontSize: 11 }}>
+                          {t('common.memory', { defaultValue: 'Mem' })}
+                        </Text>
                         <Progress
                           percent={m.memory_percent}
                           size="small"
                           showInfo={false}
-                          strokeColor={memHigh ? '#ff4d4f' : '#52c41a'}
+                          strokeColor={getMetricColor(m.memory_percent)}
                         />
-                        <Text style={{ fontSize: 11, color: memHigh ? '#ff4d4f' : undefined }}>{m.memory_percent}%</Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: getMetricColor(m.memory_percent),
+                          }}
+                        >
+                          {m.memory_percent}%
+                        </Text>
                       </div>
                     </Tooltip>
                     {m.disk_percent != null && (
                       <Tooltip title={`Disk: ${m.disk_percent}%`}>
                         <div style={{ flex: 1 }}>
-                          <Text type="secondary" style={{ fontSize: 11 }}>{t('common.disk', { defaultValue: 'Disk' })}</Text>
+                          <Text type="secondary" style={{ fontSize: 11 }}>
+                            {t('common.disk', { defaultValue: 'Disk' })}
+                          </Text>
                           <Progress
                             percent={m.disk_percent}
                             size="small"
                             showInfo={false}
-                            strokeColor={diskHigh ? '#ff4d4f' : '#faad14'}
+                            strokeColor={getMetricColor(m.disk_percent, 85)}
                           />
-                          <Text style={{ fontSize: 11, color: diskHigh ? '#ff4d4f' : undefined }}>{m.disk_percent}%</Text>
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: getMetricColor(m.disk_percent, 85),
+                            }}
+                          >
+                            {m.disk_percent}%
+                          </Text>
                         </div>
                       </Tooltip>
                     )}
                   </div>
                 ) : (
-                  <Text type="secondary" style={{ fontSize: 12 }}>{t('dashboard.noMetrics')}</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {t('dashboard.noMetrics')}
+                  </Text>
                 )}
               </Card>
             </Col>

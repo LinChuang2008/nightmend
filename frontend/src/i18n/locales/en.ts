@@ -209,6 +209,29 @@ const en = {
     errorLogTrend: 'Error Log (24h)',
     loadingDashboard: 'Loading dashboard...',
     networkBandwidth: 'Network (KB/s)',
+    // ZONE A: AI Insight + Health Score
+    aiInsightTitle: 'AI Smart Insights',
+    aiAnalyzing: 'AI is analyzing, please wait...',
+    viewFullAnalysis: 'View Full AI Analysis →',
+    scoreHealthy: 'Healthy',
+    scoreWarning: 'Warning',
+    scoreDanger: 'Danger',
+    // Log stats enhancements
+    aiAnalyzeLog: '→ AI Analysis',
+    abnormalLogs: 'Abnormal Logs',
+    // Alert-log linkage
+    alertsLogLinkedMsg: 'Notice: {{counts}} detected in logs',
+    alertsLogLinkedDesc: 'No alert rules triggered, but immediate AI investigation is recommended',
+    viewAIAnalysis: 'View AI Analysis',
+    viewLogsPage: 'View Log Page',
+    // Trend chart titles
+    cpuTrendFull: 'CPU Usage Trend',
+    memTrendFull: 'Memory Usage Trend',
+    alertTrendFull: 'Alert Trend',
+    errorLogTrendFull: 'Error Log Trend',
+    last24h: 'Last 24 Hours',
+    thresholdLabel: 'Threshold 80%',
+    avgLabel: 'Average',
   },
 
   // ========== Alerts ==========
