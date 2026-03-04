@@ -13,7 +13,6 @@ import { useEffect, useState } from 'react';
 import {
   Table,
   Card,
-  Typography,
   Tag,
   Space,
   Button,
@@ -42,7 +41,6 @@ import type { NotificationLog } from '../services/alerts';
 import { EmptyState, ErrorState } from '../components/StateComponents';
 import PageHeader from '../components/PageHeader';
 
-const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
