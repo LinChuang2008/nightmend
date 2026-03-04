@@ -158,7 +158,7 @@ export default function HostList() {
       {!loading && hosts.length === 0 && !search && !statusFilter ? (
         <Card>
           <Empty description="暂无服务器，点击添加">
-            <Button type="primary" icon={<PlusOutlined />}>添加服务器</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/settings?tab=tokens')}>添加服务器</Button>
           </Empty>
         </Card>
       ) : viewMode === 'table' ? (
