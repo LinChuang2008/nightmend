@@ -10,7 +10,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://github.com/LinChuang2008/vigilops)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Live Demo](http://139.196.210.68:3001) · [Docs](#-documentation) · [中文](#-中文)
+[Live Demo](https://demo.lchuangnet.com) · [Docs](#-documentation) · [中文](#-中文)
 
 </div>
 
@@ -75,7 +75,7 @@ Open `http://localhost:3001`. That's it.
 
 **🎯 Don't want to install? Try the live demo:**
 
-> [http://139.196.210.68:3001](http://139.196.210.68:3001)
+> [https://demo.lchuangnet.com](https://demo.lchuangnet.com)
 > Login: `demo@vigilops.io` / `demo123` (read-only)
 >
 > ⚠️ This is a single demo server — it may be slow or temporarily down. For real evaluation, self-host it.
@@ -510,7 +510,7 @@ docker compose up -d
 
 打开 `http://localhost:3001` 即可使用。
 
-**🎯 在线体验：** [http://139.196.210.68:3001](http://139.196.210.68:3001) — 账号 `demo@vigilops.io` / `demo123`（只读）
+**🎯 在线体验：** [https://demo.lchuangnet.com](https://demo.lchuangnet.com) — 账号 `demo@vigilops.io` / `demo123`（只读）
 
 ---
 
