@@ -170,18 +170,37 @@ class Settings(BaseSettings):
 # 全局配置实例 (Global Configuration Instance)
 settings = Settings()
 
-# JWT 密钥安全检查：生产环境必须设置，开发环境自动生成
-_env = os.getenv("ENVIRONMENT", "production").lower()
-if not settings.jwt_secret_key or settings.jwt_secret_key == "change-me-in-production":
-    if _env == "production":
-        logger.error(
-            "🔴 JWT_SECRET_KEY 未设置！生产环境必须通过环境变量设置固定密钥。"
-            "请在 .env 中添加: JWT_SECRET_KEY=<random-64-char-string>"
-            " | JWT_SECRET_KEY not set in production! Set it in .env."
+# JWT 密钥安全检查 (JWT Secret Key Security Check)
+# 使用 settings.environment 保持一致性，避免 os.getenv 与 pydantic-settings 不一致
+_is_production = settings.environment.lower() == "production"
+_WEAK_DEFAULTS = {"", "change-me-in-production", "secret", "dev-secret"}
+_jwt_weak = (
+    not settings.jwt_secret_key
+    or settings.jwt_secret_key in _WEAK_DEFAULTS
+    or len(settings.jwt_secret_key) < 32
+)
+
+if _jwt_weak:
+    if _is_production:
+        # 生产环境：密钥缺失或过短，直接拒绝启动
+        # Production: missing/weak key → refuse to start
+        raise RuntimeError(
+            "🔴 [FATAL] JWT_SECRET_KEY 未设置或强度不足！生产环境必须在 .env 中配置至少 32 字符的随机密钥。\n"
+            "运行以下命令生成: python -c \"import secrets; print(secrets.token_urlsafe(64))\"\n"
+            "然后在 .env 中添加: JWT_SECRET_KEY=<生成的密钥>\n"
+            "| FATAL: JWT_SECRET_KEY not set or too short in production. "
+            "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
         )
-        # 仍然生成随机密钥保证能启动，但强烈警告
-    settings.jwt_secret_key = secrets.token_urlsafe(64)
+    else:
+        # 开发环境：自动生成随机密钥，重启后 token 失效
+        # Development: auto-generate ephemeral key, tokens invalidated on restart
+        settings.jwt_secret_key = secrets.token_urlsafe(64)
+        logger.warning(
+            "⚠️  JWT_SECRET_KEY 未设置，已自动生成随机密钥（开发模式）。重启后所有 token 将失效。"
+            " | Dev mode: auto-generated JWT key. Tokens invalidated on restart."
+        )
+elif not _is_production and len(settings.jwt_secret_key) < 32:
     logger.warning(
-        "JWT_SECRET_KEY 已自动生成随机密钥。重启后所有 token 失效。"
-        " | Auto-generated JWT key. Tokens invalidated on restart."
+        "⚠️  JWT_SECRET_KEY 长度不足 32 字符，建议使用更长的随机密钥。"
+        " | JWT_SECRET_KEY is shorter than 32 chars, consider a longer key."
     )
