@@ -42,10 +42,10 @@ interface ServiceItem extends Service {
 
 /* ==================== 分类配置 ==================== */
 
-const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  middleware:      { label: '中间件',   color: 'purple', icon: <DatabaseOutlined /> },
-  business:       { label: '业务系统', color: 'blue',   icon: <AppstoreOutlined /> },
-  infrastructure: { label: '基础设施', color: 'cyan',   icon: <CloudServerOutlined /> },
+const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ReactNode }> = {
+  middleware:      { color: 'purple', icon: <DatabaseOutlined /> },
+  business:       { color: 'blue',   icon: <AppstoreOutlined /> },
+  infrastructure: { color: 'cyan',   icon: <CloudServerOutlined /> },
 };
 
 /** 分类标签组件 (Category tag component)
