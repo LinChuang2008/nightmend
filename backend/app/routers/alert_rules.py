@@ -186,7 +186,7 @@ async def delete_alert_rule(
     rule_id: int,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(get_operator_user),
 ):
     """
     删除告警规则接口 (Delete Alert Rule)
