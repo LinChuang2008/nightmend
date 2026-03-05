@@ -84,6 +84,7 @@ const statusColor = (s: string) => {
 /** 状态文本转换 (Status text conversion) 
  * 将英文状态码转换为中文显示文本，统一用户界面语言
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const statusText = (s: string) => {
   if (s === 'healthy' || s === 'up') return '健康';
   if (s === 'degraded') return '降级';

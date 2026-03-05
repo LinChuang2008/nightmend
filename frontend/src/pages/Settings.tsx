@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Form, InputNumber, Button, Typography, Spin, message, notification, Tabs, Table, Tag, Space, Modal, Input, Tooltip } from 'antd';
 import { PlusOutlined, ExclamationCircleOutlined, CopyOutlined, CheckOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import PageHeader from '../components/PageHeader';
 
@@ -28,6 +29,7 @@ interface AgentToken {
  * 系统设置页面组件
  */
 export default function Settings() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   /** 系统配置项：key → { value, description } */
   const [settings, setSettings] = useState<Record<string, { value: string; description: string }>>({});
@@ -49,7 +51,7 @@ export default function Settings() {
   const copyToClipboard = (text: string, id: string) => {
     const succeed = () => {
       setCopiedId(id);
-      messageApi.success('已复制');
+      messageApi.success(t('common.copied'));
       setTimeout(() => setCopiedId(null), 2000);
     };
     if (navigator.clipboard && window.isSecureContext) {
