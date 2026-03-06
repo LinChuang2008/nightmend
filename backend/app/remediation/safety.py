@@ -107,7 +107,8 @@ ALLOWED_COMMAND_PREFIXES: list[str] = [
     "df", "du", "find", "ls", "cat", "head", "tail", "grep",
     
     # 受限的文件操作 (Limited File Operations)
-    "rm",                          # 允许 rm，但禁止模式会阻止危险用法 (Allow rm, but forbidden patterns block dangerous usage)
+    # ⚠️ 注意：rm 不放入白名单，通过精确命令替代（如 truncate、find ... -delete）
+    # rm 依赖黑名单正则兜底存在覆盖不全风险，已移除
     
     # 系统服务管理 (System Service Management)
     "systemctl restart", "systemctl start", "systemctl stop", "systemctl status",
@@ -128,8 +129,11 @@ ALLOWED_COMMAND_PREFIXES: list[str] = [
     # 基础系统命令 (Basic System Commands)
     "sync", "echo",                # 文件系统同步和输出 (Filesystem sync and output)
     
-    # 包管理器 (Package Managers)
-    "apt", "yum", "dnf",           # 软件包管理 (Software package management)
+    # 包管理器 (Package Managers) - 只允许特定安全子命令，不开放整个 apt 前缀
+    # ⚠️ 不用 "apt" 前缀（apt install malware 也能通过），改为白名单精确子命令
+    "apt-get update", "apt list", "apt show",
+    "yum list", "yum info", "yum check-update",
+    "dnf list", "dnf info", "dnf check-update",
     
     # 容器管理 (Container Management)  
     "docker restart", "docker stop", "docker start", "docker ps", "docker logs",
