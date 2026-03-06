@@ -95,10 +95,10 @@ async def register(data: UserRegister, request: Request, response: Response, db:
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    # 第一个用户自动设为管理员，后续用户默认为观察者 (First user becomes admin automatically)
+    # 第一个用户自动设为管理员，后续用户默认为 operator（可访问所有功能页面，不含用户管理）
     count_result = await db.execute(select(func.count()).select_from(User))
     user_count = count_result.scalar()
-    role = "admin" if user_count == 0 else "viewer"
+    role = "admin" if user_count == 0 else "operator"
 
     user = User(
         email=data.email,
