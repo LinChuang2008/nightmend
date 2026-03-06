@@ -72,7 +72,7 @@ export default function Settings() {
       document.execCommand('copy');
       succeed();
     } catch {
-      messageApi.error('复制失败，请手动复制');
+      messageApi.error(t('common.copyFailed'));
     } finally {
       document.body.removeChild(textarea);
     }
@@ -109,8 +109,8 @@ export default function Settings() {
     setSaving(true);
     try {
       await api.put('/settings', values);
-      messageApi.success('设置已保存');
-    } catch { messageApi.error('保存失败'); } finally { setSaving(false); }
+      messageApi.success(t('settings.saveSuccess'));
+    } catch { messageApi.error(t('settings.saveFailed')); } finally { setSaving(false); }
   };
 
   /** 创建新的 Agent Token */
@@ -118,61 +118,61 @@ export default function Settings() {
     if (!newTokenName.trim()) return;
     try {
       const { data } = await api.post('/agent-tokens', { name: newTokenName });
-      messageApi.success('Token 已创建');
+      messageApi.success(t('settings.tokenCreated'));
       setTokenModalOpen(false);
       setNewTokenName('');
       fetchTokens();
       const tokenId = data?.id || newTokenName;
       notification.info({
         key: `guide-alert-${tokenId}`,
-        message: '主机添加成功',
-        description: '建议为该主机配置告警规则，及时发现异常',
-        btn: <Button size='small' type='primary' onClick={() => navigate('/alerts?tab=rules')}>立即配置</Button>,
+        message: t('settings.agentAddedMsg'),
+        description: t('settings.agentAddedDesc'),
+        btn: <Button size='small' type='primary' onClick={() => navigate('/alerts?tab=rules')}>{t('settings.agentAddedBtn')}</Button>,
         duration: 8,
       });
-    } catch { messageApi.error('创建失败'); }
+    } catch { messageApi.error(t('settings.tokenCreateFailed')); }
   };
 
   /** 吊销 Agent Token（带确认弹窗） */
   const handleRevokeToken = (id: string) => {
     Modal.confirm({
-      title: '确认吊销此 Token？',
+      title: t('settings.confirmRevokeToken'),
       icon: <ExclamationCircleOutlined />,
       onOk: async () => {
         try {
           await api.delete(`/agent-tokens/${id}`);
-          messageApi.success('已吊销');
+          messageApi.success(t('settings.tokenRevoked'));
           fetchTokens();
-        } catch { messageApi.error('操作失败'); }
+        } catch { messageApi.error(t('settings.tokenRevokeFailed')); }
       },
     });
   };
 
   /** Token 列表表格列定义 */
   const tokenColumns = [
-    { title: '名称', dataIndex: 'name' },
+    { title: t('settings.columnName'), dataIndex: 'name' },
     {
-      title: 'Token', dataIndex: 'token',
-      render: (t: string, record: AgentToken) => (
+      title: t('settings.columnToken'), dataIndex: 'token',
+      render: (tok: string, record: AgentToken) => (
         <Space>
-          <Typography.Text code>{t?.substring(0, 16)}...</Typography.Text>
-          <Tooltip title={copiedId === record.id ? '已复制' : '复制完整 Token'}>
+          <Typography.Text code>{tok?.substring(0, 16)}...</Typography.Text>
+          <Tooltip title={copiedId === record.id ? t('common.copied') : t('settings.copyFullToken')}>
             <Button
               type="text"
               size="small"
               icon={copiedId === record.id ? <CheckOutlined style={{ color: '#52c41a' }} /> : <CopyOutlined />}
-              onClick={() => copyToClipboard(t, record.id)}
+              onClick={() => copyToClipboard(tok, record.id)}
             />
           </Tooltip>
         </Space>
       ),
     },
-    { title: '状态', dataIndex: 'is_active', render: (v: boolean) => <Tag color={v ? 'success' : 'default'}>{v ? '活跃' : '已吊销'}</Tag> },
-    { title: '创建时间', dataIndex: 'created_at', render: (t: string) => new Date(t).toLocaleString() },
+    { title: t('settings.columnStatus'), dataIndex: 'is_active', render: (v: boolean) => <Tag color={v ? 'success' : 'default'}>{v ? t('settings.active') : t('settings.revoked')}</Tag> },
+    { title: t('settings.columnCreatedAt'), dataIndex: 'created_at', render: (tok: string) => new Date(tok).toLocaleString() },
     {
-      title: '操作', key: 'action',
+      title: t('settings.columnActions'), key: 'action',
       render: (_: unknown, record: AgentToken) => record.is_active ? (
-        <Button type="link" size="small" danger onClick={() => handleRevokeToken(record.id)}>吊销</Button>
+        <Button type="link" size="small" danger onClick={() => handleRevokeToken(record.id)}>{t('settings.revokeAction')}</Button>
       ) : '-',
     },
   ];
@@ -182,10 +182,10 @@ export default function Settings() {
   return (
     <div>
       {contextHolder}
-      <PageHeader title="系统设置" />
+      <PageHeader title={t('settings.title')} />
       <Tabs defaultActiveKey="general" onChange={k => { if (k === 'tokens') fetchTokens(); }} items={[
         {
-          key: 'general', label: '常规设置',
+          key: 'general', label: t('settings.general'),
           children: (
             <Card>
               {/* 动态生成配置项表单，description 作为 label 展示 */}
@@ -196,25 +196,25 @@ export default function Settings() {
                   </Form.Item>
                 ))}
                 <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={saving}>保存设置</Button>
+                  <Button type="primary" htmlType="submit" loading={saving}>{t('settings.saveSettings')}</Button>
                 </Form.Item>
               </Form>
             </Card>
           ),
         },
         {
-          key: 'tokens', label: 'Agent Token 管理',
+          key: 'tokens', label: t('settings.agentTokens'),
           children: (
             <>
               <Space style={{ marginBottom: 16 }}>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setTokenModalOpen(true)}>创建 Token</Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setTokenModalOpen(true)}>{t('settings.createToken')}</Button>
               </Space>
               <Card>
                 <Table dataSource={tokens} columns={tokenColumns} rowKey="id" loading={tokensLoading} pagination={false} />
               </Card>
               {/* 创建 Token 弹窗 */}
-              <Modal title="创建 Agent Token" open={tokenModalOpen} onCancel={() => setTokenModalOpen(false)} onOk={handleCreateToken}>
-                <Input placeholder="Token 名称" value={newTokenName} onChange={e => setNewTokenName(e.target.value)} />
+              <Modal title={t('settings.createTokenModal')} open={tokenModalOpen} onCancel={() => setTokenModalOpen(false)} onOk={handleCreateToken}>
+                <Input placeholder={t('settings.tokenNamePlaceholder')} value={newTokenName} onChange={e => setNewTokenName(e.target.value)} />
               </Modal>
             </>
           ),
