@@ -30,13 +30,15 @@ from app.models.server_service import ServerService
 from app.models.nginx_upstream import NginxUpstream
 from app.models.dashboard_config import DashboardLayout, DashboardComponent
 from app.models.ai_feedback import AIFeedback, AIFeedbackSummary
+from app.models.topology_layout import TopologyLayout
 
 # 导出所有模型类供外部模块使用 (Export all model classes for external modules)
 __all__ = [
     "User", "AgentToken", "Host", "HostMetric", "Service", "ServiceCheck",
-    "Alert", "AlertRule", "NotificationChannel", "NotificationLog", 
+    "Alert", "AlertRule", "NotificationChannel", "NotificationLog",
     "NotificationTemplate", "Setting", "LogEntry", "MonitoredDatabase",
     "DbMetric", "AIInsight", "AuditLog", "Report", "ServiceDependency",
     "SLARule", "SLAViolation", "Server", "ServiceGroup", "ServerService",
     "NginxUpstream", "DashboardLayout", "DashboardComponent", "AIFeedback", "AIFeedbackSummary",
+    "TopologyLayout",
 ]

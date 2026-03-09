@@ -40,7 +40,7 @@ from app.schemas.topology import (
     ServerCreate, ServerResponse, ServerSummary,
     ServiceGroupCreate, ServiceGroupResponse, ServiceGroupDetail,
     ServerServiceCreate, ServerServiceResponse, ServerServiceDetail,
-    NginxUpstreamCreate, NginxUpstreamResponse,
+    NginxUpstreamCreate, NginxUpstreamResponse, TopologyEdge,
 )
 
 router = APIRouter(prefix="/api/v1/topology", tags=["topology"])

@@ -203,6 +203,7 @@ export default function CustomizableDashboard() {
 
   // 获取仪表盘数据
   const fetchData = useCallback(async () => {
+    // 第一阶段：主数据（并行请求），完成后立即结束 loading
     try {
       const [hostsRes, servicesRes, alertsRes] = await Promise.all([
         api.get('/hosts', { params: { page_size: 100 } }),
@@ -232,30 +233,33 @@ export default function CustomizableDashboard() {
           items: alerts.items || [],
         },
       });
-
-      try { setLogStats(await fetchLogStats('1h')); } catch {}
-      try { setDbItems((await databaseService.list()).data.databases || []); } catch {}
-
-      // 获取 AI 最新洞察（10秒超时降级，接口不存在时静默降级）
-      try {
-        const aiTimeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('AI insight timeout')), 10000)
-        );
-        const insightRes = await Promise.race([
-          api.get('/ai/insights', { params: { limit: 1 } }),
-          aiTimeout,
-        ]);
-        setAiInsight((insightRes as any).data.items?.[0] ?? null);
-      } catch {
-        setAiInsight(null);
-      } finally {
-        setAiLoading(false);
-      }
     } catch (err) {
       setLoadError(err);
+      return;
     } finally {
+      // 主数据加载完成（无论成功/失败），立即结束 loading 让页面可见
       setLoading(false);
     }
+
+    // 第二阶段：次要数据（并行请求），不阻塞主 loading
+    const aiTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('AI insight timeout')), 3000)
+    );
+
+    const [logResult, dbResult, aiResult] = await Promise.allSettled([
+      fetchLogStats('1h'),
+      databaseService.list(),
+      // 获取 AI 最新洞察（3秒超时降级，接口不存在时静默降级）
+      Promise.race([
+        api.get('/ai/insights', { params: { limit: 1 } }),
+        aiTimeout,
+      ]),
+    ]);
+
+    if (logResult.status === 'fulfilled') setLogStats(logResult.value);
+    if (dbResult.status === 'fulfilled') setDbItems((dbResult.value as any).data.databases || []);
+    setAiInsight(aiResult.status === 'fulfilled' ? (aiResult.value as any).data.items?.[0] ?? null : null);
+    setAiLoading(false);
   }, []);
 
   // 获取趋势数据
