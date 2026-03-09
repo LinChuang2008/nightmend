@@ -28,6 +28,21 @@ from app.models.user import User
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
 
 
+@router.get("/summary")
+async def get_summary(_user: User = Depends(get_current_user)):
+    """
+    仪表盘汇总数据快照接口 (Dashboard Summary Snapshot)
+
+    通过 REST 接口返回与 WebSocket 推送相同的仪表盘汇总数据，
+    适用于首屏初始化加载和非 WebSocket 客户端（如脚本、外部监控系统）。
+
+    Returns:
+        dict: 包含主机、服务、告警、资源使用率和健康评分的汇总数据
+    """
+    from app.routers.dashboard_ws import _collect_dashboard_data
+    return await _collect_dashboard_data()
+
+
 @router.get("/trends")
 async def get_trends(
     db: AsyncSession = Depends(get_db),
