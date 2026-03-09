@@ -218,6 +218,9 @@ app = FastAPI(
     description="AI-powered infrastructure monitoring platform | AI 驱动的基础设施监控平台",
     version="0.9.1",
     lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 # 注册全局异常处理器 (Register global exception handlers)
