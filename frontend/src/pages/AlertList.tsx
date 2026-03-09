@@ -7,8 +7,8 @@
  */
 import { useEffect, useState, useRef } from 'react';
 import { useResponsive } from '../hooks/useResponsive';
-import { Table, Card, Tag, Typography, Select, Space, Button, Drawer, Descriptions, Tabs, Modal, Form, Input, InputNumber, Switch, Row, Col, message, TimePicker, Spin, Empty, Collapse } from 'antd';
-import { ExclamationCircleOutlined, RobotOutlined } from '@ant-design/icons';
+import { Table, Card, Tag, Typography, Select, Space, Button, Drawer, Descriptions, Tabs, Modal, Form, Input, InputNumber, Switch, Row, Col, message, TimePicker, Spin, Empty, Collapse, Radio, Tooltip } from 'antd';
+import { ExclamationCircleOutlined, RobotOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import api from '../services/api';
@@ -54,6 +54,14 @@ export default function AlertList() {
   const [drawerAiLoading, setDrawerAiLoading] = useState(false);
   const [drawerAiResult, setDrawerAiResult] = useState<string | null>(null);
 
+  // ===== 告警静默 =====
+  const [silenceModalOpen, setSilenceModalOpen] = useState(false);
+  const [silenceTarget, setSilenceTarget] = useState<Alert | null>(null);
+  const [silenceDuration, setSilenceDuration] = useState<number>(1);
+  const [silenceCustomHours, setSilenceCustomHours] = useState<number>(1);
+  const [silenceLoading, setSilenceLoading] = useState(false);
+  const [silenceRules, setSilenceRules] = useState<Record<string, AlertRule>>({});
+
   const handleRootCause = async (alertId: string) => {
     setRcData(null);
     setRcModalOpen(true);
@@ -88,6 +96,71 @@ export default function AlertList() {
     }
   };
 
+  // 打开静默 Modal
+  const openSilenceModal = async (alert: Alert) => {
+    setSilenceTarget(alert);
+    setSilenceDuration(1);
+    setSilenceCustomHours(1);
+    setSilenceModalOpen(true);
+    // 如果尚未加载该规则，则拉取
+    if (alert.rule_id && !silenceRules[alert.rule_id]) {
+      try {
+        const { data } = await api.get<AlertRule>(`/alert-rules/${alert.rule_id}`);
+        setSilenceRules(prev => ({ ...prev, [alert.rule_id]: data }));
+      } catch { /* ignore */ }
+    }
+  };
+
+  // 执行静默
+  const handleSilence = async () => {
+    if (!silenceTarget) return;
+    const hours = silenceDuration === -1 ? silenceCustomHours : silenceDuration;
+    const now = new Date();
+    const end = new Date(now.getTime() + hours * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:00`;
+    const endStr = `${pad(end.getHours())}:${pad(end.getMinutes())}:00`;
+
+    setSilenceLoading(true);
+    try {
+      await alertService.updateRule(silenceTarget.rule_id, {
+        silence_start: startStr,
+        silence_end: endStr,
+      });
+      messageApi.success(t('alertSilence.silenceSuccess', { hours }));
+      setSilenceModalOpen(false);
+      fetchAlerts();
+    } catch {
+      messageApi.error(t('alertSilence.silenceFailed'));
+    } finally {
+      setSilenceLoading(false);
+    }
+  };
+
+  // 解除静默（传入 rule_id 直接操作）
+  const handleLiftSilence = async (ruleId: string) => {
+    try {
+      await alertService.updateRule(ruleId, { silence_start: null, silence_end: null });
+      messageApi.success(t('alertSilence.liftSuccess'));
+      fetchAlerts();
+    } catch {
+      messageApi.error(t('alertSilence.silenceFailed'));
+    }
+  };
+
+  // 判断某 alert 对应的规则是否正在静默中
+  const isRuleSilenced = (alert: Alert): boolean => {
+    const rule = silenceRules[alert.rule_id];
+    if (!rule || !rule.silence_start || !rule.silence_end) return false;
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const nowStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:00`;
+    const s = rule.silence_start;
+    const e = rule.silence_end;
+    if (s <= e) return nowStr >= s && nowStr <= e;
+    return nowStr >= s || nowStr <= e; // midnight crossing
+  };
+
   const fetchAlerts = async () => {
     setLoading(true);
     setLoadError(null);
@@ -96,8 +169,19 @@ export default function AlertList() {
       if (statusFilter) params.status = statusFilter;
       if (severityFilter) params.severity = severityFilter;
       const { data } = await alertService.list(params);
-      setAlerts(data.items || []);
+      const items: Alert[] = data.items || [];
+      setAlerts(items);
       setTotal(data.total || 0);
+      // 预加载各告警对应的规则（用于显示静默状态）
+      const uniqueRuleIds = [...new Set(items.map(a => a.rule_id).filter(Boolean))];
+      const ruleResults = await Promise.allSettled(
+        uniqueRuleIds.map(id => api.get<AlertRule>(`/alert-rules/${id}`))
+      );
+      const newRules: Record<string, AlertRule> = {};
+      ruleResults.forEach((r, idx) => {
+        if (r.status === 'fulfilled') newRules[uniqueRuleIds[idx]] = r.value.data;
+      });
+      setSilenceRules(prev => ({ ...prev, ...newRules }));
     } catch (err) { setLoadError(err); } finally { setLoading(false); }
   };
 
@@ -182,13 +266,38 @@ export default function AlertList() {
     },
     {
       title: t('common.actions'), key: 'action',
-      render: (_: unknown, record: Alert) => (
-        <Space>
-          <Button type="link" size="small" onClick={() => setSelectedAlert(record)}>{t('common.detail')}</Button>
-          {record.status === 'firing' && <Button type="link" size="small" onClick={() => handleAck(record.id)}>{t('alerts.acknowledge')}</Button>}
-          <Button type="link" size="small" icon={<RobotOutlined />} onClick={() => handleRootCause(record.id)} style={{ color: '#36cfc9' }}>{t('alerts.aiAnalysis')}</Button>
-        </Space>
-      ),
+      render: (_: unknown, record: Alert) => {
+        const silenced = isRuleSilenced(record);
+        return (
+          <Space>
+            <Button type="link" size="small" onClick={() => setSelectedAlert(record)}>{t('common.detail')}</Button>
+            {record.status === 'firing' && <Button type="link" size="small" onClick={() => handleAck(record.id)}>{t('alerts.acknowledge')}</Button>}
+            <Button type="link" size="small" icon={<RobotOutlined />} onClick={() => handleRootCause(record.id)} style={{ color: '#36cfc9' }}>{t('alerts.aiAnalysis')}</Button>
+            {silenced ? (
+              <Tooltip title={t('alertSilence.liftSilence')}>
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<PlayCircleOutlined />}
+                  style={{ color: '#faad14' }}
+                  onClick={() => handleLiftSilence(record.rule_id)}
+                >
+                  {t('alertSilence.silenced')}
+                </Button>
+              </Tooltip>
+            ) : (
+              <Button
+                type="link"
+                size="small"
+                icon={<PauseCircleOutlined />}
+                onClick={() => openSilenceModal(record)}
+              >
+                {t('alertSilence.silence')}
+              </Button>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -374,9 +483,26 @@ export default function AlertList() {
               <Descriptions.Item label={t('alerts.resolvedAt')}>{selectedAlert.resolved_at ? new Date(selectedAlert.resolved_at).toLocaleString() : '-'}</Descriptions.Item>
               <Descriptions.Item label={t('alerts.acknowledgedAt')}>{selectedAlert.acknowledged_at ? new Date(selectedAlert.acknowledged_at).toLocaleString() : '-'}</Descriptions.Item>
             </Descriptions>
-            {selectedAlert.status === 'firing' && (
-              <Button type="primary" style={{ marginTop: 16 }} onClick={() => handleAck(selectedAlert.id)}>{t('alerts.acknowledgeAlert')}</Button>
-            )}
+            <Space style={{ marginTop: 16 }}>
+              {selectedAlert.status === 'firing' && (
+                <Button type="primary" onClick={() => handleAck(selectedAlert.id)}>{t('alerts.acknowledgeAlert')}</Button>
+              )}
+              {isRuleSilenced(selectedAlert) ? (
+                <Button
+                  icon={<PlayCircleOutlined />}
+                  onClick={() => handleLiftSilence(selectedAlert.rule_id)}
+                >
+                  {t('alertSilence.liftSilence')}
+                </Button>
+              ) : (
+                <Button
+                  icon={<PauseCircleOutlined />}
+                  onClick={() => { setSelectedAlert(null); openSilenceModal(selectedAlert); }}
+                >
+                  {t('alertSilence.silence')}
+                </Button>
+              )}
+            </Space>
             <Collapse
               style={{ marginTop: 16 }}
               items={[{
@@ -519,6 +645,53 @@ export default function AlertList() {
             )}
           </div>
         ) : null}
+      </Modal>
+
+      {/* 告警静默 Modal */}
+      <Modal
+        title={<><PauseCircleOutlined /> {t('alertSilence.title')}</>}
+        open={silenceModalOpen}
+        onCancel={() => setSilenceModalOpen(false)}
+        onOk={handleSilence}
+        okText={t('alertSilence.silence')}
+        confirmLoading={silenceLoading}
+        width={420}
+      >
+        {silenceTarget && (
+          <div>
+            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+              {t('alertSilence.description')}
+            </Typography.Text>
+            <Typography.Text strong style={{ display: 'block', marginBottom: 12 }}>
+              {t('alertSilence.duration')}
+            </Typography.Text>
+            <Radio.Group
+              value={silenceDuration}
+              onChange={e => setSilenceDuration(e.target.value)}
+              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+            >
+              <Radio value={1}>{t('alertSilence.oneHour')}</Radio>
+              <Radio value={4}>{t('alertSilence.fourHours')}</Radio>
+              <Radio value={24}>{t('alertSilence.twentyFourHours')}</Radio>
+              <Radio value={-1}>
+                <Space>
+                  {t('alertSilence.custom')}
+                  {silenceDuration === -1 && (
+                    <InputNumber
+                      min={1}
+                      max={720}
+                      value={silenceCustomHours}
+                      onChange={v => setSilenceCustomHours(v || 1)}
+                      placeholder={t('alertSilence.customPlaceholder')}
+                      addonAfter={t('common.minute').replace('分钟', '小时')}
+                      style={{ width: 140 }}
+                    />
+                  )}
+                </Space>
+              </Radio>
+            </Radio.Group>
+          </div>
+        )}
       </Modal>
     </div>
   );
