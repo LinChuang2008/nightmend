@@ -1217,6 +1217,65 @@ const zh = {
       },
     },
   },
+
+  // ========== Agent 安装 Banner ==========
+  agentBanner: {
+    title: '还没有接入主机，复制以下命令安装 Agent',
+    description: '在需要监控的服务器上运行以下命令，即可接入 VigilOps：',
+    tokenHint: '提示：请前往「系统设置 → Agent Token」获取完整 Token',
+    manageTokens: '前往 Settings',
+  },
+
+  // ========== 新手引导 ==========
+  quickStart: {
+    title: '🚀 快速上手 VigilOps',
+    subtitle: '按以下步骤完成初始配置，开始监控你的基础设施',
+    doNotShow: '不再显示',
+    close: '关闭',
+    steps: {
+      installAgent: {
+        title: '安装 Agent',
+        description: '在目标服务器上运行一键安装命令，将主机接入 VigilOps 监控。',
+        action: '前往 Settings 获取 Token',
+      },
+      viewHosts: {
+        title: '查看主机数据',
+        description: 'Agent 上线后，即可在主机列表查看 CPU / 内存 / 磁盘等实时指标。',
+        action: '查看主机列表',
+      },
+      configureAlerts: {
+        title: '配置告警规则',
+        description: '设置 CPU、内存、磁盘等阈值告警，异常时自动触发通知。',
+        action: '前往告警中心',
+      },
+      setNotification: {
+        title: '设置通知渠道',
+        description: '接入钉钉、飞书、邮件等通知渠道，确保告警第一时间触达。',
+        action: '配置通知渠道',
+      },
+    },
+  },
+
+  // ========== 告警静默 ==========
+  alertSilence: {
+    title: '静默告警规则',
+    description: '静默后，该规则在指定时间内不会发送通知（适用于维护窗口）',
+    duration: '静默时长',
+    oneHour: '1 小时',
+    fourHours: '4 小时',
+    twentyFourHours: '24 小时',
+    custom: '自定义',
+    customPlaceholder: '输入小时数',
+    silence: '静默',
+    liftSilence: '解除静默',
+    silenced: '静默中',
+    silenceSuccess: '已静默 {{hours}} 小时',
+    liftSuccess: '已解除静默',
+    silenceFailed: '静默操作失败',
+    ruleNotFound: '未找到关联规则',
+    until: '静默至',
+    noRule: '未关联规则，无法静默',
+  },
 };
 
 export default zh;

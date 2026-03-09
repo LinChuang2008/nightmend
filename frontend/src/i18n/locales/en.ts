@@ -1217,6 +1217,65 @@ const en = {
       },
     },
   },
+
+  // ========== Agent Install Banner ==========
+  agentBanner: {
+    title: 'No hosts connected. Copy the command below to install the Agent',
+    description: 'Run the following command on the server you want to monitor:',
+    tokenHint: 'Tip: Go to Settings → Agent Token to get your full token',
+    manageTokens: 'Go to Settings',
+  },
+
+  // ========== Quick Start Onboarding ==========
+  quickStart: {
+    title: '🚀 Get Started with VigilOps',
+    subtitle: 'Complete these steps to start monitoring your infrastructure',
+    doNotShow: "Don't show again",
+    close: 'Close',
+    steps: {
+      installAgent: {
+        title: 'Install Agent',
+        description: 'Run the one-liner install command on your target server to connect it to VigilOps.',
+        action: 'Go to Settings for Token',
+      },
+      viewHosts: {
+        title: 'View Host Data',
+        description: 'Once the Agent is online, view real-time CPU/Memory/Disk metrics in the host list.',
+        action: 'View Host List',
+      },
+      configureAlerts: {
+        title: 'Configure Alert Rules',
+        description: 'Set up thresholds for CPU, memory, disk and more to trigger alerts automatically.',
+        action: 'Go to Alerts',
+      },
+      setNotification: {
+        title: 'Set Notification Channel',
+        description: 'Connect DingTalk, Feishu, Email and more to receive alerts instantly.',
+        action: 'Configure Channels',
+      },
+    },
+  },
+
+  // ========== Alert Silence ==========
+  alertSilence: {
+    title: 'Silence Alert Rule',
+    description: 'During silence, no notifications will be sent for this rule (ideal for maintenance windows)',
+    duration: 'Duration',
+    oneHour: '1 Hour',
+    fourHours: '4 Hours',
+    twentyFourHours: '24 Hours',
+    custom: 'Custom',
+    customPlaceholder: 'Enter hours',
+    silence: 'Silence',
+    liftSilence: 'Lift Silence',
+    silenced: 'Silenced',
+    silenceSuccess: 'Silenced for {{hours}} hour(s)',
+    liftSuccess: 'Silence lifted',
+    silenceFailed: 'Silence operation failed',
+    ruleNotFound: 'Associated rule not found',
+    until: 'Silenced until',
+    noRule: 'No associated rule found',
+  },
 };
 
 export default en;
