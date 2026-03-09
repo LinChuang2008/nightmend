@@ -1232,6 +1232,7 @@ const zh = {
     subtitle: '按以下步骤完成初始配置，开始监控你的基础设施',
     doNotShow: '不再显示',
     close: '关闭',
+    nextStep: '下一步',
     steps: {
       installAgent: {
         title: '安装 Agent',

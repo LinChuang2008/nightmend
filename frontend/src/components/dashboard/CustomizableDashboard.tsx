@@ -479,8 +479,11 @@ export default function CustomizableDashboard() {
 
   if (d.hosts.total === 0 && d.services.total === 0) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <EmptyState scene="dashboard" onAction={() => navigate('/hosts')} actionText={t('state.empty.dashboard.actionText')} />
+      <div style={{ padding: '0 4px' }}>
+        <AgentInstallBanner />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
+          <EmptyState scene="dashboard" onAction={() => navigate('/hosts')} actionText={t('state.empty.dashboard.actionText')} />
+        </div>
       </div>
     );
   }

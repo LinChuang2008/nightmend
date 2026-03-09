@@ -170,7 +170,7 @@ export default function QuickStartGuide() {
           </Button>
           {currentStep < STEPS.length - 1 && (
             <Button onClick={() => setCurrentStep(prev => prev + 1)}>
-              下一步 / Next
+              {t('quickStart.nextStep')}
             </Button>
           )}
         </Space>

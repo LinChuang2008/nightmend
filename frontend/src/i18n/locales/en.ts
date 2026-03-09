@@ -1232,6 +1232,7 @@ const en = {
     subtitle: 'Complete these steps to start monitoring your infrastructure',
     doNotShow: "Don't show again",
     close: 'Close',
+    nextStep: 'Next',
     steps: {
       installAgent: {
         title: 'Install Agent',
