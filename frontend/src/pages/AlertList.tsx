@@ -34,6 +34,7 @@ export default function AlertList() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [severityFilter, setSeverityFilter] = useState<string>('');
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
@@ -50,9 +51,62 @@ export default function AlertList() {
   const [rcLoading, setRcLoading] = useState(false);
   const [rcData, setRcData] = useState<{ root_cause: string; confidence: string; evidence: string[]; recommendations: string[] } | null>(null);
 
-  const aiCacheRef = useRef<Record<string, string>>({});
+  // AI cache with LRU eviction, max 100 items
+  const aiCacheRef = useRef<Map<string, { content: string; lastAccess: number }>>(new Map());
+  const AI_CACHE_MAX_SIZE = 100;
   const [drawerAiLoading, setDrawerAiLoading] = useState(false);
   const [drawerAiResult, setDrawerAiResult] = useState<string | null>(null);
+
+  // LRU cache management
+  const getFromCache = (key: string): string | null => {
+    const item = aiCacheRef.current.get(key);
+    if (item) {
+      // Update access time
+      item.lastAccess = Date.now();
+      aiCacheRef.current.set(key, item);
+      return item.content;
+    }
+    return null;
+  };
+
+  const setToCache = (key: string, content: string): void => {
+    const now = Date.now();
+    
+    // If cache is full, remove least recently used item
+    if (aiCacheRef.current.size >= AI_CACHE_MAX_SIZE) {
+      let oldestKey = '';
+      let oldestTime = now;
+      
+      for (const [k, v] of aiCacheRef.current.entries()) {
+        if (v.lastAccess < oldestTime) {
+          oldestTime = v.lastAccess;
+          oldestKey = k;
+        }
+      }
+      
+      if (oldestKey) {
+        aiCacheRef.current.delete(oldestKey);
+      }
+    }
+    
+    aiCacheRef.current.set(key, { content, lastAccess: now });
+  };
+
+  // Periodic cache cleanup (optional)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const CACHE_EXPIRE_TIME = 30 * 60 * 1000; // 30 minutes expire
+      
+      for (const [key, item] of aiCacheRef.current.entries()) {
+        if (now - item.lastAccess > CACHE_EXPIRE_TIME) {
+          aiCacheRef.current.delete(key);
+        }
+      }
+    }, 10 * 60 * 1000); // Clean every 10 minutes
+
+    return () => clearInterval(interval);
+  }, []);
 
   // ===== 告警静默 =====
   const [silenceModalOpen, setSilenceModalOpen] = useState(false);
@@ -76,8 +130,9 @@ export default function AlertList() {
   };
 
   const handleDrawerAiAnalyze = async (alertId: string) => {
-    if (aiCacheRef.current[alertId]) {
-      setDrawerAiResult(aiCacheRef.current[alertId]);
+    const cached = getFromCache(alertId);
+    if (cached) {
+      setDrawerAiResult(cached);
       return;
     }
     setDrawerAiLoading(true);
@@ -87,7 +142,7 @@ export default function AlertList() {
         api.get(`/ai/insights`, { params: { alert_id: alertId } })
       );
       const text = data?.summary || data?.analysis || data?.root_cause || JSON.stringify(data);
-      aiCacheRef.current[alertId] = text;
+      setToCache(alertId, text);
       setDrawerAiResult(text);
     } catch {
       setDrawerAiResult(t('aiAnalysis.aiUnavailable'));
@@ -161,22 +216,50 @@ export default function AlertList() {
     return nowStr >= s || nowStr <= e; // midnight crossing
   };
 
+  // Concurrency control function: limit concurrent requests
+  const limitConcurrency = async (tasks: (() => Promise<any>)[], limit = 3): Promise<PromiseSettledResult<any>[]> => {
+    const results: PromiseSettledResult<any>[] = [];
+    const executing: Promise<void>[] = [];
+    
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i];
+      const promise = task().then(
+        (value) => {
+          results[i] = { status: 'fulfilled', value };
+        },
+        (reason) => {
+          results[i] = { status: 'rejected', reason };
+        }
+      );
+      
+      executing.push(promise);
+      
+      if (executing.length >= limit) {
+        await Promise.race(executing);
+        const index = executing.findIndex(p => p === promise);
+        if (index >= 0) executing.splice(index, 1);
+      }
+    }
+    
+    await Promise.all(executing);
+    return results;
+  };
+
   const fetchAlerts = async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const params: Record<string, unknown> = { page, page_size: 20 };
+      const params: Record<string, unknown> = { page, page_size: pageSize };
       if (statusFilter) params.status = statusFilter;
       if (severityFilter) params.severity = severityFilter;
       const { data } = await alertService.list(params);
       const items: Alert[] = data.items || [];
       setAlerts(items);
       setTotal(data.total || 0);
-      // 预加载各告警对应的规则（用于显示静默状态）
+      // 预加载各告警对应的规则（用于显示静默状态），限制并发数为3
       const uniqueRuleIds = [...new Set(items.map(a => a.rule_id).filter(Boolean))];
-      const ruleResults = await Promise.allSettled(
-        uniqueRuleIds.map(id => api.get<AlertRule>(`/alert-rules/${id}`))
-      );
+      const ruleTasks = uniqueRuleIds.map(id => () => api.get<AlertRule>(`/alert-rules/${id}`));
+      const ruleResults = await limitConcurrency(ruleTasks, 3);
       const newRules: Record<string, AlertRule> = {};
       ruleResults.forEach((r, idx) => {
         if (r.status === 'fulfilled') newRules[uniqueRuleIds[idx]] = r.value.data;
@@ -200,7 +283,7 @@ export default function AlertList() {
     } catch { /* ignore */ }
   };
 
-  useEffect(() => { fetchAlerts(); }, [page, statusFilter, severityFilter]);
+  useEffect(() => { fetchAlerts(); }, [page, pageSize, statusFilter, severityFilter]);
 
   const handleAck = async (id: string) => {
     try {
@@ -424,12 +507,19 @@ export default function AlertList() {
                     loading={loading}
                     pagination={{
                       current: page,
-                      pageSize: 20,
+                      pageSize: pageSize,
                       total,
                       onChange: p => setPage(p),
+                      onShowSizeChange: (_, size) => {
+                        setPageSize(size);
+                        setPage(1); // Reset to page 1 when page size changes
+                      },
                       showSizeChanger: !isMobile,
                       showQuickJumper: !isMobile,
                       simple: isMobile,
+                      pageSizeOptions: ['20', '25', '50', '100'],
+                      showTotal: (total, range) => 
+                        `${range[0]}-${range[1]} / ${total} ${t('common.total')}`,
                     }}
                     scroll={isMobile ? { x: 'max-content' } : undefined}
                     locale={{ emptyText: (
