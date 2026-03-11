@@ -7,8 +7,8 @@
  */
 import { useEffect, useState, useRef } from 'react';
 import { useResponsive } from '../hooks/useResponsive';
-import { Table, Card, Tag, Typography, Select, Space, Button, Drawer, Descriptions, Tabs, Modal, Form, Input, InputNumber, Switch, Row, Col, message, TimePicker, Spin, Empty, Collapse, Radio, Tooltip } from 'antd';
-import { ExclamationCircleOutlined, RobotOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import { Table, Card, Tag, Typography, Select, Space, Button, Drawer, Descriptions, Tabs, Modal, Form, Input, InputNumber, Switch, Row, Col, message, TimePicker, Spin, Empty, Collapse, Radio, Tooltip, Dropdown } from 'antd';
+import { ExclamationCircleOutlined, RobotOutlined, PauseCircleOutlined, PlayCircleOutlined, MoreOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import api from '../services/api';
@@ -265,36 +265,47 @@ export default function AlertList() {
       },
     },
     {
-      title: t('common.actions'), key: 'action',
+      title: t('common.actions'), key: 'action', width: 140,
       render: (_: unknown, record: Alert) => {
         const silenced = isRuleSilenced(record);
+        const moreMenuItems = [
+          {
+            key: 'ai-analysis',
+            label: t('alerts.aiAnalysis'),
+            icon: <RobotOutlined />,
+            onClick: () => handleRootCause(record.id),
+          },
+          {
+            key: 'silence',
+            label: silenced ? t('alertSilence.liftSilence') : t('alertSilence.silence'),
+            icon: silenced ? <PlayCircleOutlined /> : <PauseCircleOutlined />,
+            onClick: () => silenced ? handleLiftSilence(record.rule_id) : openSilenceModal(record),
+          },
+        ];
+
         return (
           <Space>
-            <Button type="link" size="small" onClick={() => setSelectedAlert(record)}>{t('common.detail')}</Button>
-            {record.status === 'firing' && <Button type="link" size="small" onClick={() => handleAck(record.id)}>{t('alerts.acknowledge')}</Button>}
-            <Button type="link" size="small" icon={<RobotOutlined />} onClick={() => handleRootCause(record.id)} style={{ color: '#36cfc9' }}>{t('alerts.aiAnalysis')}</Button>
-            {silenced ? (
-              <Tooltip title={t('alertSilence.liftSilence')}>
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<PlayCircleOutlined />}
-                  style={{ color: '#faad14' }}
-                  onClick={() => handleLiftSilence(record.rule_id)}
-                >
-                  {t('alertSilence.silenced')}
-                </Button>
-              </Tooltip>
-            ) : (
-              <Button
-                type="link"
-                size="small"
-                icon={<PauseCircleOutlined />}
-                onClick={() => openSilenceModal(record)}
+            <Button 
+              type="primary" 
+              size="small" 
+              icon={<EyeOutlined />} 
+              onClick={() => setSelectedAlert(record)}
+            >
+              {t('common.detail')}
+            </Button>
+            {record.status === 'firing' && (
+              <Button 
+                type="default" 
+                size="small" 
+                icon={<CheckCircleOutlined />} 
+                onClick={() => handleAck(record.id)}
               >
-                {t('alertSilence.silence')}
+                {t('alerts.acknowledge')}
               </Button>
             )}
+            <Dropdown menu={{ items: moreMenuItems }}>
+              <Button type="text" size="small" icon={<MoreOutlined />} />
+            </Dropdown>
           </Space>
         );
       },
@@ -422,14 +433,16 @@ export default function AlertList() {
                     columns={isMobile ? mobileAlertColumns : alertColumns}
                     rowKey="id"
                     loading={loading}
+                    size="small"
                     pagination={{
                       current: page,
-                      pageSize: 20,
+                      pageSize: 25,
                       total,
                       onChange: p => setPage(p),
                       showSizeChanger: !isMobile,
                       showQuickJumper: !isMobile,
                       simple: isMobile,
+                      pageSizeOptions: ['25', '50', '100'],
                     }}
                     scroll={isMobile ? { x: 'max-content' } : undefined}
                     locale={{ emptyText: (

@@ -72,7 +72,7 @@ function filterMenuByRole(items: ReturnType<typeof buildMenuItems>, role: string
     .filter((group) => ((group as any).children as any[]).length > 0);
 }
 
-/** 生成侧边栏菜单项（分 6 个分组），使用 i18n 翻译 */
+/** 生成侧边栏菜单项（重构为 4 个主要功能分组），使用 i18n 翻译 */
 function buildMenuItems(t: (key: string) => string) {
   return [
     {
@@ -85,38 +85,17 @@ function buildMenuItems(t: (key: string) => string) {
         { key: '/topology', icon: <DeploymentUnitOutlined />, label: t('menu.topologyService') },
         { key: '/topology/servers', icon: <ClusterOutlined />, label: t('menu.topologyServers') },
         { key: '/topology/service-groups', icon: <AppstoreOutlined />, label: t('menu.topologyServiceGroups') },
-      ],
-    },
-    {
-      type: 'group' as const,
-      label: t('menu.groupLogsAlerts'),
-      children: [
         { key: '/logs', icon: <FileTextOutlined />, label: t('menu.logs') },
         { key: '/databases', icon: <DatabaseOutlined />, label: t('menu.databases') },
+      ],
+    },
+    {
+      type: 'group' as const,
+      label: t('menu.groupAlerts'),
+      children: [
         { key: '/alerts', icon: <AlertOutlined />, label: t('menu.alerts') },
         { key: '/alert-escalation', icon: <RiseOutlined />, label: t('menu.alertEscalation') },
-      ],
-    },
-    {
-      type: 'group' as const,
-      label: t('menu.groupAutomation'),
-      children: [
         { key: '/on-call', icon: <ScheduleOutlined />, label: t('menu.onCall') },
-        { key: '/remediations', icon: <ThunderboltOutlined />, label: t('menu.remediation') },
-        { key: '/sla', icon: <SafetyCertificateOutlined />, label: t('menu.sla') },
-      ],
-    },
-    {
-      type: 'group' as const,
-      label: t('menu.groupAI'),
-      children: [
-        { key: '/ai-analysis', icon: <RobotOutlined />, label: t('menu.aiAnalysis') },
-      ],
-    },
-    {
-      type: 'group' as const,
-      label: t('menu.groupNotifications'),
-      children: [
         { key: '/notification-channels', icon: <NotificationOutlined />, label: t('menu.notificationChannels') },
         { key: '/notification-templates', icon: <FormOutlined />, label: t('menu.notificationTemplates') },
         { key: '/notification-logs', icon: <UnorderedListOutlined />, label: t('menu.notificationLogs') },
@@ -124,10 +103,19 @@ function buildMenuItems(t: (key: string) => string) {
     },
     {
       type: 'group' as const,
-      label: t('menu.groupSystem'),
+      label: t('menu.groupAnalysis'),
+      children: [
+        { key: '/ai-analysis', icon: <RobotOutlined />, label: t('menu.aiAnalysis') },
+        { key: '/remediations', icon: <ThunderboltOutlined />, label: t('menu.remediation') },
+        { key: '/sla', icon: <SafetyCertificateOutlined />, label: t('menu.sla') },
+        { key: '/reports', icon: <FileSearchOutlined />, label: t('menu.reports') },
+      ],
+    },
+    {
+      type: 'group' as const,
+      label: t('menu.groupConfiguration'),
       children: [
         { key: '/users', icon: <TeamOutlined />, label: t('menu.users') },
-        { key: '/reports', icon: <FileSearchOutlined />, label: t('menu.reports') },
         { key: '/audit-logs', icon: <AuditOutlined />, label: t('menu.auditLogs') },
         { key: '/settings', icon: <SettingOutlined />, label: t('menu.settings') },
       ],
