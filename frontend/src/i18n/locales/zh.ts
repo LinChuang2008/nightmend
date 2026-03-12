@@ -142,11 +142,9 @@ const zh = {
     auditLogs: '审计日志',
     settings: '系统设置',
     groupMonitoring: '监控',
-    groupLogsAlerts: '日志与告警',
-    groupAutomation: '自动化',
-    groupAI: 'AI',
-    groupNotifications: '通知',
-    groupSystem: '系统',
+    groupAlerts: '告警',
+    groupAnalysis: '分析',
+    groupConfig: '配置',
   },
 
   // ========== 顶部栏 ==========

@@ -34,7 +34,7 @@ export default function AlertList() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(25);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [severityFilter, setSeverityFilter] = useState<string>('');
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
@@ -517,7 +517,7 @@ export default function AlertList() {
                       showSizeChanger: !isMobile,
                       showQuickJumper: !isMobile,
                       simple: isMobile,
-                      pageSizeOptions: ['20', '25', '50', '100'],
+                      pageSizeOptions: ['25', '50', '100'],
                       showTotal: (total, range) => 
                         `${range[0]}-${range[1]} / ${total} ${t('common.total')}`,
                     }}

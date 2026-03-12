@@ -105,15 +105,9 @@ export default function QuickStartGuide() {
     // 新用户首次登录，显示面板
     setOpen(true);
     
-    // 检查用户的展开偏好，新用户首次登录时默认展开
+    // 检查用户的展开偏好，默认收起状态
     const expandedPref = localStorage.getItem(GUIDE_EXPANDED_KEY);
-    if (expandedPref === null) {
-      // 首次显示，延迟展开给用户更好的体验
-      const timer = setTimeout(() => setExpanded(true), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setExpanded(expandedPref === 'true');
-    }
+    setExpanded(expandedPref === 'true');
   }, [location.pathname, shouldForceHide]);
 
   const handleClose = () => {

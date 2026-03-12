@@ -142,11 +142,9 @@ const en = {
     auditLogs: 'Audit Logs',
     settings: 'Settings',
     groupMonitoring: 'Monitoring',
-    groupLogsAlerts: 'Logs & Alerts',
-    groupAutomation: 'Automation',
-    groupAI: 'AI',
-    groupNotifications: 'Notifications',
-    groupSystem: 'System',
+    groupAlerts: 'Alerts',
+    groupAnalysis: 'Analysis',
+    groupConfig: 'Config',
   },
 
   // ========== Header ==========

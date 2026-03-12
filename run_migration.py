@@ -56,15 +56,26 @@ async def run_migration(migration_file: str):
 
 async def main():
     """主函数 (Main function)"""
-    migration_file = "021_alert_escalation.sql"
+    # 按顺序执行所有pending的migration文件
+    migration_files = [
+        "020_demo_user.sql",
+        "021_alert_escalation.sql"
+    ]
     
     print("开始执行数据库迁移...")
     print("=" * 50)
     
-    success = await run_migration(migration_file)
+    all_success = True
+    for migration_file in migration_files:
+        print(f"\n正在执行: {migration_file}")
+        success = await run_migration(migration_file)
+        if not success:
+            all_success = False
+            print(f"❌ Migration {migration_file} 失败，停止执行")
+            break
     
     print("=" * 50)
-    if success:
+    if all_success:
         print("🎉 所有迁移执行完成!")
     else:
         print("💥 迁移执行失败，请检查错误信息")
