@@ -146,7 +146,7 @@ VigilOps changes this. We don't add to your alert noise — we **reduce** it.
 
 - Docker 20+ & Docker Compose v2+
 - 4 CPU cores / 8 GB RAM (for initial build; 2 GB for runtime)  
-- Ports 3001 (frontend) & 8001 (backend) available
+- Ports 3001 (frontend) & 8001 (backend, default) available
 
 ---
 
@@ -169,8 +169,8 @@ cp .env.example .env
 docker compose up -d
 
 # 4. Verify
-curl http://localhost:8001/health
-# ✅ {"status": "healthy"}
+curl http://localhost:8001/api/v1/health
+# ✅ {"status": "ok", ...}
 
 # 5. Access
 # http://<server-ip>:3001
@@ -186,21 +186,17 @@ Each server needs the lightweight VigilOps Agent to collect metrics and logs.
 **One-liner install**:
 
 ```bash
-# Get agent token from UI: Server Management → Add Server → Copy Token
+# Get agent token from UI: Settings → Agent Tokens → Create Token
 # Option 1 (Recommended): Using GitHub raw URL
-curl -fsSL https://raw.githubusercontent.com/LinChuang2008/vigilops/main/scripts/install-agent.sh | \
-  VIGILOPS_SERVER=http://your-vigilops-server:8001 \
-  AGENT_TOKEN=your-token-from-ui \
-  bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/LinChuang2008/vigilops/main/scripts/install-agent.sh)" \
+  -- --server http://your-vigilops-server:3001 --token your-token-from-ui
 
 # Option 2 (Fallback): Using local server endpoint
-curl -fsSL http://your-vigilops-server:8001/api/v1/agent/install.sh | \
-  VIGILOPS_SERVER=http://your-vigilops-server:8001 \
-  AGENT_TOKEN=your-token-from-ui \
-  bash
+sudo bash -c "$(curl -fsSL http://your-vigilops-server:3001/api/v1/agent/install.sh)" \
+  -- --server http://your-vigilops-server:3001 --token your-token-from-ui
 ```
 
-**Requirements**: Linux (Ubuntu/Debian/CentOS/RHEL), Python ≥3.9, root access.
+**Requirements**: Linux (Ubuntu/Debian/CentOS/RHEL), Python ≥3.9, python3-venv, root access.
 
 ---
 
@@ -224,7 +220,7 @@ VigilOps is the **world's first open-source monitoring platform** with built-in 
 
 ### **Enable MCP Server**
 
-Add to `backend/.env`:
+Add to `.env` (project root):
 
 ```env
 VIGILOPS_MCP_ENABLED=true
@@ -486,7 +482,7 @@ VigilOps改变这一点。我们不是增加告警噪音——而是 **减少** 
 
 - Docker 20+ & Docker Compose v2+
 - 4核CPU / 8GB内存（初始构建；运行期2GB）
-- 端口 3001（前端）& 8001（后端）可用
+- 端口 3001（前端）& 8001（后端，默认）可用
 
 #### **生产环境部署**
 
@@ -507,8 +503,8 @@ cp .env.example .env
 docker compose up -d
 
 # 4. 验证
-curl http://localhost:8001/health
-# ✅ {"status": "healthy"}
+curl http://localhost:8001/api/v1/health
+# ✅ {"status": "ok", ...}
 
 # 5. 访问
 # http://<服务器IP>:3001
@@ -523,7 +519,7 @@ VigilOps是 **世界第一个开源监控平台**，内置 **MCP（模型上下�
 
 #### **启用MCP服务器**
 
-在 `backend/.env` 中添加：
+在项目根目录 `.env` 中添加：
 
 ```env
 VIGILOPS_MCP_ENABLED=true

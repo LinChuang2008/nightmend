@@ -4,7 +4,7 @@
 #
 # Or download and run:
 #   chmod +x install-agent.sh
-#   ./install-agent.sh --server http://your-vigilops:8001 --token your-token
+#   ./install-agent.sh --server http://your-vigilops:3001 --token your-token
 set -euo pipefail
 
 # ── Constants ──────────────────────────────────────────────
@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: $0 --server URL --token TOKEN [OPTIONS]"
       echo ""
       echo "Required:"
-      echo "  --server, -s URL     VigilOps server URL (e.g. http://192.168.1.100:8001)"
+      echo "  --server, -s URL     VigilOps server URL (e.g. http://192.168.1.100:3001)"
       echo "  --token, -t TOKEN    Agent token (from Settings → Agent Tokens)"
       echo ""
       echo "Optional:"
@@ -131,7 +131,11 @@ else
   msg "Python >= $MIN_PYTHON not found. Installing..."
   case "$OS" in
     ubuntu|debian)
-      apt-get update -qq && apt-get install -y -qq python3 python3-venv python3-pip ;;
+      apt-get update -qq && apt-get install -y -qq python3 python3-venv python3-pip
+      # Ubuntu 可能需要版本特定的 venv 包（如 python3.10-venv）
+      PYTHON_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null || echo "")
+      [[ -n "$PYTHON_VER" ]] && apt-get install -y -qq "python${PYTHON_VER}-venv" 2>/dev/null || true
+      ;;
     centos|rhel|rocky|alma|fedora)
       dnf install -y python3 python3-pip || yum install -y python3 python3-pip ;;
     *)
