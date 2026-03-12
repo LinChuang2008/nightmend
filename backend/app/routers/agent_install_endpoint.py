@@ -28,7 +28,10 @@ def add_install_endpoint(router):
             - 提供与 GitHub 版本一致的安装脚本
         """
         # 查找安装脚本文件路径（相对于项目根目录）
+        # 先尝试相对路径（开发环境），再尝试绝对路径（Docker环境）
         script_path = Path(__file__).parent.parent.parent.parent / "scripts" / "install-agent.sh"
+        if not script_path.exists():
+            script_path = Path("/scripts/install-agent.sh")
         
         if not script_path.exists():
             raise HTTPException(status_code=404, detail="Install script not found")

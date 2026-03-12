@@ -80,6 +80,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - ./scripts:/scripts
     restart: unless-stopped
 
   frontend:
