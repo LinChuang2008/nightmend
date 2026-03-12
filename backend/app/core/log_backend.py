@@ -270,48 +270,91 @@ class ClickHouseLogBackend(LogBackend):
                 raise Exception(f"Failed to create ClickHouse table: {response.text}")
 
     async def store_logs(self, logs: List[Dict[str, Any]]) -> bool:
-        """批量插入日志到ClickHouse"""
+        """批量插入日志到ClickHouse（使用 JSONEachRow 格式，防止 SQL 注入）"""
         if not logs:
             return True
-            
+
         try:
+            import json as _json
+            from datetime import timezone as _tz
+
             await self._ensure_table_exists()
-            
-            # 构建INSERT VALUES语句
-            values = []
+
+            # 使用 JSONEachRow 格式逐行序列化，避免字符串拼接导致的 SQL 注入
+            rows = []
             for log in logs:
-                timestamp = log['timestamp'].strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]  # ClickHouse DateTime64(3) format
-                created_at = log.get('created_at', datetime.utcnow()).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-                
-                # 转义单引号
-                message = str(log['message']).replace("'", "\\'")
-                service = str(log.get('service', '')).replace("'", "\\'")
-                source = str(log.get('source', '')).replace("'", "\\'")
-                level = str(log.get('level', '')).replace("'", "\\'")
-                
-                value = f"({log.get('id', 0)}, {log['host_id']}, '{service}', '{source}', '{level}', '{message}', '{timestamp}', '{created_at}')"
-                values.append(value)
-            
-            insert_sql = f"INSERT INTO {self.table_name} VALUES {','.join(values)}"
-            
+                ts = log['timestamp']
+                timestamp_str = ts.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                ca = log.get('created_at') or datetime.now(_tz.utc)
+                created_at_str = ca.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+
+                rows.append(_json.dumps({
+                    "id": log.get('id', 0),
+                    "host_id": log['host_id'],
+                    "service": str(log.get('service', '')),
+                    "source": str(log.get('source', '')),
+                    "level": str(log.get('level', '')),
+                    "message": str(log['message']),
+                    "timestamp": timestamp_str,
+                    "created_at": created_at_str,
+                }, ensure_ascii=False))
+
+            body = "\n".join(rows)
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.base_url}:8123",
+                    params={"query": f"INSERT INTO {self.table_name} FORMAT JSONEachRow"},
                     auth=(self.username, self.password) if self.password else None,
-                    data=insert_sql,
-                    timeout=30.0
+                    content=body,
+                    headers={"Content-Type": "application/json"},
+                    timeout=30.0,
                 )
-                
+
                 if response.status_code != 200:
                     logger.error(f"ClickHouse insert failed: {response.text}")
                     return False
-                    
+
             logger.info(f"Stored {len(logs)} logs to ClickHouse")
             return True
-            
+
         except Exception:
             logger.exception("Failed to store logs to ClickHouse")
             return False
+
+    @staticmethod
+    def _escape_ch(value: str) -> str:
+        """ClickHouse 字符串参数转义：反斜杠和单引号"""
+        return value.replace("\\", "\\\\").replace("'", "\\'")
+
+    def _build_where(
+        self,
+        q: Optional[str] = None,
+        host_id: Optional[int] = None,
+        service: Optional[str] = None,
+        level: Optional[str] = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+    ) -> str:
+        """构建安全的 WHERE 子句"""
+        conditions: List[str] = []
+        if q:
+            conditions.append(f"position(message, '{self._escape_ch(q)}') > 0")
+        if host_id is not None:
+            conditions.append(f"host_id = {int(host_id)}")
+        if service:
+            conditions.append(f"service = '{self._escape_ch(service)}'")
+        if level:
+            safe_levels = [
+                f"'{self._escape_ch(l.strip().upper())}'"
+                for l in level.split(",") if l.strip()
+            ]
+            conditions.append(f"level IN ({','.join(safe_levels)})")
+        if start_time:
+            conditions.append(f"timestamp >= '{start_time.strftime('%Y-%m-%d %H:%M:%S')}'")
+        if end_time:
+            conditions.append(f"timestamp <= '{end_time.strftime('%Y-%m-%d %H:%M:%S')}'")
+        return " AND ".join(conditions) if conditions else "1=1"
 
     async def search_logs(
         self,
@@ -326,24 +369,8 @@ class ClickHouseLogBackend(LogBackend):
     ) -> Tuple[List[Dict[str, Any]], int]:
         """ClickHouse日志搜索"""
         try:
-            # 构建WHERE条件
-            conditions = []
-            if q:
-                conditions.append(f"position(message, '{q.replace("'", "\\'")}') > 0")
-            if host_id is not None:
-                conditions.append(f"host_id = {host_id}")
-            if service:
-                conditions.append(f"service = '{service.replace("'", "\\'")}'")
-            if level:
-                levels = [f"'{l.strip().upper().replace("'", "\\'")}'" for l in level.split(",") if l.strip()]
-                conditions.append(f"level IN ({','.join(levels)})")
-            if start_time:
-                conditions.append(f"timestamp >= '{start_time.strftime('%Y-%m-%d %H:%M:%S')}'")
-            if end_time:
-                conditions.append(f"timestamp <= '{end_time.strftime('%Y-%m-%d %H:%M:%S')}'")
-            
-            where_clause = " AND ".join(conditions) if conditions else "1=1"
-            
+            where_clause = self._build_where(q, host_id, service, level, start_time, end_time)
+
             # 获取总数
             count_sql = f"SELECT count() as total FROM {self.table_name} WHERE {where_clause}"
             async with httpx.AsyncClient() as client:
@@ -355,20 +382,21 @@ class ClickHouseLogBackend(LogBackend):
                 )
                 if response.status_code != 200:
                     raise Exception(f"ClickHouse count query failed: {response.text}")
-                
+
                 count_data = response.json()
                 total = count_data['data'][0]['total'] if count_data['data'] else 0
-            
-            # 分页查询
-            offset = (page - 1) * page_size
+
+            # 分页查询（page_size/offset 强制转 int 防止注入）
+            safe_limit = int(page_size)
+            safe_offset = (int(page) - 1) * safe_limit
             query_sql = f"""
             SELECT id, host_id, service, source, level, message, timestamp, created_at
             FROM {self.table_name}
             WHERE {where_clause}
             ORDER BY timestamp DESC
-            LIMIT {page_size} OFFSET {offset}
+            LIMIT {safe_limit} OFFSET {safe_offset}
             """
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.base_url}:8123",
@@ -378,10 +406,10 @@ class ClickHouseLogBackend(LogBackend):
                 )
                 if response.status_code != 200:
                     raise Exception(f"ClickHouse search query failed: {response.text}")
-                
+
                 search_data = response.json()
                 items = search_data['data'] if search_data['data'] else []
-                
+
                 # 转换时间格式
                 for item in items:
                     if 'timestamp' in item:
@@ -389,9 +417,9 @@ class ClickHouseLogBackend(LogBackend):
                     if 'created_at' in item:
                         item['created_at'] = datetime.fromisoformat(item['created_at'])
                     item['hostname'] = None  # ClickHouse 版本暂不支持hostname关联
-                
+
                 return items, total
-                
+
         except Exception:
             logger.exception("ClickHouse search failed")
             return [], 0
@@ -406,18 +434,10 @@ class ClickHouseLogBackend(LogBackend):
     ) -> Dict[str, Any]:
         """ClickHouse统计查询"""
         try:
-            # 构建WHERE条件
-            conditions = []
-            if host_id is not None:
-                conditions.append(f"host_id = {host_id}")
-            if service:
-                conditions.append(f"service = '{service.replace("'", "\\'")}'")
-            if start_time:
-                conditions.append(f"timestamp >= '{start_time.strftime('%Y-%m-%d %H:%M:%S')}'")
-            if end_time:
-                conditions.append(f"timestamp <= '{end_time.strftime('%Y-%m-%d %H:%M:%S')}'")
-            
-            where_clause = " AND ".join(conditions) if conditions else "1=1"
+            where_clause = self._build_where(
+                host_id=host_id, service=service,
+                start_time=start_time, end_time=end_time
+            )
             
             # 按级别统计
             level_sql = f"""

@@ -16,6 +16,7 @@ Competitive advantage: Native AI integration with monitoring data.
 """
 import json
 import logging
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any, Union
 
@@ -27,7 +28,7 @@ from app.core.database import SessionLocal
 from app.services.ai_engine import AIEngine
 from app.models.host import Host
 from app.models.alert import Alert, AlertRule
-from app.models.log_entry import LogEntry  
+from app.models.log_entry import LogEntry
 from app.models.service import Service
 from app.models.host_metric import HostMetric
 
@@ -37,27 +38,14 @@ logger = logging.getLogger(__name__)
 mcp_server = FastMCP("VigilOps")
 
 
-class VigilOpsMCP:
-    """VigilOps MCP Tools Provider"""
-    
-    def __init__(self):
-        self.db = None
-        
-    def get_db(self):
-        """Get database session"""
-        if self.db is None or not self.db.is_active:
-            self.db = SessionLocal()
-        return self.db
-        
-    def close_db(self):
-        """Close database session"""
-        if self.db:
-            self.db.close()
-            self.db = None
-
-
-# Global instance
-vigilops_mcp = VigilOpsMCP()
+@contextmanager
+def get_mcp_db():
+    """每次调用创建独立的数据库 Session，用完即关闭，防止连接泄漏"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @mcp_server.tool()
@@ -67,68 +55,64 @@ def get_servers_health(
 ) -> Dict[str, Any]:
     """
     Get server health status and key metrics
-    
+
     Args:
         limit: Maximum number of servers to return (default: 10)
         status_filter: Filter by status (online/offline/warning)
-        
+
     Returns:
         Dict containing server health data and metrics
     """
     try:
-        db = vigilops_mcp.get_db()
-        
-        # Query hosts with latest metrics
-        query = db.query(Host)
-        if status_filter:
-            query = query.filter(Host.status == status_filter)
-        
-        hosts = query.limit(limit).all()
-        
-        servers_data = []
-        for host in hosts:
-            # Get latest metrics
-            latest_metric = db.query(HostMetric).filter(
-                HostMetric.host_id == host.id
-            ).order_by(HostMetric.recorded_at.desc()).first()
-            
-            server_info = {
-                "id": host.id,
-                "hostname": host.hostname,
-                "ip": host.ip_address,
-                "status": host.status,
-                "os": host.os,
-                "last_seen": host.last_heartbeat.isoformat() if host.last_heartbeat else None,
-                "metrics": {}
-            }
-            
-            if latest_metric:
-                server_info["metrics"] = {
-                    "cpu_percent": latest_metric.cpu_percent,
-                    "memory_percent": latest_metric.memory_percent,
-                    "disk_percent": latest_metric.disk_percent,
-                    "cpu_load_1": latest_metric.cpu_load_1,
-                    "recorded_at": latest_metric.recorded_at.isoformat()
+        with get_mcp_db() as db:
+            query = db.query(Host)
+            if status_filter:
+                query = query.filter(Host.status == status_filter)
+
+            hosts = query.limit(limit).all()
+
+            servers_data = []
+            for host in hosts:
+                latest_metric = db.query(HostMetric).filter(
+                    HostMetric.host_id == host.id
+                ).order_by(HostMetric.recorded_at.desc()).first()
+
+                server_info = {
+                    "id": host.id,
+                    "hostname": host.hostname,
+                    "ip": host.ip_address,
+                    "status": host.status,
+                    "os": host.os,
+                    "last_seen": host.last_heartbeat.isoformat() if host.last_heartbeat else None,
+                    "metrics": {}
                 }
-            
-            servers_data.append(server_info)
-        
-        # Summary statistics
-        total_hosts = db.query(Host).count()
-        online_hosts = db.query(Host).filter(Host.status == "online").count()
-        offline_hosts = db.query(Host).filter(Host.status == "offline").count()
-        
-        return {
-            "servers": servers_data,
-            "summary": {
-                "total": total_hosts,
-                "online": online_hosts,
-                "offline": offline_hosts,
-                "queried_count": len(servers_data)
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-        
+
+                if latest_metric:
+                    server_info["metrics"] = {
+                        "cpu_percent": latest_metric.cpu_percent,
+                        "memory_percent": latest_metric.memory_percent,
+                        "disk_percent": latest_metric.disk_percent,
+                        "cpu_load_1": latest_metric.cpu_load_1,
+                        "recorded_at": latest_metric.recorded_at.isoformat()
+                    }
+
+                servers_data.append(server_info)
+
+            total_hosts = db.query(Host).count()
+            online_hosts = db.query(Host).filter(Host.status == "online").count()
+            offline_hosts = db.query(Host).filter(Host.status == "offline").count()
+
+            return {
+                "servers": servers_data,
+                "summary": {
+                    "total": total_hosts,
+                    "online": online_hosts,
+                    "offline": offline_hosts,
+                    "queried_count": len(servers_data)
+                },
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+
     except Exception as e:
         logger.error(f"Error getting server health: {e}")
         return {"error": str(e), "servers": [], "summary": {}}
@@ -154,71 +138,63 @@ def get_alerts(
         Dict containing alert data and statistics
     """
     try:
-        db = vigilops_mcp.get_db()
-        
-        # Time filter
-        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_back)
-        
-        # Build query
-        query = db.query(Alert).filter(Alert.fired_at > cutoff_time)
-        
-        if severity:
-            query = query.filter(Alert.severity == severity)
-        if status:
-            query = query.filter(Alert.status == status)
-            
-        # Order by severity and time
-        severity_order = {"critical": 3, "warning": 2, "info": 1}
-        alerts = query.order_by(Alert.fired_at.desc()).limit(limit).all()
-        
-        alerts_data = []
-        for alert in alerts:
-            # Get host and rule info
-            host = db.query(Host).filter(Host.id == alert.host_id).first()
-            rule = db.query(AlertRule).filter(AlertRule.id == alert.rule_id).first()
-            
-            alert_info = {
-                "id": alert.id,
-                "title": alert.title,
-                "message": alert.message,
-                "severity": alert.severity,
-                "status": alert.status,
-                "metric_value": alert.metric_value,
-                "threshold": alert.threshold,
-                "fired_at": alert.fired_at.isoformat(),
-                "resolved_at": alert.resolved_at.isoformat() if alert.resolved_at else None,
-                "host": {
-                    "id": host.id,
-                    "hostname": host.hostname,
-                    "ip": host.ip
-                } if host else None,
-                "rule": {
-                    "id": rule.id,
-                    "name": rule.name,
-                    "metric": rule.metric,
-                    "operator": rule.operator
-                } if rule else None
+        with get_mcp_db() as db:
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_back)
+
+            query = db.query(Alert).filter(Alert.fired_at > cutoff_time)
+            if severity:
+                query = query.filter(Alert.severity == severity)
+            if status:
+                query = query.filter(Alert.status == status)
+
+            alerts = query.order_by(Alert.fired_at.desc()).limit(limit).all()
+
+            alerts_data = []
+            for alert in alerts:
+                host = db.query(Host).filter(Host.id == alert.host_id).first()
+                rule = db.query(AlertRule).filter(AlertRule.id == alert.rule_id).first()
+
+                alert_info = {
+                    "id": alert.id,
+                    "title": alert.title,
+                    "message": alert.message,
+                    "severity": alert.severity,
+                    "status": alert.status,
+                    "metric_value": alert.metric_value,
+                    "threshold": alert.threshold,
+                    "fired_at": alert.fired_at.isoformat(),
+                    "resolved_at": alert.resolved_at.isoformat() if alert.resolved_at else None,
+                    "host": {
+                        "id": host.id,
+                        "hostname": host.hostname,
+                        "ip": host.ip
+                    } if host else None,
+                    "rule": {
+                        "id": rule.id,
+                        "name": rule.name,
+                        "metric": rule.metric,
+                        "operator": rule.operator
+                    } if rule else None
+                }
+                alerts_data.append(alert_info)
+
+            total_alerts = db.query(Alert).filter(Alert.fired_at > cutoff_time).count()
+            critical_count = db.query(Alert).filter(
+                Alert.fired_at > cutoff_time,
+                Alert.severity == "critical"
+            ).count()
+
+            return {
+                "alerts": alerts_data,
+                "statistics": {
+                    "total_in_period": total_alerts,
+                    "critical_count": critical_count,
+                    "returned_count": len(alerts_data),
+                    "time_range_hours": hours_back
+                },
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
-            alerts_data.append(alert_info)
-        
-        # Statistics
-        total_alerts = db.query(Alert).filter(Alert.fired_at > cutoff_time).count()
-        critical_count = db.query(Alert).filter(
-            Alert.fired_at > cutoff_time, 
-            Alert.severity == "critical"
-        ).count()
-        
-        return {
-            "alerts": alerts_data,
-            "statistics": {
-                "total_in_period": total_alerts,
-                "critical_count": critical_count,
-                "returned_count": len(alerts_data),
-                "time_range_hours": hours_back
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-        
+
     except Exception as e:
         logger.error(f"Error getting alerts: {e}")
         return {"error": str(e), "alerts": [], "statistics": {}}
@@ -248,69 +224,63 @@ def search_logs(
         Dict containing matching log entries and metadata
     """
     try:
-        db = vigilops_mcp.get_db()
-        
-        # Time filter
-        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_back)
-        
-        # Build query
-        query = db.query(LogEntry).filter(
-            LogEntry.timestamp > cutoff_time,
-            LogEntry.message.contains(keyword)
-        )
-        
-        if host_id:
-            query = query.filter(LogEntry.host_id == host_id)
-        if service:
-            query = query.filter(LogEntry.service == service)  
-        if level:
-            query = query.filter(LogEntry.level == level)
-            
-        # Order by timestamp desc and limit
-        logs = query.order_by(LogEntry.timestamp.desc()).limit(limit).all()
-        
-        logs_data = []
-        for log in logs:
-            # Get host info
-            host = db.query(Host).filter(Host.id == log.host_id).first()
-            
-            log_info = {
-                "id": log.id,
-                "message": log.message,
-                "level": log.level,
-                "service": log.service,
-                "source": log.source,
-                "timestamp": log.timestamp.isoformat(),
-                "host": {
-                    "id": host.id,
-                    "hostname": host.hostname,
-                    "ip": host.ip
-                } if host else None
-            }
-            logs_data.append(log_info)
-        
-        # Statistics  
-        total_matches = db.query(LogEntry).filter(
-            LogEntry.timestamp > cutoff_time,
-            LogEntry.message.contains(keyword)
-        ).count()
-        
-        return {
-            "logs": logs_data,
-            "search_info": {
-                "keyword": keyword,
-                "total_matches": total_matches,
-                "returned_count": len(logs_data),
-                "time_range_hours": hours_back,
-                "filters": {
-                    "host_id": host_id,
-                    "service": service, 
-                    "level": level
+        with get_mcp_db() as db:
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_back)
+
+            query = db.query(LogEntry).filter(
+                LogEntry.timestamp > cutoff_time,
+                LogEntry.message.contains(keyword)
+            )
+
+            if host_id:
+                query = query.filter(LogEntry.host_id == host_id)
+            if service:
+                query = query.filter(LogEntry.service == service)
+            if level:
+                query = query.filter(LogEntry.level == level)
+
+            logs = query.order_by(LogEntry.timestamp.desc()).limit(limit).all()
+
+            logs_data = []
+            for log in logs:
+                host = db.query(Host).filter(Host.id == log.host_id).first()
+
+                log_info = {
+                    "id": log.id,
+                    "message": log.message,
+                    "level": log.level,
+                    "service": log.service,
+                    "source": log.source,
+                    "timestamp": log.timestamp.isoformat(),
+                    "host": {
+                        "id": host.id,
+                        "hostname": host.hostname,
+                        "ip": host.ip
+                    } if host else None
                 }
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-        
+                logs_data.append(log_info)
+
+            total_matches = db.query(LogEntry).filter(
+                LogEntry.timestamp > cutoff_time,
+                LogEntry.message.contains(keyword)
+            ).count()
+
+            return {
+                "logs": logs_data,
+                "search_info": {
+                    "keyword": keyword,
+                    "total_matches": total_matches,
+                    "returned_count": len(logs_data),
+                    "time_range_hours": hours_back,
+                    "filters": {
+                        "host_id": host_id,
+                        "service": service,
+                        "level": level
+                    }
+                },
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+
     except Exception as e:
         logger.error(f"Error searching logs: {e}")
         return {"error": str(e), "logs": [], "search_info": {}}
@@ -334,86 +304,73 @@ def analyze_incident(
         Dict containing AI analysis, root cause, and recommendations
     """
     try:
-        db = vigilops_mcp.get_db()
-        ai_engine = AIEngine()
-        
-        context_data = {}
-        
-        if alert_id:
-            # Get alert details
-            alert = db.query(Alert).filter(Alert.id == alert_id).first()
-            if not alert:
-                return {"error": f"Alert {alert_id} not found"}
-                
-            context_data["alert"] = {
-                "title": alert.title,
-                "message": alert.message,
-                "severity": alert.severity,
-                "metric_value": alert.metric_value,
-                "threshold": alert.threshold,
-                "fired_at": alert.fired_at.isoformat()
+        with get_mcp_db() as db:
+            ai_engine = AIEngine()
+            context_data = {}
+
+            if alert_id:
+                alert = db.query(Alert).filter(Alert.id == alert_id).first()
+                if not alert:
+                    return {"error": f"Alert {alert_id} not found"}
+
+                context_data["alert"] = {
+                    "title": alert.title,
+                    "message": alert.message,
+                    "severity": alert.severity,
+                    "metric_value": alert.metric_value,
+                    "threshold": alert.threshold,
+                    "fired_at": alert.fired_at.isoformat()
+                }
+
+                if include_context and alert.host_id:
+                    recent_metrics = db.query(HostMetric).filter(
+                        HostMetric.host_id == alert.host_id,
+                        HostMetric.recorded_at > alert.fired_at - timedelta(hours=1)
+                    ).order_by(HostMetric.recorded_at.desc()).limit(10).all()
+
+                    context_data["recent_metrics"] = [
+                        {
+                            "cpu_percent": m.cpu_percent,
+                            "memory_percent": m.memory_percent,
+                            "disk_percent": m.disk_percent,
+                            "recorded_at": m.recorded_at.isoformat()
+                        } for m in recent_metrics
+                    ]
+
+                    related_logs = db.query(LogEntry).filter(
+                        LogEntry.host_id == alert.host_id,
+                        LogEntry.timestamp.between(
+                            alert.fired_at - timedelta(minutes=30),
+                            alert.fired_at + timedelta(minutes=10)
+                        )
+                    ).order_by(LogEntry.timestamp.desc()).limit(20).all()
+
+                    context_data["related_logs"] = [
+                        {
+                            "message": log.message,
+                            "level": log.level,
+                            "service": log.service,
+                            "timestamp": log.timestamp.isoformat()
+                        } for log in related_logs
+                    ]
+
+            analysis_result = ai_engine.analyze_complex_incident(
+                json.dumps(context_data),
+                description or "Please analyze this incident"
+            )
+
+            return {
+                "analysis": analysis_result,
+                "context_used": bool(context_data),
+                "recommendations": [
+                    "Check system resource utilization",
+                    "Review recent configuration changes",
+                    "Monitor related services",
+                    "Verify network connectivity"
+                ],
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
-            
-            if include_context and alert.host_id:
-                # Get recent metrics for this host
-                recent_metrics = db.query(HostMetric).filter(
-                    HostMetric.host_id == alert.host_id,
-                    HostMetric.recorded_at > alert.fired_at - timedelta(hours=1)
-                ).order_by(HostMetric.recorded_at.desc()).limit(10).all()
-                
-                context_data["recent_metrics"] = [
-                    {
-                        "cpu_percent": m.cpu_percent,
-                        "memory_percent": m.memory_percent,
-                        "disk_percent": m.disk_percent,
-                        "recorded_at": m.recorded_at.isoformat()
-                    } for m in recent_metrics
-                ]
-                
-                # Get related logs
-                related_logs = db.query(LogEntry).filter(
-                    LogEntry.host_id == alert.host_id,
-                    LogEntry.timestamp.between(
-                        alert.fired_at - timedelta(minutes=30),
-                        alert.fired_at + timedelta(minutes=10)
-                    )
-                ).order_by(LogEntry.timestamp.desc()).limit(20).all()
-                
-                context_data["related_logs"] = [
-                    {
-                        "message": log.message,
-                        "level": log.level,
-                        "service": log.service,
-                        "timestamp": log.timestamp.isoformat()
-                    } for log in related_logs
-                ]
-        
-        # Prepare analysis input
-        analysis_input = {
-            "type": "incident_analysis",
-            "description": description or "Automated incident analysis",
-            "context": context_data,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-        
-        # Call AI engine for analysis
-        analysis_result = ai_engine.analyze_complex_incident(
-            json.dumps(context_data),
-            description or "Please analyze this incident"
-        )
-        
-        return {
-            "analysis": analysis_result,
-            "context_used": bool(context_data),
-            "recommendations": [
-                "Check system resource utilization",
-                "Review recent configuration changes", 
-                "Monitor related services",
-                "Verify network connectivity"
-            ],
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-        
+
     except Exception as e:
         logger.error(f"Error analyzing incident: {e}")
         return {"error": str(e), "analysis": "Analysis failed"}
@@ -435,61 +392,55 @@ def get_topology(
         Dict containing topology data and service relationships  
     """
     try:
-        db = vigilops_mcp.get_db()
-        
-        # Get services
-        if service_id:
-            services = db.query(Service).filter(Service.id == service_id).all()
-        else:
-            services = db.query(Service).limit(50).all()  # Limit to prevent huge responses
-            
-        topology_data = {
-            "services": [],
-            "dependencies": [],
-            "metadata": {
-                "service_count": len(services),
-                "focused_service_id": service_id,
-                "include_dependencies": include_dependencies
-            }
-        }
-        
-        for service in services:
-            # Get host info
-            host = db.query(Host).filter(Host.id == service.host_id).first()
-            
-            service_info = {
-                "id": service.id,
-                "name": service.name,
-                "status": service.status,
-                "type": service.type,
-                "port": service.port,
-                "category": getattr(service, 'category', 'unknown'),
-                "host": {
-                    "id": host.id,
-                    "hostname": host.hostname,
-                    "ip": host.ip,
-                    "status": host.status
-                } if host else None
-            }
-            topology_data["services"].append(service_info)
-        
-        # Note: Dependencies would require ServiceDependency model queries
-        # This is a simplified version for MVP
-        if include_dependencies:
-            topology_data["dependencies"] = [
-                # Placeholder - would query actual dependency relationships
-                {
-                    "from_service_id": None,
-                    "to_service_id": None,
-                    "type": "dependency"
+        with get_mcp_db() as db:
+            if service_id:
+                services = db.query(Service).filter(Service.id == service_id).all()
+            else:
+                services = db.query(Service).limit(50).all()
+
+            topology_data = {
+                "services": [],
+                "dependencies": [],
+                "metadata": {
+                    "service_count": len(services),
+                    "focused_service_id": service_id,
+                    "include_dependencies": include_dependencies
                 }
-            ]
-        
-        return {
-            "topology": topology_data,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-        
+            }
+
+            for service in services:
+                host = db.query(Host).filter(Host.id == service.host_id).first()
+
+                service_info = {
+                    "id": service.id,
+                    "name": service.name,
+                    "status": service.status,
+                    "type": service.type,
+                    "port": service.port,
+                    "category": getattr(service, 'category', 'unknown'),
+                    "host": {
+                        "id": host.id,
+                        "hostname": host.hostname,
+                        "ip": host.ip,
+                        "status": host.status
+                    } if host else None
+                }
+                topology_data["services"].append(service_info)
+
+            if include_dependencies:
+                topology_data["dependencies"] = [
+                    {
+                        "from_service_id": None,
+                        "to_service_id": None,
+                        "type": "dependency"
+                    }
+                ]
+
+            return {
+                "topology": topology_data,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+
     except Exception as e:
         logger.error(f"Error getting topology: {e}")
         return {"error": str(e), "topology": {"services": [], "dependencies": []}}
@@ -535,7 +486,6 @@ def start_mcp_server(host: str = "127.0.0.1", port: int = 8003):
 def stop_mcp_server():
     """Stop the MCP server"""
     logger.info("Stopping VigilOps MCP Server")
-    vigilops_mcp.close_db()
 
 
 if __name__ == "__main__":
@@ -547,4 +497,4 @@ if __name__ == "__main__":
 
 
 # Export the server instance
-__all__ = ["mcp_server", "start_mcp_server", "stop_mcp_server", "vigilops_mcp"]
+__all__ = ["mcp_server", "start_mcp_server", "stop_mcp_server"]

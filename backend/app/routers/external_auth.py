@@ -25,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 
 from app.core.database import get_db
+from app.core.redis import get_redis
 from app.core.security import create_access_token, create_refresh_token
 from app.core.config import settings
 from app.models.user import User
@@ -77,8 +78,9 @@ OAUTH_PROVIDERS = {
     }
 }
 
-# CSRF state 存储（生产环境应使用 Redis 等分布式存储）
-_oauth_states: Dict[str, str] = {}
+# OAuth CSRF state 存储键前缀和过期时间
+_OAUTH_STATE_PREFIX = "vigilops:oauth_state:"
+_OAUTH_STATE_TTL = 600  # 10分钟过期
 
 
 class LDAPLoginRequest(BaseModel):
@@ -118,9 +120,10 @@ async def oauth_login(provider: str, request: Request):
     # 生成授权URL
     callback_url = str(request.url_for("oauth_callback", provider=provider))
     
-    # 生成随机 state 并临时保存，用于回调时的 CSRF 校验
+    # 生成随机 state 并存入 Redis（带 TTL），用于回调时的 CSRF 校验
     csrf_state = secrets.token_urlsafe(32)
-    _oauth_states[csrf_state] = provider
+    redis = await get_redis()
+    await redis.set(f"{_OAUTH_STATE_PREFIX}{csrf_state}", provider, ex=_OAUTH_STATE_TTL)
 
     params = {
         "client_id": provider_config["client_id"],
@@ -165,8 +168,11 @@ async def oauth_callback(
     if provider not in OAUTH_PROVIDERS:
         raise HTTPException(status_code=400, detail=f"不支持的OAuth提供商: {provider}")
     
-    # 验证 state 参数防 CSRF（校验随机 token 并立即消费，防止重放）
-    if not state or _oauth_states.pop(state, None) != provider:
+    # 验证 state 参数防 CSRF（从 Redis 取出并立即删除，防止重放）
+    redis = await get_redis()
+    redis_key = f"{_OAUTH_STATE_PREFIX}{state}"
+    stored_provider = await redis.getdel(redis_key) if state else None
+    if not state or stored_provider != provider:
         raise HTTPException(status_code=400, detail="无效的状态参数")
     
     provider_config = OAUTH_PROVIDERS[provider]
