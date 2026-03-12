@@ -74,6 +74,8 @@ export interface AlertRule {
   silence_start?: string | null;
   /** 静默结束时间 */
   silence_end?: string | null;
+  /** 关联的通知渠道 ID 列表 */
+  notification_channel_ids?: number[] | null;
 }
 
 /** 通知渠道 */

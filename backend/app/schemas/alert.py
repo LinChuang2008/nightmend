@@ -4,7 +4,7 @@
 定义告警规则 CRUD 和告警事件查询的数据结构。
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
 
@@ -32,6 +32,7 @@ class AlertRuleCreate(BaseModel):
     cooldown_seconds: int = 300
     silence_start: Optional[str] = None
     silence_end: Optional[str] = None
+    notification_channel_ids: Optional[List[int]] = None  # 关联的通知渠道ID列表
 
 
 class AlertRuleUpdate(BaseModel):
@@ -54,6 +55,7 @@ class AlertRuleUpdate(BaseModel):
     cooldown_seconds: Optional[int] = None
     silence_start: Optional[str] = None
     silence_end: Optional[str] = None
+    notification_channel_ids: Optional[List[int]] = None  # 关联的通知渠道ID列表
 
 
 class AlertRuleResponse(BaseModel):
@@ -80,6 +82,7 @@ class AlertRuleResponse(BaseModel):
     cooldown_seconds: int = 300
     silence_start: Optional[str] = None
     silence_end: Optional[str] = None
+    notification_channel_ids: Optional[List[int]] = None  # 关联的通知渠道ID列表
     created_at: datetime
     updated_at: datetime
 

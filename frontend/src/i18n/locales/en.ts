@@ -323,6 +323,9 @@ const en = {
       cooldown: 'Cooldown (seconds)',
       silenceStart: 'Silence Start',
       silenceEnd: 'Silence End',
+      notificationChannels: 'Notification Channels',
+      notificationChannelsTooltip: 'Specify notification channels for this alert rule, leave empty to send to all enabled channels',
+      selectChannels: 'Select Channels',
     },
   },
 

@@ -843,6 +843,52 @@ async def _get_enabled_channels(db: AsyncSession):
     return channels
 
 
+async def _get_channels_for_rule(db: AsyncSession, channel_ids: list[int] | None):
+    """
+    根据告警规则配置获取指定的通知渠道列表 (Get Channels for Alert Rule)
+
+    功能描述:
+        根据告警规则中配置的 notification_channel_ids 获取对应的通知渠道。
+        如果规则未配置渠道（None 或空列表），则返回所有已启用的渠道（兼容旧数据）。
+        仅返回已启用的渠道，避免向已禁用的渠道发送通知。
+
+    Args:
+        db: 数据库会话
+        channel_ids: 告警规则配置的通知渠道ID列表
+
+    Returns:
+        list[NotificationChannel]: 符合条件的通知渠道列表
+
+    逻辑说明:
+        1. 如果 channel_ids 为 None 或空列表，返回所有已启用渠道（兼容未配置规则的旧数据）
+        2. 如果 channel_ids 有值，只返回指定ID且已启用的渠道
+        3. 过滤掉已禁用的渠道，即使用户配置了该渠道
+    """
+    # 1. 如果规则未配置渠道，返回所有已启用渠道（向后兼容）
+    if not channel_ids:
+        logger.info("Alert rule has no configured channels, using all enabled channels")
+        return await _get_enabled_channels(db)
+
+    # 2. 查询指定ID的渠道，且必须是已启用状态
+    result = await db.execute(
+        select(NotificationChannel).where(
+            NotificationChannel.id.in_(channel_ids),
+            NotificationChannel.is_enabled == True,  # noqa: E712
+        )
+    )
+    channels = result.scalars().all()
+
+    # 3. 记录日志：如果配置的渠道中有被禁用的
+    enabled_ids = {ch.id for ch in channels}
+    disabled_ids = set(channel_ids) - enabled_ids
+    if disabled_ids:
+        logger.warning(
+            f"Some configured channels are disabled and will be skipped: {disabled_ids}"
+        )
+
+    return list(channels)
+
+
 # ---------------------------------------------------------------------------
 # 公共入口
 # ---------------------------------------------------------------------------
@@ -904,9 +950,10 @@ async def send_alert_notification(db: AsyncSession, alert: Alert):
         return  # 冷却期内，直接返回不发送通知
 
     # 4. 多渠道并发通知发送 (Multi-channel Concurrent Notification)
-    # 通过降噪检查后，向所有启用的通知渠道发送告警
-    # 使用缓存的渠道查询函数
-    channels = await _get_enabled_channels(db)
+    # 通过降噪检查后，向规则配置的通知渠道发送告警
+    # 使用告警规则配置的渠道ID列表筛选通知渠道
+    channel_ids = rule.notification_channel_ids if rule else None
+    channels = await _get_channels_for_rule(db, channel_ids)
 
     # 4.1 使用 asyncio.gather 并发向所有已启用渠道发送通知
     # return_exceptions=True 确保单个渠道失败不影响其他渠道

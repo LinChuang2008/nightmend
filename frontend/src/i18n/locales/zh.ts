@@ -323,6 +323,9 @@ const zh = {
       cooldown: '冷却期（秒）',
       silenceStart: '静默开始',
       silenceEnd: '静默结束',
+      notificationChannels: '通知渠道',
+      notificationChannelsTooltip: '为该告警规则指定通知渠道，留空则发送到所有已启用的渠道',
+      selectChannels: '选择通知渠道',
     },
   },
 

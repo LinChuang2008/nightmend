@@ -11,7 +11,7 @@ trigger conditions, cooldown settings, and alert event lifecycle management.
 from datetime import datetime, time
 from typing import Optional
 
-from sqlalchemy import String, Integer, Float, DateTime, Boolean, Text, JSON, Time, func
+from sqlalchemy import String, Integer, Float, DateTime, Boolean, Text, JSON, Time, func, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -55,6 +55,8 @@ class AlertRule(Base):
     cooldown_seconds: Mapped[int] = mapped_column(Integer, default=300)  # 告警冷却期秒数 (Alert Cooldown Seconds)
     silence_start: Mapped[Optional[time]] = mapped_column(Time, nullable=True)  # 静默窗口开始时间 (Silence Window Start Time)
     silence_end: Mapped[Optional[time]] = mapped_column(Time, nullable=True)  # 静默窗口结束时间 (Silence Window End Time)
+    # 通知渠道配置 (Notification Channels Configuration)
+    notification_channel_ids: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)  # 关联的通知渠道ID列表 (Associated Notification Channel IDs List)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )  # 创建时间 (Creation Time)
