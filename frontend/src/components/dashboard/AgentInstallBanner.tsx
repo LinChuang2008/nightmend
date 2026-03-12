@@ -55,28 +55,20 @@ export default function AgentInstallBanner() {
   };
 
   const getServerUrl = () => {
-    const currentPort = window.location.port;
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
-    
-    // 如果当前端口是3001（前端开发），映射到8001
-    if (currentPort === '3001') {
-      return `${protocol}//${hostname}:8001`;
-    }
-    // 如果是80（Docker nginx），映射到8000
-    if (currentPort === '80' || currentPort === '') {
-      return `${protocol}//${hostname}:8000`;
-    }
-    // 否则用当前host
-    return `${protocol}//${hostname}${currentPort ? `:${currentPort}` : ''}`;
+    // Agent 安装脚本在宿主机执行，需要直接访问前端 nginx（由 nginx 反代到后端）
+    // 因此直接使用当前浏览器访问的地址即可
+    const port = window.location.port;
+    return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
   };
   
   const serverUrl = getServerUrl();
   const tokenDisplay = token || '<YOUR_TOKEN>';
   // 使用 GitHub raw URL 提供安装脚本，避免 404 错误
-  const installCmdGithub = `curl -fsSL https://raw.githubusercontent.com/LinChuang2008/vigilops/main/scripts/install-agent.sh | VIGILOPS_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`;
+  const installCmdGithub = `sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/LinChuang2008/vigilops/main/scripts/install-agent.sh)" -- --server ${serverUrl} --token ${tokenDisplay}`;
   // 本地服务器备用选项
-  const installCmdLocal = `curl -fsSL ${serverUrl}/api/v1/agent/install.sh | VIGILOPS_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`;
+  const installCmdLocal = `sudo bash -c "$(curl -fsSL ${serverUrl}/api/v1/agent/install.sh)" -- --server ${serverUrl} --token ${tokenDisplay}`;
   const [selectedCmd, setSelectedCmd] = useState('github');
   const installCmd = selectedCmd === 'github' ? installCmdGithub : installCmdLocal;
 

@@ -47,12 +47,27 @@ class AgentReporter:
     def _get_local_ip(self) -> str:
         """获取本机主要 IP 地址。
 
-        优先尝试通过外部服务获取公网 IP（适用于云主机），
-        失败后回退到 UDP socket 方式获取内网 IP。
+        优先通过 UDP socket 获取与服务端通信的内网 IP（更准确地反映网络拓扑），
+        仅在无法获取时才回退到公网服务查询。
         """
         import socket
 
-        # 1) 尝试通过公网服务获取外网 IP
+        # 1) 优先：通过 UDP socket 连接服务端获取本机出口 IP
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(self.config.server.url)
+            host = parsed.hostname or "8.8.8.8"
+            port = parsed.port or 80
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect((host, port))
+            ip = s.getsockname()[0]
+            s.close()
+            if ip and ip != "127.0.0.1":
+                return ip
+        except Exception:
+            pass
+
+        # 2) 回退：通过公网服务获取外网 IP（适用于云主机）
         for url in [
             "https://api.ipify.org",
             "https://ifconfig.me/ip",
@@ -66,21 +81,6 @@ class AgentReporter:
                         return ip
             except Exception:
                 continue
-
-        # 2) 回退：通过 UDP socket 连接目标获取本机出口 IP
-        try:
-            from urllib.parse import urlparse
-            parsed = urlparse(self.config.server.url)
-            host = parsed.hostname or "10.211.55.2"
-            port = parsed.port or 80
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect((host, port))
-            ip = s.getsockname()[0]
-            s.close()
-            if ip and ip != "127.0.0.1":
-                return ip
-        except Exception:
-            pass
 
         return ""
 
