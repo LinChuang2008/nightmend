@@ -4,14 +4,31 @@
 定义主机列表、详情、指标等 API 的数据结构。
 """
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+
+class HostUpdate(BaseModel):
+    """主机更新请求体。"""
+    display_name: str | None = None
+
+    @field_validator('display_name')
+    @classmethod
+    def validate_display_name(cls, v: str | None) -> str | None:
+        """验证显示名称不能为纯空格。"""
+        if v is not None and v.strip() == '':
+            raise ValueError('Display name cannot be empty or only spaces')
+        return v.strip() if v else None
 
 
 class HostResponse(BaseModel):
     """主机基本信息响应体。"""
     id: int
     hostname: str
+    display_name: str | None = None
     ip_address: str | None = None
+    private_ip: str | None = None
+    public_ip: str | None = None
+    network_info: dict | None = None
     os: str | None = None
     os_version: str | None = None
     arch: str | None = None

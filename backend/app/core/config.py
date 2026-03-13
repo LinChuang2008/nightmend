@@ -123,6 +123,23 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3001"  # 前端 URL (Frontend URL)
     api_domain: str = "localhost:8001"  # API 域名 (API Domain)
 
+    # 通知安全配置 (Notification Security Configuration)
+    # SSRF 防护：允许的 Webhook 域名白名单（逗号分隔），留空则不限制（仅开发环境）
+    # SSRF Protection: Allowed webhook domain whitelist (comma-separated), empty = no restriction (dev only)
+    webhook_allowed_domains: str = ""  # 例如: "api.example.com,webhook.example.com"
+    webhook_enable_ssl_verification: bool = False  # 是否启用 SSL 证书验证 (Enable SSL Certificate Verification)
+
+    # 环境变量别名（Environment Variable Aliases）
+    # Pydantic Settings 需要明确指定环境变量名称
+    WEBHOOK_ALLOWED_DOMAINS: str = ""
+    WEBHOOK_ENABLE_SSL_VERIFICATION: bool = True
+
+    # 通知发送配置 (Notification Sending Configuration)
+    notification_max_retries: int = 3  # 通知发送失败最大重试次数 (Max Retries for Failed Notifications)
+    notification_template_cache_ttl: int = 3600  # 模板缓存 TTL（秒）- 1小时 (Template Cache TTL)
+    notification_channel_cache_ttl: int = 1800  # 渠道缓存 TTL（秒）- 30分钟 (Channel Cache TTL)
+    notification_default_cooldown: int = 300  # 默认冷却时间（秒）- 5分钟 (Default Cooldown Seconds)
+
     @property
     def database_url(self) -> str:
         """

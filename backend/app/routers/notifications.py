@@ -38,6 +38,41 @@ from app.schemas.notification import (
 router = APIRouter(prefix="/api/v1/notification-channels", tags=["notifications"])
 
 
+def _sanitize_config(config: dict) -> dict:
+    """
+    脱敏配置中的敏感信息 (Sanitize Sensitive Information in Config)
+
+    功能描述:
+        在记录审计日志前，对配置中的敏感字段进行脱敏处理，
+        防止密码、密钥等信息泄露到日志中。
+
+    Args:
+        config: 原始配置字典
+
+    Returns:
+        dict: 脱敏后的配置字典
+
+    脱敏字段列表:
+        - smtp_password: SMTP 密码
+        - secret: 钉钉/飞书签名密钥
+        - token: API Token
+        - password: 通用密码字段
+    """
+    sensitive_fields = ["smtp_password", "secret", "token", "password", "api_key"]
+    sanitized = config.copy()
+
+    for field in sensitive_fields:
+        if field in sanitized and sanitized[field]:
+            # 保留前3个字符，其余替换为***
+            value = str(sanitized[field])
+            if len(value) > 3:
+                sanitized[field] = value[:3] + "***"
+            else:
+                sanitized[field] = "***"
+
+    return sanitized
+
+
 @router.get("/logs", response_model=List[NotificationLogResponse])
 async def list_notification_logs(
     alert_id: Optional[int] = None,
@@ -311,14 +346,23 @@ async def create_channel(
 ):
     """创建新的通知渠道。"""
     from app.services.audit import log_audit
+    from app.core.redis import get_redis
+
     channel = NotificationChannel(**data.model_dump())
     db.add(channel)
     await db.flush()
+    # 脱敏后再记录审计日志
+    sanitized_config = _sanitize_config(data.model_dump())
     await log_audit(db, _user.id, "create_notification_channel", "notification_channel", channel.id,
-                    json.dumps(data.model_dump()),
+                    json.dumps(sanitized_config),
                     request.client.host if request.client else None)
     await db.commit()
     await db.refresh(channel)
+
+    # 清除渠道缓存
+    redis = await get_redis()
+    await redis.delete("notification:channels:enabled")
+
     return channel
 
 
@@ -332,6 +376,8 @@ async def update_channel(
 ):
     """更新指定通知渠道配置。"""
     from app.services.audit import log_audit
+    from app.core.redis import get_redis
+
     result = await db.execute(select(NotificationChannel).where(NotificationChannel.id == channel_id))
     channel = result.scalar_one_or_none()
     if not channel:
@@ -341,12 +387,77 @@ async def update_channel(
     for field, value in updates.items():
         setattr(channel, field, value)
 
+    # 脱敏后再记录审计日志
+    sanitized_updates = _sanitize_config(updates)
     await log_audit(db, _user.id, "update_notification_channel", "notification_channel", channel_id,
-                    json.dumps(updates),
+                    json.dumps(sanitized_updates),
                     request.client.host if request.client else None)
     await db.commit()
     await db.refresh(channel)
+
+    # 清除渠道缓存
+    redis = await get_redis()
+    await redis.delete("notification:channels:enabled")
+
     return channel
+
+
+@router.post("/{channel_id}/test", response_model=dict)
+async def test_channel(
+    channel_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    测试通知渠道发送功能 (Test Notification Channel)
+
+    向指定渠道发送测试通知，验证配置是否正确。
+
+    Args:
+        channel_id: 通知渠道ID
+
+    Returns:
+        测试发送结果，包含成功/失败状态和详细信息
+    """
+    # 查找通知渠道
+    result = await db.execute(select(NotificationChannel).where(NotificationChannel.id == channel_id))
+    channel = result.scalar_one_or_none()
+
+    if not channel:
+        raise HTTPException(status_code=404, detail="Channel not found")
+
+    if not channel.is_enabled:
+        raise HTTPException(status_code=400, detail="Channel is disabled, cannot send test")
+
+    try:
+        # 导入通知发送服务
+        from app.services.notifier import send_test_notification_to_channel
+
+        # 发送测试通知
+        success = await send_test_notification_to_channel(channel)
+
+        if success:
+            return {
+                "success": True,
+                "message": f"测试通知已成功发送到渠道: {channel.name}",
+                "channel_type": channel.type,
+                "channel_name": channel.name
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"测试通知发送失败，请检查配置",
+                "channel_type": channel.type,
+                "channel_name": channel.name
+            }
+    except Exception as e:
+        logger.error(f"Failed to send test notification to channel {channel_id}: {e}")
+        return {
+            "success": False,
+            "message": f"测试通知发送异常: {str(e)}",
+            "channel_type": channel.type,
+            "channel_name": channel.name
+        }
 
 
 @router.delete("/{channel_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -358,6 +469,8 @@ async def delete_channel(
 ):
     """删除指定通知渠道。"""
     from app.services.audit import log_audit
+    from app.core.redis import get_redis
+
     result = await db.execute(select(NotificationChannel).where(NotificationChannel.id == channel_id))
     channel = result.scalar_one_or_none()
     if not channel:
@@ -366,3 +479,7 @@ async def delete_channel(
                     None, request.client.host if request.client else None)
     await db.delete(channel)
     await db.commit()
+
+    # 清除渠道缓存
+    redis = await get_redis()
+    await redis.delete("notification:channels:enabled")

@@ -126,13 +126,15 @@ export default function HostDetail() {
 
       <Card style={{ marginBottom: 16 }}>
         <Descriptions column={{ xs: 1, sm: 2, md: 3 }}>
+          <Descriptions.Item label={t('hosts.displayName')}>{host.display_name || '-'}</Descriptions.Item>
           <Descriptions.Item label={t('hosts.hostname')}>{host.hostname}</Descriptions.Item>
-          <Descriptions.Item label={t('hosts.ip')}>{host.ip_address}</Descriptions.Item>
-          <Descriptions.Item label={t('hosts.os')}>{host.os}</Descriptions.Item>
+          <Descriptions.Item label={t('hosts.publicIp')}>{host.public_ip || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('hosts.privateIp')}>{host.private_ip || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('hosts.os')}>{host.os || '-'}</Descriptions.Item>
           <Descriptions.Item label={t('hosts.status')}>
             <Tag color={host.status === 'online' ? 'success' : 'error'}>{host.status === 'online' ? t('hosts.online') : t('hosts.offline')}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label={t('hosts.group')}>{host.group || '-'}</Descriptions.Item>
+          <Descriptions.Item label={t('hosts.group')}>{host.group_name || '-'}</Descriptions.Item>
           <Descriptions.Item label={t('hosts.lastHeartbeat')}>{host.last_heartbeat ? new Date(host.last_heartbeat).toLocaleString() : '-'}</Descriptions.Item>
           <Descriptions.Item label={t('hosts.tags')}>
             {host.tags ? (Array.isArray(host.tags) ? host.tags : Object.keys(host.tags)).map((tag: string) => <Tag key={tag}>{tag}</Tag>) : '-'}

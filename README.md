@@ -39,6 +39,15 @@ echo "✅ Open: http://localhost:3001"
 
 **First account becomes admin automatically.** No complex setup needed.
 
+> **📊 Database Auto-Setup**
+>
+> On first startup, the backend automatically creates **37 database tables** and initializes:
+> - ✅ 5 built-in alert rules (CPU, Memory, Disk, Host Offline, Load Average)
+> - ✅ 8 dashboard components
+> - ✅ Default data retention policies
+>
+> No manual SQL execution needed!
+
 ---
 
 ## 💡 **What Makes VigilOps Different**
@@ -398,6 +407,15 @@ echo "✅ 打开浏览器访问: http://localhost:3001"
 ```
 
 **第一个注册的账号自动成为管理员。** 无需复杂配置。
+
+> **📊 数据库自动初始化**
+>
+> 首次启动时，后端会自动创建 **37 张数据表** 并初始化：
+> - ✅ 5 条内置告警规则（CPU、内存、磁盘、主机离线、系统负载）
+> - ✅ 8 个仪表盘组件
+> - ✅ 默认数据保留策略
+>
+> 无需手动执行 SQL 脚本！
 
 ---
 

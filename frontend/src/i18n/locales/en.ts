@@ -321,8 +321,13 @@ const en = {
       operator: 'Operator',
       durationSeconds: 'Duration (seconds)',
       cooldown: 'Cooldown (seconds)',
+      continuousAlert: 'Continuous Alert',
+      continuousAlertTooltip: 'When enabled, send notifications every cooldown period during ongoing violations; when disabled, only send on recovery',
       silenceStart: 'Silence Start',
       silenceEnd: 'Silence End',
+      notificationChannels: 'Notification Channels',
+      notificationChannelsTooltip: 'Specify notification channels for this alert rule, leave empty to send to all enabled channels',
+      selectChannels: 'Select Channels',
     },
   },
 
@@ -330,7 +335,11 @@ const en = {
   hosts: {
     title: 'Server List',
     hostname: 'Hostname',
+    displayName: 'Display Name',
     ip: 'IP Address',
+    privateIp: 'Private IP',
+    publicIp: 'Public IP',
+    networkInfo: 'Network Info',
     os: 'Operating System',
     cpu: 'CPU Usage',
     memory: 'Memory Usage',
@@ -367,6 +376,11 @@ const en = {
     diskUsage: 'Disk Usage',
     activeAlerts: 'Active Alerts ({{count}})',
     noActiveAlerts: 'No Active Alerts',
+    editDisplayName: 'Edit Display Name',
+    enterDisplayName: 'Enter display name',
+    displayNameCannotBeEmpty: 'Display name cannot be empty',
+    displayNameUpdated: 'Display name updated',
+    updateFailed: 'Update failed',
   },
 
   // ========== Services ==========
@@ -755,6 +769,9 @@ const en = {
     updatedSuccess: 'Updated',
     testSend: 'Test Send',
     testSendComingSoon: 'Feature under development, stay tuned.',
+    sendingTest: 'Sending test notification...',
+    testSendSuccess: 'Test notification sent successfully',
+    testSendFailed: 'Failed to send test notification, please check configuration',
     // Logs
     logManagement: 'Notification Log Management',
     totalNotifications: 'Total Notifications',

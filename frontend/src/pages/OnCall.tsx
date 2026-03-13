@@ -46,7 +46,7 @@ interface OnCallSchedule {
 
 interface CurrentOnCall {
   user_id: number;
-  username: string;
+  email: string;
   group_id: number;
   group_name: string;
   schedule_id: number;
@@ -59,7 +59,7 @@ interface CoverageData {
   schedules: Array<{
     schedule_id: number;
     user_id: number;
-    username: string;
+    email: string;
     group_id: number;
     group_name: string;
     start_date: string;
@@ -106,7 +106,7 @@ export default function OnCall() {
   const [coverageLoading, setCoverageLoading] = useState(false);
 
   // ===== 用户列表 (for select) =====
-  const [users, setUsers] = useState<Array<{ id: number; username: string }>>([]);
+  const [users, setUsers] = useState<Array<{ id: number; email: string }>>([]);
 
   // ===== 数据加载 =====
   const fetchGroups = useCallback(async () => {
@@ -156,7 +156,7 @@ export default function OnCall() {
       });
       if (resp.ok) {
         const data = await resp.json();
-        setUsers((data.items || []).map((u: any) => ({ id: u.id, username: u.username })));
+        setUsers((data.items || []).map((u: any) => ({ id: u.id, email: u.email })));
       }
     } catch { /* ignore */ }
   }, []);
@@ -257,14 +257,14 @@ export default function OnCall() {
   // ===== 日历渲染 =====
   const schedulesByDate = useMemo(() => {
     if (!coverageData) return {};
-    const map: Record<string, Array<{ username: string; group_name: string }>> = {};
+    const map: Record<string, Array<{ email: string; group_name: string }>> = {};
     for (const s of (coverageData.schedules ?? [])) {
       let cur = dayjs(s.start_date);
       const end = dayjs(s.end_date);
       while (cur.isBefore(end) || cur.isSame(end, 'day')) {
         const key = cur.format('YYYY-MM-DD');
         if (!map[key]) map[key] = [];
-        map[key].push({ username: s.username, group_name: s.group_name });
+        map[key].push({ email: s.email, group_name: s.group_name });
         cur = cur.add(1, 'day');
       }
     }
@@ -281,7 +281,7 @@ export default function OnCall() {
           <li key={idx}>
             <Badge
               status="success"
-              text={<Text style={{ fontSize: 12 }}>{item.username} ({item.group_name})</Text>}
+              text={<Text style={{ fontSize: 12 }}>{item.email} ({item.group_name})</Text>}
             />
           </li>
         ))}
@@ -301,7 +301,7 @@ export default function OnCall() {
 
   const userNameMap = useMemo(() => {
     const map: Record<number, string> = {};
-    users.forEach(u => { map[u.id] = u.username; });
+    users.forEach(u => { map[u.id] = u.email; });
     return map;
   }, [users]);
 
@@ -372,7 +372,7 @@ export default function OnCall() {
             <Space>
               <CheckCircleOutlined style={{ color: '#52c41a' }} />
               <Text strong>{t('onCall.currentOnCall')}</Text>
-              <Text>{currentOnCall.username}</Text>
+              <Text>{currentOnCall.email}</Text>
               <Tag color="blue">{currentOnCall.group_name}</Tag>
               <Text type="secondary">{currentOnCall.start_date} ~ {currentOnCall.end_date}</Text>
             </Space>
@@ -508,7 +508,7 @@ export default function OnCall() {
               placeholder={t('onCall.columnPerson')}
               showSearch
               optionFilterProp="label"
-              options={users.map(u => ({ value: u.id, label: u.username }))}
+              options={users.map(u => ({ value: u.id, label: u.email }))}
             />
           </Form.Item>
           <Form.Item name="dateRange" label={t('onCall.columnPeriod')} rules={[{ required: true, message: t('onCall.periodRequired') }]}>

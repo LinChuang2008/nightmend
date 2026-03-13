@@ -51,17 +51,23 @@ def _make_channel(ch_type="webhook", config=None, name="test-channel", is_enable
 
 
 class TestTemplateVars:
-    def test_full_alert(self):
+    @pytest.mark.asyncio
+    async def test_full_alert(self):
+        from app.core.database import async_session
         alert = _make_alert()
-        v = _build_template_vars(alert)
+        async with async_session() as db:
+            v = await _build_template_vars(db, alert)
         assert v["title"] == "Test Alert"
         assert v["severity"] == "warning"
         assert v["metric_value"] == 95.0
         assert "2026" in v["fired_at"]
 
-    def test_none_values(self):
+    @pytest.mark.asyncio
+    async def test_none_values(self):
+        from app.core.database import async_session
         alert = _make_alert(metric_value=None, threshold=None, host_id=None, fired_at=None)
-        v = _build_template_vars(alert)
+        async with async_session() as db:
+            v = await _build_template_vars(db, alert)
         assert v["metric_value"] == ""
         assert v["threshold"] == ""
         assert v["host_id"] == ""

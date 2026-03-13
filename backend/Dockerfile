@@ -11,6 +11,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# Install tzdata for timezone support
+RUN apt-get update && apt-get install -y tzdata && rm -rf /var/lib/apt/lists/*
+
 # Copy installed packages
 COPY --from=builder /install /usr/local
 

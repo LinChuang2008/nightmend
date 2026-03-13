@@ -55,7 +55,7 @@ async def start_listener():
                         result = await db.execute(select(Host).where(Host.id == data["host_id"]))
                         host = result.scalar_one_or_none()
                         if host:
-                            host_name = host.hostname or host.ip or "unknown"
+                            host_name = host.display_hostname
 
                     if data.get("service_id"):
                         from app.models.service import Service

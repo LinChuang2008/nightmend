@@ -60,11 +60,17 @@ class AlertGroup(Base):
 class AlertDeduplication(Base):
     """
     告警去重记录表 (Alert Deduplication Record Table)
-    
-    记录告警的去重信息，防止短时间内重复创建相同的告警。
-    
-    Table for recording alert deduplication information to prevent
-    creating duplicate alerts in a short time period.
+
+    记录告警的去重信息，支持精确的持续时间和冷却期判断。
+
+    核心设计：
+    - first_violation_time: 首次违规时间（用于持续时间判断）
+    - first_alert_time: 首次告警触发时间（用于计算异常持续时长）
+    - last_alert_time: 上次发送告警通知时间（用于冷却期判断）
+    - occurrence_count: 违规检测次数（聚合统计）
+
+    Table for recording alert deduplication information with precise
+    duration and cooldown tracking.
     """
     __tablename__ = "alert_deduplications"
 
@@ -73,18 +79,28 @@ class AlertDeduplication(Base):
     rule_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)  # 告警规则 ID
     host_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)  # 主机 ID
     service_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)  # 服务 ID
-    
-    first_occurrence: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)  # 首次触发时间
-    last_occurrence: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)  # 最后触发时间
-    occurrence_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)  # 触发次数
-    
-    # 去重控制
-    suppressed: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否被抑制
+
+    # 时间追踪（核心字段）
+    first_violation_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)  # 首次违规时间（用于判断持续时间）
+    first_alert_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # 首次告警触发时间（用于计算持续时长）
+    last_alert_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # 上次发送告警通知时间（用于冷却期判断）
+    last_check_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)  # 最后一次检查时间
+
+    # 统计信息
+    occurrence_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)  # 违规检测次数（聚合统计）
+    alert_sent_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)  # 已发送通知次数
+
+    # 状态控制
+    alert_triggered: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否已触发过告警
+    suppressed: Mapped[bool] = mapped_column(Boolean, default=False)  # 当前是否被抑制
     suppression_reason: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # 抑制原因
-    
+
+    # 恢复追踪
+    recovery_start_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # 恢复开始时间（用于判断恢复持续时间）
+
     # 关联的告警组
     alert_group_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("alert_groups.id"), nullable=True, index=True)
-    
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

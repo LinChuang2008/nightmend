@@ -75,7 +75,7 @@ class OnCallScheduleResponse(OnCallScheduleBase):
 class CurrentOnCallResponse(BaseModel):
     """当前值班响应模式 (Current On-Call Response Schema)"""
     user_id: int = Field(..., description="值班用户ID")
-    username: str = Field(..., description="值班用户名")
+    email: str = Field(..., description="值班用户邮箱")
     group_id: int = Field(..., description="值班组ID")
     group_name: str = Field(..., description="值班组名称")
     schedule_id: int = Field(..., description="排期ID")

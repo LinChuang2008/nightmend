@@ -10,7 +10,11 @@ from pydantic import BaseModel
 class AgentRegisterRequest(BaseModel):
     """Agent 注册请求体，包含主机基本信息。"""
     hostname: str
+    display_name: str | None = None
     ip_address: str | None = None
+    private_ip: str | None = None
+    public_ip: str | None = None
+    network_info: dict | None = None
     os: str | None = None
     os_version: str | None = None
     arch: str | None = None

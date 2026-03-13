@@ -8,11 +8,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useResponsive } from '../hooks/useResponsive';
 import { Table, Card, Tag, Typography, Select, Space, Button, Drawer, Descriptions, Tabs, Modal, Form, Input, InputNumber, Switch, Row, Col, message, TimePicker, Spin, Empty, Collapse, Radio, Tooltip } from 'antd';
-import { ExclamationCircleOutlined, RobotOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import { ExclamationCircleOutlined, RobotOutlined, PauseCircleOutlined, PlayCircleOutlined, BellOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import api from '../services/api';
-import { alertService } from '../services/alerts';
+import { alertService, notificationService, type NotificationChannel } from '../services/alerts';
 import { databaseService } from '../services/databases';
 import type { DatabaseItem } from '../services/databases';
 import type { Alert, AlertRule } from '../services/alerts';
@@ -44,6 +44,8 @@ export default function AlertList() {
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
   const [ruleType, setRuleType] = useState<string>('metric');
   const [dbList, setDbList] = useState<DatabaseItem[]>([]);
+  const [notificationChannels, setNotificationChannels] = useState<NotificationChannel[]>([]);
+  const [channelsLoading, setChannelsLoading] = useState(false);
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -283,6 +285,16 @@ export default function AlertList() {
     } catch { /* ignore */ }
   };
 
+  const loadNotificationChannels = async () => {
+    setChannelsLoading(true);
+    try {
+      const { data } = await notificationService.listChannels();
+      setNotificationChannels(data.filter((ch: NotificationChannel) => ch.is_enabled));
+    } catch { /* ignore */ } finally {
+      setChannelsLoading(false);
+    }
+  };
+
   useEffect(() => { fetchAlerts(); }, [page, pageSize, statusFilter, severityFilter]);
 
   const handleAck = async (id: string) => {
@@ -451,6 +463,7 @@ export default function AlertList() {
             if (r.silence_end) vals.silence_end = dayjs(r.silence_end, 'HH:mm:ss');
             form.setFieldsValue(vals);
             loadDbList();
+            loadNotificationChannels();
             setRuleModalOpen(true);
           }}>{t('common.edit')}</Button>
           {!r.is_builtin && <Button type="link" size="small" danger onClick={() => handleRuleDelete(r.id)}>{t('common.delete')}</Button>}
@@ -541,7 +554,7 @@ export default function AlertList() {
           children: (
             <>
               <Row justify="end" style={{ marginBottom: 16 }}>
-                <Button type="primary" onClick={() => { setEditingRule(null); setRuleType('metric'); form.resetFields(); setRuleModalOpen(true); loadDbList(); }}>{t('alerts.createRule')}</Button>
+                <Button type="primary" onClick={() => { setEditingRule(null); setRuleType('metric'); form.resetFields(); setRuleModalOpen(true); loadDbList(); loadNotificationChannels(); }}>{t('alerts.createRule')}</Button>
               </Row>
               <Card>
                 <Table dataSource={rules} columns={ruleColumns} rowKey="id" loading={rulesLoading} pagination={false} />
@@ -698,11 +711,26 @@ export default function AlertList() {
           <Form.Item name="cooldown_seconds" label={t('alerts.rules.cooldown')} initialValue={300}>
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
+          <Form.Item name="continuous_alert" label={t('alerts.rules.continuousAlert')} valuePropName="checked" initialValue={true} tooltip={t('alerts.rules.continuousAlertTooltip')}>
+            <Switch />
+          </Form.Item>
           <Form.Item name="silence_start" label={t('alerts.rules.silenceStart')}>
             <TimePicker format="HH:mm" style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="silence_end" label={t('alerts.rules.silenceEnd')}>
             <TimePicker format="HH:mm" style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="notification_channel_ids" label={<><BellOutlined /> {t('alerts.rules.notificationChannels')}</>} tooltip={t('alerts.rules.notificationChannelsTooltip')}>
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder={t('alerts.rules.selectChannels')}
+              loading={channelsLoading}
+              options={notificationChannels.map(ch => ({
+                label: `${ch.name} (${ch.type})`,
+                value: ch.id,
+              }))}
+            />
           </Form.Item>
         </Form>
       </Modal>

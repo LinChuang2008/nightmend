@@ -24,6 +24,10 @@ from app.models.audit_log import AuditLog
 from app.models.report import Report
 from app.models.service_dependency import ServiceDependency
 from app.models.sla import SLARule, SLAViolation
+from app.models.alert_group import AlertGroup, AlertDeduplication
+from app.models.escalation import EscalationRule, AlertEscalation
+from app.models.on_call import OnCallGroup, OnCallSchedule
+from app.models.remediation_log import RemediationLog
 from app.models.server import Server
 from app.models.service_group import ServiceGroup
 from app.models.server_service import ServerService
@@ -40,5 +44,6 @@ __all__ = [
     "DbMetric", "AIInsight", "AuditLog", "Report", "ServiceDependency",
     "SLARule", "SLAViolation", "Server", "ServiceGroup", "ServerService",
     "NginxUpstream", "DashboardLayout", "DashboardComponent", "AIFeedback", "AIFeedbackSummary",
-    "TopologyLayout",
+    "TopologyLayout", "AlertGroup", "AlertDeduplication", "EscalationRule", "AlertEscalation",
+    "OnCallGroup", "OnCallSchedule", "RemediationLog",
 ]

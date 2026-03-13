@@ -95,7 +95,9 @@ def get_servers_health(
             server_info = {
                 "id": host.id,
                 "hostname": host.hostname,
-                "ip": host.ip_address,
+                "display_name": host.display_name,
+                "display_hostname": host.display_hostname,
+                "ip": host.display_ip,
                 "status": host.status,
                 "os": host.os,
                 "last_seen": host.last_heartbeat.isoformat() if host.last_heartbeat else None,
@@ -190,7 +192,9 @@ def get_alerts(
                 "host": {
                     "id": host.id,
                     "hostname": host.hostname,
-                    "ip": host.ip
+                    "display_name": host.display_name,
+                    "display_hostname": host.display_hostname,
+                    "ip": host.display_ip
                 } if host else None,
                 "rule": {
                     "id": rule.id,
@@ -284,7 +288,9 @@ def search_logs(
                 "host": {
                     "id": host.id,
                     "hostname": host.hostname,
-                    "ip": host.ip
+                    "display_name": host.display_name,
+                    "display_hostname": host.display_hostname,
+                    "ip": host.display_ip
                 } if host else None
             }
             logs_data.append(log_info)
@@ -467,7 +473,9 @@ def get_topology(
                 "host": {
                     "id": host.id,
                     "hostname": host.hostname,
-                    "ip": host.ip,
+                    "display_name": host.display_name,
+                    "display_hostname": host.display_hostname,
+                    "ip": host.display_ip,
                     "status": host.status
                 } if host else None
             }

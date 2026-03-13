@@ -138,7 +138,7 @@ export default function NotificationChannels() {
           name: values.name as string,
           type,
           config,
-          enabled: true,
+          is_enabled: true,
         });
         messageApi.success(t('notifications.createSuccess'));
       }
@@ -150,8 +150,8 @@ export default function NotificationChannels() {
 
   const handleToggle = async (record: NotificationChannel) => {
     try {
-      await notificationService.updateChannel(record.id, { enabled: !record.enabled });
-      messageApi.success(record.enabled ? t('notifications.disabledSuccess') : t('notifications.enabledSuccess'));
+      await notificationService.updateChannel(record.id, { is_enabled: !record.is_enabled });
+      messageApi.success(record.is_enabled ? t('notifications.disabledSuccess') : t('notifications.enabledSuccess'));
       fetchList();
     } catch { messageApi.error(t('notifications.actionFailed')); }
   };
@@ -170,11 +170,25 @@ export default function NotificationChannels() {
     });
   };
 
-  const handleTestSend = (r: NotificationChannel) => {
-    Modal.info({
-      title: `${t('notifications.testSend')} - ${r.name}`,
-      content: t('notifications.testSendComingSoon'),
-    });
+  const handleTestSend = async (r: NotificationChannel) => {
+    messageApi.loading({ content: t('notifications.sendingTest'), key: 'testSend' });
+    try {
+      const response = await notificationService.testChannel(r.id);
+      messageApi.success({
+        content: response.data.message || t('notifications.testSendSuccess'),
+        key: 'testSend',
+        duration: 5,
+      });
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? ((error as { response: { data: { message: string } } }).response.data.message || t('notifications.testSendFailed'))
+        : t('notifications.testSendFailed');
+      messageApi.error({
+        content: errorMessage,
+        key: 'testSend',
+        duration: 5,
+      });
+    }
   };
 
   const columns = [
@@ -194,7 +208,7 @@ export default function NotificationChannels() {
       },
     },
     {
-      title: t('notifications.enabled'), dataIndex: 'enabled', width: 80,
+      title: t('notifications.enabled'), dataIndex: 'is_enabled', width: 80,
       render: (v: boolean, r: NotificationChannel) => (
         <Switch checked={v} onChange={() => handleToggle(r)} />
       ),
