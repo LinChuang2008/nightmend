@@ -132,7 +132,7 @@ async def _evaluate_rule(db, redis, rule: AlertRule, host: Host, metrics: dict):
             try:
                 first_dt = datetime.fromisoformat(first_seen)
             except (ValueError, TypeError):
-                first_dt = datetime.utcnow().replace(tzinfo=timezone.utc)
+                first_dt = datetime.now(timezone.utc)
             if (now - first_dt).total_seconds() < rule.duration_seconds:
                 return  # 尚未达到持续时间要求
 
@@ -275,7 +275,7 @@ async def _evaluate_service_rule(db, redis, rule: AlertRule, service: Service):
             try:
                 first_dt = datetime.fromisoformat(first_seen)
             except (ValueError, TypeError):
-                first_dt = datetime.utcnow().replace(tzinfo=timezone.utc)
+                first_dt = datetime.now(timezone.utc)
             if (now - first_dt).total_seconds() < rule.duration_seconds:
                 return
             await redis.delete(redis_key)

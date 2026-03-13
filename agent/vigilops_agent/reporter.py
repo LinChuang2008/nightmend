@@ -36,13 +36,25 @@ class AgentReporter:
 
     async def _get_client(self) -> httpx.AsyncClient:
         """获取或创建 HTTP 客户端（惰性初始化）。"""
-        if self._client is None or self._client.is_closed:
+        if self._client is not None and self._client.is_closed:
+            # 旧客户端已关闭，先清理引用再创建新的
+            self._client = None
+        if self._client is None:
             self._client = httpx.AsyncClient(
                 base_url=self.config.server.url,
                 headers=self._headers(),
                 timeout=30,
             )
         return self._client
+
+    async def _reset_client(self):
+        """网络故障后重置 HTTP 客户端，确保下次请求使用新连接。"""
+        if self._client is not None:
+            try:
+                await self._client.aclose()
+            except Exception:
+                pass
+            self._client = None
 
     def _get_local_ip(self) -> str:
         """获取本机主要 IP 地址。
@@ -225,6 +237,7 @@ class AgentReporter:
                 await self.report_service_check(svc, result)
             except Exception as e:
                 logger.warning(f"Service check failed for {svc.name}: {e}")
+                await self._reset_client()
             await asyncio.sleep(svc.interval)
 
     async def _heartbeat_loop(self):
@@ -234,6 +247,7 @@ class AgentReporter:
                 await self.heartbeat()
             except Exception as e:
                 logger.warning(f"Heartbeat failed: {e}")
+                await self._reset_client()
             await asyncio.sleep(60)
 
     async def _metrics_loop(self):
@@ -244,6 +258,7 @@ class AgentReporter:
                 await self.report_metrics()
             except Exception as e:
                 logger.warning(f"Metrics report failed: {e}")
+                await self._reset_client()
             await asyncio.sleep(interval)
 
     async def start(self):

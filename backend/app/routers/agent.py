@@ -15,9 +15,12 @@ API端点：POST /register, POST /heartbeat, POST /metrics, POST /services, POST
 
 Author: VigilOps Team
 """
+import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -417,8 +420,8 @@ async def report_db_metrics(
     # 检查数据库指标告警规则
     try:
         await _check_db_metric_alerts(monitored_db.id, body, db)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("DB metric alert check failed for database %s: %s", monitored_db.id, e)
 
     return {"status": "ok", "database_id": monitored_db.id, "metric_id": metric.id}
 
@@ -522,8 +525,8 @@ async def ingest_logs(
     # 检查日志关键字告警规则
     try:
         await _check_log_keyword_alerts(body.logs, db)
-    except Exception:
-        pass  # 不影响日志写入
+    except Exception as e:
+        logger.error("Log keyword alert check failed: %s", e)
 
     return LogBatchResponse(received=len(rows))
 

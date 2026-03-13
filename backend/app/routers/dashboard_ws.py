@@ -27,10 +27,11 @@ import json
 import logging
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import select, and_, func
 
 from app.core.database import async_session
+from app.core.security import decode_token
 from app.models.host import Host
 from app.models.host_metric import HostMetric
 from app.models.service import Service
@@ -251,61 +252,26 @@ def _calc_health_score(
 
 
 @router.websocket("/api/v1/ws/dashboard")
-async def dashboard_ws(websocket: WebSocket):
+async def dashboard_ws(websocket: WebSocket, token: str = Query(default="")):
     """
     仪表盘 WebSocket 实时推送端点 (Dashboard WebSocket Real-time Push Endpoint)
-    
-    为前端仪表盘提供实时数据推送服务，保持仪表盘数据的及时性和准确性。
-    采用长连接模式，每30秒主动推送最新的系统监控数据。
-    
-    Connection Flow:
-        1. 客户端发起 WebSocket 连接请求
-        2. 服务器接受连接并记录日志
-        3. 进入数据推送循环：
-           - 收集最新的仪表盘数据
-           - 通过 WebSocket 发送 JSON 数据
-           - 等待30秒后重复
-        4. 连接断开时清理资源并记录日志
-        
+
+    为前端仪表盘提供实时数据推送服务。
+    通过 query 参数 ?token=JWT 进行认证。
+
     Args:
         websocket: WebSocket 连接对象
-        
-    Push Data Format:
-        JSON格式，包含以下字段：
-        - timestamp: 数据收集时间戳
-        - hosts: 主机状态统计
-        - services: 服务状态分布
-        - alerts: 告警活动统计
-        - recent_1h: 最近1小时活动统计
-        - avg_usage: 平均资源使用率
-        - health_score: 系统综合健康评分
-        
-    Error Handling:
-        - WebSocket 连接断开：正常退出循环
-        - 数据收集失败：记录警告日志，继续运行
-        - 其他异常：记录错误日志并断开连接
-        
-    Performance Considerations:
-        - 使用异步操作，不阻塞其他连接
-        - 独立的数据库会话，避免事务冲突
-        - 合理的推送间隔，平衡实时性和性能
-        
-    Client Usage:
-        JavaScript 前端代码示例：
-        ```javascript
-        const ws = new WebSocket('ws://localhost:8001/api/v1/ws/dashboard');
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            updateDashboard(data);
-        };
-        ```
-        
-    Security Notes:
-        - WebSocket 连接不需要显式认证（仪表盘为只读数据）
-        - 推送的数据为系统监控统计，不包含敏感信息
-        - 连接数限制由网关或负载均衡器处理
+        token: JWT 访问令牌（通过 query 参数传递）
     """
-    await websocket.accept()  # 接受 WebSocket 连接
+    # WebSocket 认证：通过 query 参数传递 JWT token
+    if not token:
+        token = websocket.cookies.get("access_token", "")
+    payload = decode_token(token) if token else None
+    if not payload or payload.get("type") != "access":
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+
+    await websocket.accept()
     logger.info("仪表盘 WebSocket 客户端已连接")
     
     try:

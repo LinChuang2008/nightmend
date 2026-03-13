@@ -106,6 +106,8 @@ export default function Logs() {
     }
     const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const params = new URLSearchParams();
+    const token = localStorage.getItem('token') || '';
+    if (token) params.set('token', token);
     if (hostId) params.set('host_id', hostId);
     if (service) params.set('service', service);
     if (levels.length) params.set('level', levels.join(','));

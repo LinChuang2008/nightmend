@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.security import decode_token
 from app.models.host import Host
 from app.models.log_entry import LogEntry
 from app.models.user import User
@@ -225,33 +226,32 @@ ws_router = APIRouter()  # 独立的 WebSocket 路由器
 @ws_router.websocket("/ws/logs")
 async def ws_logs(
     websocket: WebSocket,
+    token: str = Query(default=""),
     host_id: int | None = Query(None),
     service: str | None = Query(None),
     level: str | None = Query(None),
 ):
     """
     WebSocket 实时日志流 (WebSocket Real-time Log Stream)
-    
-    建立 WebSocket 连接，向客户端实时推送新产生的日志条目。
-    支持客户端侧过滤条件，只推送符合条件的日志，减少网络流量。
-    
-    连接流程：
-    1. 客户端发起 WebSocket 连接
-    2. 服务器接受连接并订阅日志广播
-    3. 持续接收和过滤日志条目
-    4. 向客户端推送符合条件的日志
-    5. 连接断开时自动清理订阅
-    
+
+    通过 query 参数 ?token=JWT 进行认证。
+
     Args:
         websocket: WebSocket 连接对象
+        token: JWT 访问令牌（通过 query 参数传递）
         host_id: 可选的主机ID过滤条件
         service: 可选的服务名过滤条件
         level: 可选的日志级别过滤条件，支持多值逗号分隔
-        
-    Note:
-        此函数会一直运行直到客户端断开连接
     """
-    await websocket.accept()  # 接受 WebSocket 连接请求
+    # WebSocket 认证
+    if not token:
+        token = websocket.cookies.get("access_token", "")
+    payload = decode_token(token) if token else None
+    if not payload or payload.get("type") != "access":
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+
+    await websocket.accept()
     queue = log_broadcaster.subscribe()  # 订阅日志广播队列
     
     try:

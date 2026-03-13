@@ -60,6 +60,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
             )
             return None
 
+        conn = None
+        cur = None
         try:
             # 构建 DSN
             sid = cfg.oracle_sid or cfg.database
@@ -146,13 +148,22 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
 
             metrics.extra = extra
 
-            cur.close()
-            conn.close()
             return metrics
 
         except Exception as e:
             logger.error("Oracle direct connection failed for %s: %s", cfg.name, e)
             return None
+        finally:
+            if cur:
+                try:
+                    cur.close()
+                except Exception:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     def _fetch_slow_queries_direct(self, cur) -> List[SlowQuery]:
         """采集 Top 10 慢查询（v$sql）。"""
@@ -328,9 +339,17 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
 
     # ─────────────────────────── Docker exec 模式 ───────────────────────────
 
+    @staticmethod
+    def _sanitize_shell_value(value: str) -> str:
+        """清理 shell 变量值，防止命令注入。只允许字母数字、路径分隔符和下划线。"""
+        if not value:
+            return ""
+        sanitized = re.sub(r"[^a-zA-Z0-9/_.\-]", "", value)
+        return sanitized
+
     def _collect_docker(self, cfg: DatabaseMonitorConfig) -> Optional[DBMetrics]:
         """使用 docker exec + sqlplus 采集（保留现有实现）。"""
-        container = cfg.container_name
+        container = self._sanitize_shell_value(cfg.container_name or "")
         if not container:
             logger.warning(
                 "Oracle docker mode requires container_name for %s", cfg.name
@@ -338,9 +357,11 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
             return None
 
         if cfg.oracle_home:
+            safe_home = self._sanitize_shell_value(cfg.oracle_home)
+            safe_sid = self._sanitize_shell_value(cfg.oracle_sid or "")
             oracle_env = (
-                f"export ORACLE_HOME={cfg.oracle_home}; "
-                f"export ORACLE_SID={cfg.oracle_sid}; "
+                f"export ORACLE_HOME={safe_home}; "
+                f"export ORACLE_SID={safe_sid}; "
                 f"export PATH=$ORACLE_HOME/bin:$PATH; "
             )
         else:

@@ -23,6 +23,8 @@ from typing import Dict, List, Optional, Any, Union
 from fastmcp import FastMCP
 from pydantic import BaseModel
 
+from sqlalchemy import func as sa_func
+
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.services.ai_engine import AIEngine
@@ -70,23 +72,44 @@ def get_servers_health(
                 query = query.filter(Host.status == status_filter)
 
             hosts = query.limit(limit).all()
+            host_ids = [h.id for h in hosts]
+
+            # Batch fetch latest metrics to avoid N+1 queries
+            metrics_map = {}
+            if host_ids:
+                latest_sub = (
+                    db.query(
+                        HostMetric.host_id,
+                        sa_func.max(HostMetric.recorded_at).label("max_at"),
+                    )
+                    .filter(HostMetric.host_id.in_(host_ids))
+                    .group_by(HostMetric.host_id)
+                    .subquery()
+                )
+                latest_metrics = (
+                    db.query(HostMetric)
+                    .join(
+                        latest_sub,
+                        (HostMetric.host_id == latest_sub.c.host_id)
+                        & (HostMetric.recorded_at == latest_sub.c.max_at),
+                    )
+                    .all()
+                )
+                metrics_map = {m.host_id: m for m in latest_metrics}
 
             servers_data = []
             for host in hosts:
-                latest_metric = db.query(HostMetric).filter(
-                    HostMetric.host_id == host.id
-                ).order_by(HostMetric.recorded_at.desc()).first()
-
                 server_info = {
                     "id": host.id,
                     "hostname": host.hostname,
-                    "ip": host.ip_address,
+                    "ip": host.ip_address_address,
                     "status": host.status,
                     "os": host.os,
                     "last_seen": host.last_heartbeat.isoformat() if host.last_heartbeat else None,
                     "metrics": {}
                 }
 
+                latest_metric = metrics_map.get(host.id)
                 if latest_metric:
                     server_info["metrics"] = {
                         "cpu_percent": latest_metric.cpu_percent,
@@ -149,10 +172,16 @@ def get_alerts(
 
             alerts = query.order_by(Alert.fired_at.desc()).limit(limit).all()
 
+            # Batch fetch related hosts and rules to avoid N+1
+            host_ids = {a.host_id for a in alerts if a.host_id}
+            rule_ids = {a.rule_id for a in alerts if a.rule_id}
+            hosts_map = {h.id: h for h in db.query(Host).filter(Host.id.in_(host_ids)).all()} if host_ids else {}
+            rules_map = {r.id: r for r in db.query(AlertRule).filter(AlertRule.id.in_(rule_ids)).all()} if rule_ids else {}
+
             alerts_data = []
             for alert in alerts:
-                host = db.query(Host).filter(Host.id == alert.host_id).first()
-                rule = db.query(AlertRule).filter(AlertRule.id == alert.rule_id).first()
+                host = hosts_map.get(alert.host_id)
+                rule = rules_map.get(alert.rule_id)
 
                 alert_info = {
                     "id": alert.id,
@@ -167,7 +196,7 @@ def get_alerts(
                     "host": {
                         "id": host.id,
                         "hostname": host.hostname,
-                        "ip": host.ip
+                        "ip": host.ip_address
                     } if host else None,
                     "rule": {
                         "id": rule.id,
@@ -241,9 +270,13 @@ def search_logs(
 
             logs = query.order_by(LogEntry.timestamp.desc()).limit(limit).all()
 
+            # Batch fetch hosts to avoid N+1
+            log_host_ids = {log.host_id for log in logs if log.host_id}
+            hosts_map = {h.id: h for h in db.query(Host).filter(Host.id.in_(log_host_ids)).all()} if log_host_ids else {}
+
             logs_data = []
             for log in logs:
-                host = db.query(Host).filter(Host.id == log.host_id).first()
+                host = hosts_map.get(log.host_id)
 
                 log_info = {
                     "id": log.id,
@@ -255,7 +288,7 @@ def search_logs(
                     "host": {
                         "id": host.id,
                         "hostname": host.hostname,
-                        "ip": host.ip
+                        "ip": host.ip_address
                     } if host else None
                 }
                 logs_data.append(log_info)
@@ -408,20 +441,24 @@ def get_topology(
                 }
             }
 
+            # Batch fetch hosts to avoid N+1
+            svc_host_ids = {s.host_id for s in services if s.host_id}
+            hosts_map = {h.id: h for h in db.query(Host).filter(Host.id.in_(svc_host_ids)).all()} if svc_host_ids else {}
+
             for service in services:
-                host = db.query(Host).filter(Host.id == service.host_id).first()
+                host = hosts_map.get(service.host_id)
 
                 service_info = {
                     "id": service.id,
                     "name": service.name,
                     "status": service.status,
                     "type": service.type,
-                    "port": service.port,
+                    "target": service.target,
                     "category": getattr(service, 'category', 'unknown'),
                     "host": {
                         "id": host.id,
                         "hostname": host.hostname,
-                        "ip": host.ip,
+                        "ip": host.ip_address_address,
                         "status": host.status
                     } if host else None
                 }

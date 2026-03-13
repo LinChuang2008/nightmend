@@ -267,7 +267,9 @@ export default function CustomizableDashboard() {
   const fetchTrends = useCallback(async () => {
     try {
       setTrends((await api.get('/dashboard/trends')).data.trends || []);
-    } catch {}
+    } catch (e) {
+      console.warn('Failed to fetch dashboard trends:', e);
+    }
   }, []);
 
   // WebSocket 相关函数
@@ -288,14 +290,15 @@ export default function CustomizableDashboard() {
 
   const connectWs = useCallback(() => {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/ws/dashboard`;
+    const token = localStorage.getItem('token') || '';
+    const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/ws/dashboard?token=${encodeURIComponent(token)}`;
 
     try {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => { setWsConnected(true); stopPolling(); };
-      ws.onmessage = (e) => { try { setWsData(JSON.parse(e.data)); } catch {} };
+      ws.onmessage = (e) => { try { setWsData(JSON.parse(e.data)); } catch (err) { console.warn('WS message parse error:', err); } };
       ws.onclose = () => {
         setWsConnected(false);
         wsRef.current = null;

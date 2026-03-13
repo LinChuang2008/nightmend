@@ -34,6 +34,8 @@ class PostgreSQLCollector(AbstractDBCollector, db_type="postgres"):
             logger.warning("psycopg2 not installed, skipping PostgreSQL for %s", cfg.name)
             return None
 
+        conn = None
+        cur = None
         try:
             conn = psycopg2.connect(
                 host=cfg.host,
@@ -109,16 +111,17 @@ class PostgreSQLCollector(AbstractDBCollector, db_type="postgres"):
                     ))
                 metrics.slow_queries = len(slow_queries_detail)
                 metrics.slow_queries_detail = slow_queries_detail
-            except Exception:
+            except Exception as e:
                 # pg_stat_statements 未安装时降级
+                logger.debug("pg_stat_statements unavailable for %s: %s", cfg.name, e)
                 try:
                     cur.execute(
                         "SELECT count(*) FROM pg_stat_activity "
                         "WHERE state = 'active' AND query_start < now() - interval '1 second';"
                     )
                     metrics.slow_queries = cur.fetchone()[0]
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Slow query fallback failed for %s: %s", cfg.name, e)
 
             # --- 锁等待 ---
             try:
@@ -126,8 +129,8 @@ class PostgreSQLCollector(AbstractDBCollector, db_type="postgres"):
                     "SELECT count(*) FROM pg_locks WHERE NOT granted;"
                 )
                 metrics.lock_waits = cur.fetchone()[0]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Lock waits query failed for %s: %s", cfg.name, e)
 
             # --- 缓存命中率 ---
             try:
@@ -138,7 +141,8 @@ class PostgreSQLCollector(AbstractDBCollector, db_type="postgres"):
                 )
                 row = cur.fetchone()
                 cache_hit = float(row[0]) / 100.0 if row and row[0] else 0.0
-            except Exception:
+            except Exception as e:
+                logger.debug("Cache hit ratio query failed for %s: %s", cfg.name, e)
                 cache_hit = 0.0
 
             # --- 复制延迟 ---
@@ -151,8 +155,8 @@ class PostgreSQLCollector(AbstractDBCollector, db_type="postgres"):
                 )
                 row = cur.fetchone()
                 replication_lag_bytes = int(row[0]) if row and row[0] else 0
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Replication lag query failed for %s: %s", cfg.name, e)
 
             # --- 长事务数 ---
             long_running_queries = 0
@@ -163,8 +167,8 @@ class PostgreSQLCollector(AbstractDBCollector, db_type="postgres"):
                     "AND xact_start < now() - interval '60 seconds';"
                 )
                 long_running_queries = cur.fetchone()[0]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Long running queries check failed for %s: %s", cfg.name, e)
 
             # --- autovacuum 活跃数 ---
             autovacuum_count = 0
@@ -174,8 +178,8 @@ class PostgreSQLCollector(AbstractDBCollector, db_type="postgres"):
                     "WHERE query ILIKE 'autovacuum:%';"
                 )
                 autovacuum_count = cur.fetchone()[0]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Autovacuum count query failed for %s: %s", cfg.name, e)
 
             metrics.extra = {
                 "waiting_connections": waiting,
@@ -191,13 +195,22 @@ class PostgreSQLCollector(AbstractDBCollector, db_type="postgres"):
                     >= cfg.connection_threshold):
                 metrics.extra["connection_breakdown"] = self._connection_breakdown(cur)
 
-            cur.close()
-            conn.close()
             return metrics
 
         except Exception as e:
             logger.error("PostgreSQL collection failed for %s: %s", cfg.name, e)
             return None
+        finally:
+            if cur:
+                try:
+                    cur.close()
+                except Exception:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     def _connection_breakdown(self, cur) -> dict:
         """当连接数超阈值时采集连接分布根因数据。"""
