@@ -382,18 +382,23 @@ async def list_violations(
         end_dt = datetime.fromisoformat(end_date) + timedelta(days=1)  # 结束日期的次日00:00
         query = query.where(SLAViolation.started_at < end_dt)
 
-    # 执行查询获取违规事件列表
-    result = await db.execute(query)
-    violations = result.scalars().all()
-    
+    # 使用 JOIN 一次查询获取违规事件及关联服务名称，消除 N+1 查询
+    joined_query = (
+        query
+        .add_columns(Service.name.label("service_name"))
+        .join(Service, SLAViolation.service_id == Service.id, isouter=True)
+    )
+    result = await db.execute(joined_query)
+    rows = result.all()
+
     # 构建响应数据，附加服务名称信息
     items = []
-    for v in violations:
-        # 查询关联的服务名称
-        svc_name = (await db.execute(select(Service.name).where(Service.id == v.service_id))).scalar()
+    for row in rows:
+        v = row[0]
+        svc_name = row[1]
         items.append(SLAViolationResponse(
-            id=v.id, 
-            sla_rule_id=v.sla_rule_id, 
+            id=v.id,
+            sla_rule_id=v.sla_rule_id,
             service_id=v.service_id,
             service_name=svc_name,                   # 服务名称，便于展示
             started_at=v.started_at,                 # 违规开始时间

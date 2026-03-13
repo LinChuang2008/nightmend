@@ -107,7 +107,7 @@ async def migrate_logs(
         return {
             "success": True,
             "migration_stats": result,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(timezone.utc)
         }
         
     except Exception as e:
@@ -272,7 +272,7 @@ async def test_store_logs(
                 "storage_duration_seconds": duration,
                 "logs_per_second": count / duration if duration > 0 else 0,
                 "backend_type": settings.log_backend_type,
-                "timestamp": datetime.utcnow()
+                "timestamp": datetime.now(timezone.utc)
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to store test logs")

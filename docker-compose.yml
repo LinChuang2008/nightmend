@@ -89,6 +89,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - ./scripts:/scripts
     restart: unless-stopped
 
   # MCP Server - 独立运行的 Model Context Protocol 服务 (MCP Server - Standalone service)

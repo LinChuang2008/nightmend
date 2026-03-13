@@ -455,9 +455,33 @@ export default function Topology() {
       series: [{
         type: 'graph', layout: isPipeline ? 'none' : 'force', roam: true, draggable: true, zoom: 1,
         categories, data: nodes, links: edges as any,
-        ...(mode === 'force' ? { force: { repulsion: 400, edgeLength: [150, 300], gravity: 0.08, layoutAnimation: true } } : {}),
-        emphasis: { focus: 'adjacency', lineStyle: { width: 3 }, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,0.3)' } },
-        lineStyle: { curveness: 0.2 },
+        ...(mode === 'force' ? { 
+          force: { 
+            repulsion: [500, 800],          // 增强节点排斥力，减少重叠
+            edgeLength: [180, 350],         // 增加边长范围，减少交叉
+            gravity: 0.06,                  // 降低重力，让布局更松散
+            layoutAnimation: true,
+            friction: 0.7,                  // 增加摩擦力，让动画更稳定
+            initLayout: 'circular'          // 初始圆形布局，减少交叉
+          } 
+        } : {}),
+        emphasis: { 
+          focus: 'adjacency', 
+          disabled: false,
+          scale: 1.2,                       // 悬停放大效果
+          lineStyle: { width: 4, opacity: 0.8 }, 
+          itemStyle: { 
+            shadowBlur: 20, 
+            shadowColor: 'rgba(0,100,255,0.5)',
+            borderWidth: 4,
+            opacity: 1
+          } 
+        },
+        blur: {                             // 非相邻节点淡化效果
+          itemStyle: { opacity: 0.3 },
+          lineStyle: { opacity: 0.1 }
+        },
+        lineStyle: { curveness: 0.3 },     // 增加弯曲度减少视觉冲突
       }],
     }, true);
     chart.resize();
@@ -506,17 +530,24 @@ export default function Topology() {
         </Space>
       </div>
 
-      {/* 图例 */}
-      <div style={{ marginBottom: 8 }}>
-        <Space size={16}>
+      {/* 图例与操作提示 */}
+      <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f8f9fa', borderRadius: 6, border: '1px solid #e8e9ea' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {t('topology.legendEdgeLabel')}: <span style={{ color: '#1890ff' }}>━</span> {t('topology.legendApiCall')}　<span style={{ color: '#faad14' }}>╌╌</span> {t('topology.legendDep')}
+            <strong>{t('topology.legendEdgeLabel')}:</strong> <span style={{ color: '#1890ff' }}>━</span> {t('topology.legendApiCall')}　<span style={{ color: '#faad14' }}>╌╌</span> {t('topology.legendDep')}
           </Text>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {t('topology.legendBorderLabel')}: <span style={{ color: '#52c41a' }}>●</span> {t('topology.legendNormal')}　<span style={{ color: '#ff4d4f' }}>●</span> {t('topology.legendAbnormal')}
+            <strong>{t('topology.legendBorderLabel')}:</strong> <span style={{ color: '#52c41a' }}>●</span> {t('topology.legendNormal')}　<span style={{ color: '#ff4d4f' }}>●</span> {t('topology.legendAbnormal')}
           </Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>💡 {t('topology.dragTip')}</Text>
-        </Space>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              🖱️ <strong>拖拽节点</strong> | 🔍 <strong>滚轮缩放</strong> | 🖐️ <strong>拖拽平移</strong>
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              ✨ <strong>悬停节点</strong>查看关系
+            </Text>
+          </div>
+        </div>
       </div>
 
       {/* 图表 */}

@@ -15,9 +15,12 @@ API端点：POST /register, POST /heartbeat, POST /metrics, POST /services, POST
 
 Author: VigilOps Team
 """
+import os
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -615,3 +618,8 @@ async def _check_log_keyword_alerts(logs: list, db: AsyncSession):
             db.add(alert)
 
     await db.commit()
+
+
+# 添加安装脚本端点
+from .agent_install_endpoint import add_install_endpoint
+add_install_endpoint(router)

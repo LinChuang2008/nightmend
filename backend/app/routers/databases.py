@@ -40,12 +40,19 @@ def _parse_period(period: str) -> timedelta:
         _parse_period('7d') -> timedelta(days=7)
     """
     p = period.strip().lower()  # 标准化输入，去除空格并转小写
-    if p.endswith("h"):  # 小时单位 (hours)
-        return timedelta(hours=int(p[:-1]))
-    if p.endswith("d"):  # 天单位 (days)
-        return timedelta(days=int(p[:-1]))
-    if p.endswith("m"):  # 分钟单位 (minutes)
-        return timedelta(minutes=int(p[:-1]))
+    try:
+        if p.endswith("h"):  # 小时单位 (hours)
+            return timedelta(hours=int(p[:-1]))
+        if p.endswith("d"):  # 天单位 (days)
+            return timedelta(days=int(p[:-1]))
+        if p.endswith("m"):  # 分钟单位 (minutes)
+            return timedelta(minutes=int(p[:-1]))
+    except (ValueError, OverflowError) as exc:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail=f"无效的时间周期参数 '{period}'，支持格式示例：1h、7d、30m"
+        ) from exc
     return timedelta(hours=1)  # 默认返回 1 小时
 
 

@@ -5,7 +5,7 @@ AI 反馈管理 API
 帮助改进 AI 服务质量，提升用户体验。
 """
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import select, and_, func, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -129,7 +129,7 @@ async def get_feedback_stats(
     db: AsyncSession = Depends(get_db)
 ):
     """获取反馈统计"""
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
     
     query = select(AIFeedback).where(AIFeedback.created_at >= start_date)
     
@@ -198,7 +198,7 @@ async def get_feedback_trends(
     db: AsyncSession = Depends(get_db)
 ):
     """获取反馈趋势数据"""
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
     
     query = select(
         func.date(AIFeedback.created_at).label('date'),
@@ -302,7 +302,7 @@ async def get_performance_report(
     
     days_map = {"7d": 7, "30d": 30, "90d": 90}
     days = days_map[period]
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
     
     result = await db.execute(select(AIFeedback).where(AIFeedback.created_at >= start_date))
     feedback_list = result.scalars().all()

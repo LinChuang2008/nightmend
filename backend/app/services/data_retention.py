@@ -8,7 +8,7 @@ Automatically cleans up expired monitoring data to prevent unlimited database gr
 Supports configurable retention period settings, batch-wise safe deletion, and cleanup statistics logging.
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional
 
 from sqlalchemy.orm import Session
@@ -114,7 +114,7 @@ class DataRetentionService:
     def _cleanup_host_metrics(self) -> int:
         """清理过期主机指标数据"""
         retention_days = self.get_retention_days("host_metrics")
-        cutoff_time = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=retention_days)
         
         total_deleted = 0
         while True:
@@ -142,7 +142,7 @@ class DataRetentionService:
     def _cleanup_db_metrics(self) -> int:
         """清理过期数据库指标数据"""
         retention_days = self.get_retention_days("db_metrics")
-        cutoff_time = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=retention_days)
         
         total_deleted = 0
         while True:
@@ -169,7 +169,7 @@ class DataRetentionService:
     def _cleanup_log_entries(self) -> int:
         """清理过期日志条目数据"""
         retention_days = self.get_retention_days("log_entries")
-        cutoff_time = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=retention_days)
         
         total_deleted = 0
         while True:
@@ -197,7 +197,7 @@ class DataRetentionService:
     def _cleanup_ai_insights(self) -> int:
         """清理过期 AI 洞察数据"""
         retention_days = self.get_retention_days("ai_insights")
-        cutoff_time = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=retention_days)
         
         total_deleted = 0
         while True:
@@ -224,7 +224,7 @@ class DataRetentionService:
     def _cleanup_audit_logs(self) -> int:
         """清理过期审计日志数据"""
         retention_days = self.get_retention_days("audit_logs")
-        cutoff_time = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=retention_days)
         
         total_deleted = 0
         while True:

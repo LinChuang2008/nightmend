@@ -251,48 +251,48 @@ export default function AIAnalysis() {
       {contextHolder}
       <Title level={4}><RobotOutlined /> {t('aiAnalysis.title')}</Title>
 
-      {/* 系统概况统计卡片 */}
+      {/* 系统概况统计卡片 - 紧凑布局 */}
       <Spin spinning={summaryLoading}>
-        <Row gutter={[16, 16]}>
+        <Row gutter={[12, 12]}>
           <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic title={t('aiAnalysis.hosts')} value={summary?.online_hosts ?? '-'} suffix={`/ ${summary?.total_hosts ?? '-'}`} prefix={<CloudServerOutlined />} />
-              <Text type="secondary">{t('aiAnalysis.onlineTotal')}</Text>
+            <Card size="small" style={{ background: 'linear-gradient(45deg, #f6ffed, #ffffff)' }}>
+              <Statistic title={t('aiAnalysis.hosts')} value={summary?.online_hosts ?? '-'} suffix={`/ ${summary?.total_hosts ?? '-'}`} prefix={<CloudServerOutlined style={{ color: '#52c41a' }} />} />
+              <Text type="secondary" style={{ fontSize: 12 }}>{t('aiAnalysis.onlineTotal')}</Text>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic title={t('aiAnalysis.services')} value={summary?.healthy_services ?? '-'} suffix={`/ ${summary?.total_services ?? '-'}`} prefix={<ApiOutlined />} />
-              <Text type="secondary">{t('aiAnalysis.healthyTotal')}</Text>
+            <Card size="small" style={{ background: 'linear-gradient(45deg, #f0f9ff, #ffffff)' }}>
+              <Statistic title={t('aiAnalysis.services')} value={summary?.healthy_services ?? '-'} suffix={`/ ${summary?.total_services ?? '-'}`} prefix={<ApiOutlined style={{ color: '#1677ff' }} />} />
+              <Text type="secondary" style={{ fontSize: 12 }}>{t('aiAnalysis.healthyTotal')}</Text>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic title={t('aiAnalysis.alerts1h')} value={summary?.alerts_1h ?? '-'} prefix={<AlertOutlined />}
+            <Card size="small" style={{ background: 'linear-gradient(45deg, #fff2e8, #ffffff)' }}>
+              <Statistic title={t('aiAnalysis.alerts1h')} value={summary?.alerts_1h ?? '-'} prefix={<AlertOutlined style={{ color: '#faad14' }} />}
                 valueStyle={{ color: (summary?.alerts_1h ?? 0) > 0 ? '#cf1322' : '#3f8600' }} />
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
-              <Statistic title={t('aiAnalysis.errorLogs1h')} value={summary?.error_logs_1h ?? '-'} prefix={<FileTextOutlined />}
+            <Card size="small" style={{ background: 'linear-gradient(45deg, #fff1f0, #ffffff)' }}>
+              <Statistic title={t('aiAnalysis.errorLogs1h')} value={summary?.error_logs_1h ?? '-'} prefix={<FileTextOutlined style={{ color: '#ff4d4f' }} />}
                 valueStyle={{ color: (summary?.error_logs_1h ?? 0) > 0 ? '#cf1322' : '#3f8600' }} />
             </Card>
           </Col>
         </Row>
         {summary && (
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
             <Col xs={12} sm={6}>
-              <Card size="small" style={{ textAlign: 'center' }}>
-                <Progress type="circle" percent={Math.round(summary.avg_cpu)} size={80}
-                  strokeColor={summary.avg_cpu > 80 ? '#ff4d4f' : summary.avg_cpu > 60 ? '#faad14' : '#52c41a'} />
-                <div style={{ marginTop: 8 }}><Text type="secondary">{t('aiAnalysis.avgCpu')}</Text></div>
+              <Card size="small" style={{ textAlign: 'center', background: 'linear-gradient(135deg, #e6f7ff, #ffffff)' }}>
+                <Progress type="circle" percent={Math.round(summary.avg_cpu)} size={70}
+                  strokeColor={summary.avg_cpu > 80 ? '#ff4d4f' : summary.avg_cpu > 60 ? '#faad14' : '#52c41a'} strokeWidth={8} />
+                <div style={{ marginTop: 6 }}><Text type="secondary" style={{ fontSize: 11 }}>{t('aiAnalysis.avgCpu')}</Text></div>
               </Card>
             </Col>
             <Col xs={12} sm={6}>
-              <Card size="small" style={{ textAlign: 'center' }}>
-                <Progress type="circle" percent={Math.round(summary.avg_memory)} size={80}
-                  strokeColor={summary.avg_memory > 80 ? '#ff4d4f' : summary.avg_memory > 60 ? '#faad14' : '#52c41a'} />
-                <div style={{ marginTop: 8 }}><Text type="secondary">{t('aiAnalysis.avgMemory')}</Text></div>
+              <Card size="small" style={{ textAlign: 'center', background: 'linear-gradient(135deg, #f6ffed, #ffffff)' }}>
+                <Progress type="circle" percent={Math.round(summary.avg_memory)} size={70}
+                  strokeColor={summary.avg_memory > 80 ? '#ff4d4f' : summary.avg_memory > 60 ? '#faad14' : '#52c41a'} strokeWidth={8} />
+                <div style={{ marginTop: 6 }}><Text type="secondary" style={{ fontSize: 11 }}>{t('aiAnalysis.avgMemory')}</Text></div>
               </Card>
             </Col>
           </Row>
@@ -305,27 +305,51 @@ export default function AIAnalysis() {
           background: '#f5f7fa', borderRadius: 8, padding: 16, minHeight: 200, maxHeight: 400, overflowY: 'auto', marginBottom: 16,
         }}>
           {messages.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#999' }}>
-              <RobotOutlined style={{ fontSize: 40, marginBottom: 12 }} />
-              <div style={{ marginBottom: 20 }}>{t('aiAnalysis.askAI')}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-                {[
-                  t('aiAnalysis.tryHealthStatus'),
-                  t('aiAnalysis.tryRecentAnomalies'),
-                  t('aiAnalysis.tryCpuSpike'),
-                ].map(hint => (
-                  <Button
-                    key={hint}
-                    size="small"
-                    type="dashed"
-                    icon={<ThunderboltOutlined />}
-                    onClick={() => sendChat(hint.replace(/^(Try: |试试问：)/, ''))}
-                    style={{ color: '#595959', borderColor: '#d9d9d9' }}
-                  >
-                    {hint}
-                  </Button>
-                ))}
+            <div style={{ textAlign: 'center', padding: '24px 20px', position: 'relative' }}>
+              {/* 品牌机器人头像 */}
+              <div style={{
+                width: 80, height: 80, margin: '0 auto 16px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)'
+              }}>
+                <RobotOutlined style={{ fontSize: 36, color: '#fff' }} />
               </div>
+              <Title level={4} style={{ margin: '0 0 8px 0', color: '#262626' }}>VigilOps AI 助手</Title>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 24, fontSize: 14 }}>
+                {t('aiAnalysis.askAI')} 我可以帮您分析系统状态、诊断问题
+              </Text>
+              
+              {/* 预设问题卡片 */}
+              <Row gutter={[12, 12]} justify="center">
+                {[
+                  { text: '系统整体健康状况如何？', icon: <AlertOutlined />, color: '#52c41a' },
+                  { text: '最近有哪些异常？', icon: <FileTextOutlined />, color: '#faad14' },
+                  { text: 'CPU 使用率趋势分析', icon: <CloudServerOutlined />, color: '#1677ff' },
+                ].map((item, idx) => (
+                  <Col xs={24} sm={8} key={idx}>
+                    <Card
+                      size="small"
+                      hoverable
+                      onClick={() => sendChat(item.text)}
+                      style={{
+                        border: `1px solid ${item.color}20`,
+                        background: `linear-gradient(45deg, ${item.color}08, #ffffff)`,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease'
+                      }}
+                      bodyStyle={{ padding: '12px' }}
+                    >
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: item.color, fontSize: 18, marginBottom: 6 }}>
+                          {item.icon}
+                        </div>
+                        <Text style={{ fontSize: 13, fontWeight: 500 }}>{item.text}</Text>
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
             </div>
           )}
           {messages.map((msg) => (
@@ -431,13 +455,31 @@ export default function AIAnalysis() {
           )}
           <div ref={chatEndRef} />
         </div>
-        <Space wrap style={{ marginBottom: 12 }}>
-          {quickQuestions.map(q => (
-            <Button key={q} size="small" icon={<ThunderboltOutlined />} onClick={() => sendChat(q)} disabled={chatLoading}>
-              {q}
-            </Button>
-          ))}
-        </Space>
+        <div style={{ marginBottom: 12 }}>
+          <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>💡 快速问题:</Text>
+          <Row gutter={[8, 8]}>
+            {quickQuestions.map((q, idx) => (
+              <Col key={q} flex="auto">
+                <Button 
+                  size="small" 
+                  type="dashed"
+                  icon={<ThunderboltOutlined />} 
+                  onClick={() => sendChat(q)} 
+                  disabled={chatLoading}
+                  block
+                  style={{ 
+                    height: 32,
+                    borderColor: ['#52c41a', '#faad14', '#1677ff'][idx % 3],
+                    color: ['#52c41a', '#faad14', '#1677ff'][idx % 3],
+                    fontSize: 12
+                  }}
+                >
+                  {q}
+                </Button>
+              </Col>
+            ))}
+          </Row>
+        </div>
         <Input.Search
           placeholder={t('aiAnalysis.chatPlaceholder')}
           enterButton={<><SendOutlined /> {t('aiAnalysis.sendButton')}</>}
