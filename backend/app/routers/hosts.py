@@ -24,7 +24,7 @@ from app.core.redis import get_redis
 from app.models.host import Host
 from app.models.host_metric import HostMetric
 from app.models.user import User
-from app.schemas.host import HostWithMetrics, HostResponse, HostMetricResponse
+from app.schemas.host import HostWithMetrics, HostResponse, HostMetricResponse, HostUpdate
 
 router = APIRouter(prefix="/api/v1/hosts", tags=["hosts"])
 
@@ -218,3 +218,39 @@ async def get_host_metrics(
     result = await db.execute(sql, {"host_id": host_id, "since": since})
     rows = result.mappings().all()
     return [HostMetricResponse(**dict(r)) for r in rows]
+
+
+@router.patch("/{host_id}", response_model=HostResponse)
+async def update_host(
+    host_id: int,
+    update_data: HostUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    更新主机信息接口 (Update Host)
+
+    更新主机的可编辑字段（如显示名称）。
+
+    Args:
+        host_id: 主机记录ID
+        update_data: 更新数据（目前仅支持 display_name）
+        user: 当前登录用户（JWT认证）
+        db: 数据库会话依赖注入
+    Returns:
+        HostResponse: 更新后的主机信息
+    Raises:
+        HTTPException 404: 主机不存在
+    """
+    result = await db.execute(select(Host).where(Host.id == host_id))
+    host = result.scalar_one_or_none()
+    if not host:
+        raise HTTPException(status_code=404, detail="Host not found")
+
+    # 更新显示名称
+    if update_data.display_name is not None:
+        host.display_name = update_data.display_name
+
+    await db.commit()
+    await db.refresh(host)
+    return host

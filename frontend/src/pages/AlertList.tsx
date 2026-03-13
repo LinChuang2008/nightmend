@@ -711,6 +711,9 @@ export default function AlertList() {
           <Form.Item name="cooldown_seconds" label={t('alerts.rules.cooldown')} initialValue={300}>
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
+          <Form.Item name="continuous_alert" label={t('alerts.rules.continuousAlert')} valuePropName="checked" initialValue={true} tooltip={t('alerts.rules.continuousAlertTooltip')}>
+            <Switch />
+          </Form.Item>
           <Form.Item name="silence_start" label={t('alerts.rules.silenceStart')}>
             <TimePicker format="HH:mm" style={{ width: '100%' }} />
           </Form.Item>

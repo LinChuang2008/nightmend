@@ -19,12 +19,13 @@ from typing import Optional, List
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import select, delete, update, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_operator_user
-from app.models.alert import AlertRule
+from app.models.alert import AlertRule, Alert
+from app.models.alert_group import AlertDeduplication
 from app.models.user import User
 from app.schemas.alert import AlertRuleCreate, AlertRuleUpdate, AlertRuleResponse
 from app.services.audit import log_audit
@@ -171,6 +172,30 @@ async def update_alert_rule(
     updates = data.model_dump(exclude_unset=True)
     for field, value in updates.items():
         setattr(rule, field, value)  # 动态更新规则属性
+
+    # 如果修改了影响告警行为的字段，清除相关的去重记录
+    # 这样修改后的规则可以立即生效，不会被告警去重机制抑制
+    # 包括：评估逻辑字段、通知行为字段、告警级别、启用状态
+    sensitive_fields = {
+        # 评估逻辑字段
+        "threshold", "operator", "metric", "duration_seconds",
+        # 通知行为字段
+        "cooldown_seconds", "continuous_alert",
+        # 告警级别和启用状态
+        "severity", "is_enabled"
+    }
+    if any(field in sensitive_fields for field in updates.keys()):
+        # 清除相关的去重记录
+        await db.execute(
+            delete(AlertDeduplication).where(AlertDeduplication.rule_id == rule_id)
+        )
+        # 将该规则的活跃告警标记为已解决，避免影响新规则生效
+        from datetime import datetime, timezone
+        await db.execute(
+            update(Alert).where(
+                and_(Alert.rule_id == rule_id, Alert.status.in_(["firing", "acknowledged"]))
+            ).values(status="resolved", resolved_at=datetime.now(timezone.utc))
+        )
 
     # 记录更新操作的审计日志，仅包含变更的字段 (Log update audit with only changed fields)
     await log_audit(db, _user.id, "update_alert_rule", "alert_rule", rule_id,

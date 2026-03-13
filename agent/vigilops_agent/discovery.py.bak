@@ -225,9 +225,9 @@ def discover_host_services(interval: int = 30) -> List[ServiceCheckConfig]:
         if port in SKIP_PORTS:
             continue
 
-        # 注意：不再跳过监听在 127.0.0.1 的服务
-        # VigilOps agent 运行在本地，可以通过 127.0.0.1 访问本地服务
-        # 很多服务（数据库、缓存等）默认监听 127.0.0.1，这是正常的
+        # 跳过仅监听 127.0.0.1 的服务（内部服务，外部不可达）
+        if listen_addr == "127.0.0.1":
+            continue
 
         # 提取进程名
         process_name = _extract_process_name(process_info)
@@ -238,15 +238,6 @@ def discover_host_services(interval: int = 30) -> List[ServiceCheckConfig]:
         if process_name in SKIP_PROCESSES:
             continue
 
-        # 确定用于健康检查的地址
-        # - 0.0.0.0 表示监听所有接口，使用 localhost 连接
-        # - 127.0.0.1 表示仅本地监听，使用 localhost 连接
-        # - 其他IP（如10.0.49.101）表示仅监听该IP，必须使用该IP连接
-        if listen_addr == "0.0.0.0" or listen_addr == "127.0.0.1":
-            check_host = "localhost"
-        else:
-            check_host = listen_addr
-
         # 生成友好的服务名
         service_name = f"{process_name} (:{port})"
 
@@ -255,14 +246,14 @@ def discover_host_services(interval: int = 30) -> List[ServiceCheckConfig]:
             svc = ServiceCheckConfig(
                 name=service_name,
                 type="http",
-                url=f"http://{check_host}:{port}",
+                url=f"http://localhost:{port}",
                 interval=interval,
             )
         else:
             svc = ServiceCheckConfig(
                 name=service_name,
                 type="tcp",
-                host=check_host,
+                host="localhost",
                 port=port,
                 interval=interval,
             )

@@ -628,20 +628,29 @@ async def _send_remediation_to_channel(channel: NotificationChannel, body: str) 
 # 负责模板变量提取、模板查找和内容渲染
 # ---------------------------------------------------------------------------
 
-def _build_template_vars(alert: Alert) -> dict:
+async def _build_template_vars(
+    db: AsyncSession,
+    alert: Alert,
+    notification_type: str = "first",
+    duration_seconds: int = 0
+) -> dict:
     """
     告警模板变量构建器 (Alert Template Variables Builder)
-    
+
     功能描述:
         从告警对象中提取关键字段，构建模板渲染所需的变量字典。
         处理空值和类型转换，确保模板渲染的稳定性。
-        
+        查询关联主机的显示名称和 IP 地址信息（包括内网 IP 和公网 IP）。
+
     Args:
+        db: 数据库异步会话
         alert: 告警对象，包含所有告警相关信息
-        
+        notification_type: 通知类型 (first/continuous/recovery)
+        duration_seconds: 告警持续时长（秒）
+
     Returns:
         dict: 模板变量字典，包含格式化后的告警字段
-        
+
     变量说明:
         - title: 告警标题
         - severity: 严重级别（critical/warning/info）
@@ -649,17 +658,88 @@ def _build_template_vars(alert: Alert) -> dict:
         - metric_value: 触发告警的指标值
         - threshold: 告警阈值
         - host_id: 告警来源主机ID
+        - host_name: 主机名（优先显示自定义名称）
+        - host_ip: 主机IP（优先公网IP，否则内网IP）
+        - private_ip: 内网IP地址
+        - public_ip: 公网IP地址
         - fired_at: 告警触发时间（格式化字符串）
+        - notification_type: 通知类型 (first/continuous/recovery)
+        - duration_seconds: 持续时长（秒）
+        - duration_human: 持续时长（人类可读格式）
+        - status_text: 状态文本（告警/已恢复）
     """
-    return {
+    # 计算人类可读的持续时长
+    duration_human = _format_duration(duration_seconds)
+
+    # 根据通知类型确定状态文本
+    status_text_map = {
+        "first": "告警触发",
+        "continuous": "持续告警",
+        "recovery": "已恢复"
+    }
+    status_text = status_text_map.get(notification_type, "告警")
+
+    variables = {
         "title": alert.title or "",                              # 告警标题，空值处理
         "severity": alert.severity or "",                        # 严重级别
         "message": alert.message or "",                          # 告警消息
         "metric_value": alert.metric_value if alert.metric_value is not None else "",  # 指标值，处理None
         "threshold": alert.threshold if alert.threshold is not None else "",            # 阈值，处理None
         "host_id": alert.host_id if alert.host_id is not None else "",                  # 主机ID，处理None
+        "host_name": "",                                         # 主机名，默认空
+        "host_ip": "",                                           # 主机IP，默认空
+        "private_ip": "",                                        # 内网IP，默认空
+        "public_ip": "",                                         # 公网IP，默认空
         "fired_at": alert.fired_at.strftime("%Y-%m-%d %H:%M:%S") if alert.fired_at else "",  # 时间格式化
+        "resolved_at": alert.resolved_at.strftime("%Y-%m-%d %H:%M:%S") if alert.resolved_at else "",  # 恢复时间
+        "notification_type": notification_type,                   # 通知类型
+        "duration_seconds": duration_seconds,                    # 持续时长（秒）
+        "duration_human": duration_human,                        # 持续时长（可读）
+        "status_text": status_text,                              # 状态文本
+        "alert_status": alert.status or "",                      # 告警状态
     }
+
+    # 如果有关联主机，查询主机信息
+    if alert.host_id:
+        from sqlalchemy import select
+        from app.models.host import Host
+        result = await db.execute(select(Host).where(Host.id == alert.host_id))
+        host = result.scalar_one_or_none()
+        if host:
+            variables["host_name"] = host.display_hostname
+            variables["host_ip"] = host.display_ip
+            variables["private_ip"] = host.private_ip or host.ip_address or "-"
+            variables["public_ip"] = host.public_ip or "-"
+
+    return variables
+
+
+def _format_duration(seconds: int) -> str:
+    """
+    将秒数格式化为人类可读的时长字符串
+
+    Args:
+        seconds: 秒数
+
+    Returns:
+        格式化的时长字符串，如 "2小时30分钟" 或 "45秒"
+    """
+    if seconds <= 0:
+        return "0秒"
+
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+
+    parts = []
+    if hours > 0:
+        parts.append(f"{hours}小时")
+    if minutes > 0:
+        parts.append(f"{minutes}分钟")
+    if secs > 0 and hours == 0:  # 只有不到1小时时才显示秒
+        parts.append(f"{secs}秒")
+
+    return "".join(parts) if parts else "0秒"
 
 
 async def _get_default_template(db: AsyncSession, channel_type: str):
@@ -893,39 +973,47 @@ async def _get_channels_for_rule(db: AsyncSession, channel_ids: list[int] | None
 # 公共入口
 # ---------------------------------------------------------------------------
 
-async def send_alert_notification(db: AsyncSession, alert: Alert):
+async def send_alert_notification(
+    db: AsyncSession,
+    alert: Alert,
+    notification_type: str = "first",
+    duration_seconds: int = 0
+):
     """
     告警通知智能分发引擎 (Intelligent Alert Notification Distribution Engine)
-    
+
     功能描述:
         VigilOps 核心降噪引擎，实现智能化的告警通知分发。
-        通过静默时间窗口和冷却时间控制，有效避免告警风暴。
-        
+        通过静默时间窗口控制，有效避免告警风暴。
+        支持三种通知类型：首次告警、持续告警、恢复通知。
+
     Args:
         db: 数据库会话，用于查询告警规则和通知渠道配置
         alert: 待发送通知的告警对象，包含触发信息和关联规则
-        
+        notification_type: 通知类型
+            - "first": 首次告警（触发时发送）
+            - "continuous": 持续告警（每冷却期发送）
+            - "recovery": 恢复通知（恢复正常时发送）
+        duration_seconds: 告警持续时长（秒），用于持续告警和恢复通知
+
     智能降噪流程 (Intelligent Noise Reduction Process):
         1. 静默窗口检查 (Silence Window Check) - 检查当前时间是否在静默期
-        2. 冷却时间检查 (Cooldown Check) - 检查同规则告警是否在冷却期
-        3. 多渠道并发发送 (Multi-channel Concurrent Send) - 向所有启用渠道发送
-        4. 冷却期设置 (Cooldown Setup) - 发送后设置冷却标记防止重复通知
-        
+        2. 多渠道并发发送 (Multi-channel Concurrent Send) - 向所有启用渠道发送
+
     降噪机制说明 (Noise Reduction Mechanisms):
         - 静默期 (Silence Period): 指定时间段内完全禁止发送通知
-        - 冷却期 (Cooldown Period): 同一规则的告警在指定时间内只发送一次
-        - 计数器 (Counter): 记录冷却期内被抑制的告警数量供统计分析
+        - 冷却期控制已移至 alert_engine 层级，由 AlertDeduplicationService 处理
     """
     # 1. 告警规则配置获取 (Alert Rule Configuration Retrieval)
     # 查询关联的告警规则，获取降噪参数配置
     rule_result = await db.execute(select(AlertRule).where(AlertRule.id == alert.rule_id))
     rule = rule_result.scalar_one_or_none()
 
-    # 2. 静默时间窗口检查 (Silence Window Check) - 降噪机制第一层
+    # 2. 静默时间窗口检查 (Silence Window Check) - 降噪机制
     # 在指定的静默时间段内，完全禁止发送任何通知
     if rule and rule.silence_start and rule.silence_end:
         now_time = datetime.now().time()  # 获取当前时间（仅时分秒）
-        
+
         # 2.1 处理同日静默窗口（如 09:00-18:00）
         if rule.silence_start <= rule.silence_end:
             if rule.silence_start <= now_time <= rule.silence_end:
@@ -937,28 +1025,18 @@ async def send_alert_notification(db: AsyncSession, alert: Alert):
                 logger.info(f"Alert {alert.id} silenced (current time in silence window)")
                 return  # 跨日静默期内，直接返回
 
-    # 3. 冷却时间检查 (Cooldown Check) - 降噪机制第二层
-    # 防止相同规则的告警短时间内重复发送，避免告警风暴
-    redis = await get_redis()
-    cooldown = rule.cooldown_seconds if rule else DEFAULT_COOLDOWN  # 使用配置的默认冷却期
-    cooldown_key = f"alert:cooldown:{alert.rule_id}"  # Redis键：按规则ID隔离
-
-    if await redis.get(cooldown_key):
-        # 3.1 冷却期内：增加抑制计数器，记录被过滤的告警数量
-        await redis.incr(f"alert:cooldown:count:{alert.rule_id}")
-        logger.info(f"Alert {alert.id} suppressed by cooldown")
-        return  # 冷却期内，直接返回不发送通知
-
-    # 4. 多渠道并发通知发送 (Multi-channel Concurrent Notification)
+    # 3. 多渠道并发通知发送 (Multi-channel Concurrent Notification)
     # 通过降噪检查后，向规则配置的通知渠道发送告警
-    # 使用告警规则配置的渠道ID列表筛选通知渠道
     channel_ids = rule.notification_channel_ids if rule else None
     channels = await _get_channels_for_rule(db, channel_ids)
 
-    # 4.1 使用 asyncio.gather 并发向所有已启用渠道发送通知
+    # 3.1 使用 asyncio.gather 并发向所有已启用渠道发送通知
     # return_exceptions=True 确保单个渠道失败不影响其他渠道
     if channels:
-        tasks = [_send_to_channel(db, alert, channel) for channel in channels]
+        tasks = [
+            _send_to_channel(db, alert, channel, notification_type, duration_seconds)
+            for channel in channels
+        ]
         await asyncio.gather(*tasks, return_exceptions=True)
         # 记录发送异常（gather 会返回异常对象）
         for task, channel in zip(tasks, channels):
@@ -967,28 +1045,28 @@ async def send_alert_notification(db: AsyncSession, alert: Alert):
                     f"Notification send failed for channel {channel.name}: {task}"
                 )
 
-    # 5. 冷却期设置 (Cooldown Setup) - 发送后立即设置冷却标记
-    # 防止后续相同规则的告警在冷却期内重复发送
-    if cooldown > 0:
-        # 5.1 设置冷却期标记，TTL为冷却时间（秒）
-        await redis.setex(cooldown_key, cooldown, "1")
-        # 5.2 清空冷却期计数器，为下一个冷却周期准备
-        await redis.delete(f"alert:cooldown:count:{alert.rule_id}")
 
-
-async def _send_to_channel(db: AsyncSession, alert: Alert, channel: NotificationChannel):
+async def _send_to_channel(
+    db: AsyncSession,
+    alert: Alert,
+    channel: NotificationChannel,
+    notification_type: str = "first",
+    duration_seconds: int = 0
+):
     """
     单渠道告警发送处理器 (Single Channel Alert Sender)
-    
+
     功能描述:
         负责向指定的单个通知渠道发送告警，包含模板渲染、重试机制、状态记录。
         采用策略模式根据渠道类型分发到对应的发送函数。
-        
+
     Args:
         db: 数据库会话
         alert: 告警对象
         channel: 目标通知渠道配置
-        
+        notification_type: 通知类型 (first/continuous/recovery)
+        duration_seconds: 告警持续时长（秒）
+
     处理流程:
         1. 渠道类型分发到对应处理函数
         2. 查找并应用通知模板
@@ -1010,7 +1088,9 @@ async def _send_to_channel(db: AsyncSession, alert: Alert, channel: Notification
 
     # 2. 通知模板处理 (Notification Template Processing)
     template = await _get_default_template(db, channel.type)  # 查找渠道默认模板
-    variables = _build_template_vars(alert)                   # 构建模板变量字典
+    variables = await _build_template_vars(
+        db, alert, notification_type, duration_seconds
+    )  # 构建模板变量字典（包含主机信息和通知类型）
 
     # 3. 初始化通知发送日志记录 (Initialize Notification Log)
     log = NotificationLog(
@@ -1071,7 +1151,7 @@ async def _send_to_channel(db: AsyncSession, alert: Alert, channel: Notification
 async def _send_webhook(
     alert: Alert, channel: NotificationChannel, template, variables: dict
 ) -> int | None:
-    """发送 Webhook 通知，支持 SSRF 防护和 URL 白名单验证。"""
+    """发送 Webhook 通知，支持 SSRF 防护和 URL 白名单验证，包含通知类型和持续时长。"""
     url = channel.config.get("url")
     if not url:
         return None
@@ -1099,9 +1179,18 @@ async def _send_webhook(
             "metric_value": alert.metric_value,
             "threshold": alert.threshold,
             "host_id": alert.host_id,
+            "host_name": variables.get("host_name", ""),
+            "host_ip": variables.get("host_ip", ""),
+            "private_ip": variables.get("private_ip", ""),
+            "public_ip": variables.get("public_ip", ""),
             "service_id": alert.service_id,
             "fired_at": alert.fired_at.isoformat() if alert.fired_at else None,
             "resolved_at": alert.resolved_at.isoformat() if alert.resolved_at else None,
+            # 新增字段：通知类型和持续时长
+            "notification_type": variables.get("notification_type", "first"),
+            "status_text": variables.get("status_text", "告警"),
+            "duration_seconds": variables.get("duration_seconds", 0),
+            "duration_human": variables.get("duration_human", ""),
         }
 
     async with httpx.AsyncClient(timeout=10, verify=settings.webhook_enable_ssl_verification) as client:
@@ -1116,7 +1205,7 @@ async def _send_webhook(
 async def _send_email(
     alert: Alert, channel: NotificationChannel, template, variables: dict
 ) -> int | None:
-    """通过 SMTP 发送邮件通知。"""
+    """通过 SMTP 发送邮件通知，支持三种通知类型。"""
     import aiosmtplib
 
     config = channel.config
@@ -1132,13 +1221,14 @@ async def _send_email(
         return None
 
     # 渲染内容
+    notification_type = variables.get("notification_type", "first")
     if template:
         subject, body = _render_template(template, variables)
         if not subject:
-            subject = f"[VigilOps 告警] {alert.severity} - {alert.title}"
+            subject = _get_email_subject(alert, notification_type)
     else:
-        subject = f"[VigilOps 告警] {alert.severity} - {alert.title}"
-        body = _default_email_html(variables)
+        subject = _get_email_subject(alert, notification_type)
+        body = _default_email_html(variables, notification_type)
 
     # 构建邮件
     msg = MIMEMultipart("alternative")
@@ -1163,21 +1253,59 @@ async def _send_email(
     return 200  # SMTP 无 HTTP 状态码，成功即返回 200
 
 
-def _default_email_html(variables: dict) -> str:
-    """生成默认的告警邮件 HTML 正文。"""
-    return f"""
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
-      <div style="background:#d32f2f;color:#fff;padding:16px 24px;">
-        <h2 style="margin:0;">⚠️ VigilOps 告警通知</h2>
-      </div>
-      <div style="padding:24px;">
-        <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="padding:8px 0;font-weight:bold;">标题</td><td>{variables['title']}</td></tr>
+def _get_email_subject(alert: Alert, notification_type: str) -> str:
+    """根据通知类型生成邮件主题。"""
+    if notification_type == "recovery":
+        return f"[VigilOps 已恢复] {alert.title}"
+    elif notification_type == "continuous":
+        return f"[VigilOps 持续告警] {alert.severity} - {alert.title}"
+    else:  # first
+        return f"[VigilOps 告警] {alert.severity} - {alert.title}"
+
+
+def _default_email_html(variables: dict, notification_type: str = "first") -> str:
+    """生成默认的告警邮件 HTML 正文，支持三种通知类型。"""
+    # 根据通知类型选择颜色和标题
+    if notification_type == "recovery":
+        header_color = "#4CAF50"  # 绿色
+        header_text = "✅ VigilOps 告警恢复"
+        extra_rows = f"""
+          <tr><td style="padding:8px 0;font-weight:bold;">状态</td><td>已恢复</td></tr>
+          <tr><td style="padding:8px 0;font-weight:bold;">持续时长</td><td>{variables.get('duration_human', '-')}</td></tr>
+          <tr><td style="padding:8px 0;font-weight:bold;">恢复时间</td><td>{variables.get('resolved_at', '-')}</td></tr>
+        """
+    elif notification_type == "continuous":
+        header_color = "#FF9800"  # 橙色
+        header_text = "🔁 VigilOps 持续告警"
+        extra_rows = f"""
+          <tr><td style="padding:8px 0;font-weight:bold;">持续时长</td><td>{variables.get('duration_human', '-')}</td></tr>
           <tr><td style="padding:8px 0;font-weight:bold;">严重级别</td><td>{variables['severity']}</td></tr>
           <tr><td style="padding:8px 0;font-weight:bold;">消息</td><td>{variables['message']}</td></tr>
           <tr><td style="padding:8px 0;font-weight:bold;">指标值</td><td>{variables['metric_value']}</td></tr>
           <tr><td style="padding:8px 0;font-weight:bold;">阈值</td><td>{variables['threshold']}</td></tr>
-          <tr><td style="padding:8px 0;font-weight:bold;">主机 ID</td><td>{variables['host_id']}</td></tr>
+        """
+    else:  # first
+        header_color = "#d32f2f"  # 红色
+        header_text = "⚠️ VigilOps 告警通知"
+        extra_rows = f"""
+          <tr><td style="padding:8px 0;font-weight:bold;">严重级别</td><td>{variables['severity']}</td></tr>
+          <tr><td style="padding:8px 0;font-weight:bold;">消息</td><td>{variables['message']}</td></tr>
+          <tr><td style="padding:8px 0;font-weight:bold;">指标值</td><td>{variables['metric_value']}</td></tr>
+          <tr><td style="padding:8px 0;font-weight:bold;">阈值</td><td>{variables['threshold']}</td></tr>
+        """
+
+    return f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
+      <div style="background:{header_color};color:#fff;padding:16px 24px;">
+        <h2 style="margin:0;">{header_text}</h2>
+      </div>
+      <div style="padding:24px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:8px 0;font-weight:bold;">标题</td><td>{variables['title']}</td></tr>
+          {extra_rows}
+          <tr><td style="padding:8px 0;font-weight:bold;">主机名称</td><td>{variables.get('host_name', '-')}</td></tr>
+          <tr><td style="padding:8px 0;font-weight:bold;">内网 IP</td><td>{variables.get('private_ip', '-')}</td></tr>
+          <tr><td style="padding:8px 0;font-weight:bold;">公网 IP</td><td>{variables.get('public_ip', '-')}</td></tr>
           <tr><td style="padding:8px 0;font-weight:bold;">触发时间</td><td>{variables['fired_at']}</td></tr>
         </table>
       </div>
@@ -1238,7 +1366,7 @@ def _dingtalk_sign(secret: str) -> tuple[str, str]:
 async def _send_dingtalk(
     alert: Alert, channel: NotificationChannel, template, variables: dict
 ) -> int | None:
-    """发送钉钉机器人 Webhook 通知（markdown 格式）。"""
+    """发送钉钉机器人 Webhook 通知（markdown 格式），支持三种通知类型。"""
     config = channel.config
     webhook_url = config.get("webhook_url", "")
     secret = config.get("secret")
@@ -1256,18 +1384,53 @@ async def _send_dingtalk(
     if template:
         _, body = _render_template(template, variables)
     else:
-        body = (
-            f"## ⚠️ VigilOps 告警\n\n"
-            f"**标题**: {variables['title']}\n\n"
-            f"**级别**: {variables['severity']}\n\n"
-            f"**消息**: {variables['message']}\n\n"
-            f"**触发时间**: {variables['fired_at']}"
-        )
+        notification_type = variables.get("notification_type", "first")
+        status_text = variables.get("status_text", "告警")
+        duration_human = variables.get("duration_human", "")
+
+        # 根据通知类型构建不同格式的消息
+        if notification_type == "recovery":
+            body = (
+                f"## ✅ VigilOps 告警恢复\n\n"
+                f"**标题**: {variables['title']}\n\n"
+                f"**状态**: {status_text}\n\n"
+                f"**持续时长**: {duration_human}\n\n"
+                f"**主机**: {variables.get('host_name', '-')}\n\n"
+                f"**内网IP**: {variables.get('private_ip', '-')}\n\n"
+                f"**公网IP**: {variables.get('public_ip', '-')}\n\n"
+                f"**恢复时间**: {variables.get('resolved_at', variables['fired_at'])}"
+            )
+            title_prefix = "[已恢复]"
+        elif notification_type == "continuous":
+            body = (
+                f"## 🔁 VigilOps 持续告警\n\n"
+                f"**标题**: {variables['title']}\n\n"
+                f"**级别**: {variables['severity']}\n\n"
+                f"**消息**: {variables['message']}\n\n"
+                f"**持续时长**: {duration_human}\n\n"
+                f"**主机**: {variables.get('host_name', '-')}\n\n"
+                f"**内网IP**: {variables.get('private_ip', '-')}\n\n"
+                f"**公网IP**: {variables.get('public_ip', '-')}\n\n"
+                f"**触发时间**: {variables['fired_at']}"
+            )
+            title_prefix = "[持续]"
+        else:  # first
+            body = (
+                f"## ⚠️ VigilOps 告警\n\n"
+                f"**标题**: {variables['title']}\n\n"
+                f"**级别**: {variables['severity']}\n\n"
+                f"**消息**: {variables['message']}\n\n"
+                f"**主机**: {variables.get('host_name', '-')}\n\n"
+                f"**内网IP**: {variables.get('private_ip', '-')}\n\n"
+                f"**公网IP**: {variables.get('public_ip', '-')}\n\n"
+                f"**触发时间**: {variables['fired_at']}"
+            )
+            title_prefix = "[告警]"
 
     payload = {
         "msgtype": "markdown",
         "markdown": {
-            "title": f"[告警] {variables['title']}",
+            "title": f"{title_prefix} {variables['title']}",
             "text": body,
         },
     }
@@ -1327,7 +1490,7 @@ def _feishu_sign(secret: str) -> tuple[str, str]:
 async def _send_feishu(
     alert: Alert, channel: NotificationChannel, template, variables: dict
 ) -> int | None:
-    """发送飞书机器人 Webhook 通知（富文本卡片格式）。"""
+    """发送飞书机器人 Webhook 通知（富文本卡片格式），支持三种通知类型。"""
     config = channel.config
     webhook_url = config.get("webhook_url", "")
     secret = config.get("secret")
@@ -1338,20 +1501,58 @@ async def _send_feishu(
     # 渲染内容
     if template:
         _, body = _render_template(template, variables)
+        header_title = "VigilOps 通知"
+        header_color = "blue"
     else:
-        body = (
-            f"**标题**: {variables['title']}\n"
-            f"**级别**: {variables['severity']}\n"
-            f"**消息**: {variables['message']}\n"
-            f"**触发时间**: {variables['fired_at']}"
-        )
+        notification_type = variables.get("notification_type", "first")
+        status_text = variables.get("status_text", "告警")
+        duration_human = variables.get("duration_human", "")
+
+        # 根据通知类型构建不同格式的消息
+        if notification_type == "recovery":
+            body = (
+                f"**标题**: {variables['title']}\n"
+                f"**状态**: {status_text}\n"
+                f"**持续时长**: {duration_human}\n"
+                f"**主机**: {variables.get('host_name', '-')}\n"
+                f"**内网IP**: {variables.get('private_ip', '-')}\n"
+                f"**公网IP**: {variables.get('public_ip', '-')}\n"
+                f"**恢复时间**: {variables.get('resolved_at', variables['fired_at'])}"
+            )
+            header_title = "✅ VigilOps 告警恢复"
+            header_color = "green"
+        elif notification_type == "continuous":
+            body = (
+                f"**标题**: {variables['title']}\n"
+                f"**级别**: {variables['severity']}\n"
+                f"**消息**: {variables['message']}\n"
+                f"**持续时长**: {duration_human}\n"
+                f"**主机**: {variables.get('host_name', '-')}\n"
+                f"**内网IP**: {variables.get('private_ip', '-')}\n"
+                f"**公网IP**: {variables.get('public_ip', '-')}\n"
+                f"**触发时间**: {variables['fired_at']}"
+            )
+            header_title = "🔁 VigilOps 持续告警"
+            header_color = "orange"
+        else:  # first
+            body = (
+                f"**标题**: {variables['title']}\n"
+                f"**级别**: {variables['severity']}\n"
+                f"**消息**: {variables['message']}\n"
+                f"**主机**: {variables.get('host_name', '-')}\n"
+                f"**内网IP**: {variables.get('private_ip', '-')}\n"
+                f"**公网IP**: {variables.get('public_ip', '-')}\n"
+                f"**触发时间**: {variables['fired_at']}"
+            )
+            header_title = "⚠️ VigilOps 告警"
+            header_color = "red"
 
     payload: dict = {
         "msg_type": "interactive",
         "card": {
             "header": {
-                "title": {"tag": "plain_text", "content": "⚠️ VigilOps 告警"},
-                "template": "red",
+                "title": {"tag": "plain_text", "content": header_title},
+                "template": header_color,
             },
             "elements": [
                 {
@@ -1380,7 +1581,7 @@ async def _send_feishu(
 async def _send_wecom(
     alert: Alert, channel: NotificationChannel, template, variables: dict
 ) -> int | None:
-    """发送企业微信机器人 Webhook 通知（markdown 格式）。"""
+    """发送企业微信机器人 Webhook 通知（markdown 格式），支持三种通知类型。"""
     config = channel.config
     webhook_url = config.get("webhook_url", "")
 
@@ -1391,13 +1592,45 @@ async def _send_wecom(
     if template:
         _, body = _render_template(template, variables)
     else:
-        body = (
-            f"## <font color='warning'>⚠️ VigilOps 告警</font>\n"
-            f"> **标题**: {variables['title']}\n"
-            f"> **级别**: {variables['severity']}\n"
-            f"> **消息**: {variables['message']}\n"
-            f"> **触发时间**: {variables['fired_at']}"
-        )
+        notification_type = variables.get("notification_type", "first")
+        status_text = variables.get("status_text", "告警")
+        duration_human = variables.get("duration_human", "")
+
+        # 根据通知类型构建不同格式的消息
+        if notification_type == "recovery":
+            body = (
+                f"## <font color='info'>✅ VigilOps 告警恢复</font>\n"
+                f"> **标题**: {variables['title']}\n"
+                f"> **状态**: {status_text}\n"
+                f"> **持续时长**: {duration_human}\n"
+                f"> **主机**: {variables.get('host_name', '-')}\n"
+                f"> **内网IP**: {variables.get('private_ip', '-')}\n"
+                f"> **公网IP**: {variables.get('public_ip', '-')}\n"
+                f"> **恢复时间**: {variables.get('resolved_at', variables['fired_at'])}"
+            )
+        elif notification_type == "continuous":
+            body = (
+                f"## <font color='warning'>🔁 VigilOps 持续告警</font>\n"
+                f"> **标题**: {variables['title']}\n"
+                f"> **级别**: {variables['severity']}\n"
+                f"> **消息**: {variables['message']}\n"
+                f"> **持续时长**: {duration_human}\n"
+                f"> **主机**: {variables.get('host_name', '-')}\n"
+                f"> **内网IP**: {variables.get('private_ip', '-')}\n"
+                f"> **公网IP**: {variables.get('public_ip', '-')}\n"
+                f"> **触发时间**: {variables['fired_at']}"
+            )
+        else:  # first
+            body = (
+                f"## <font color='warning'>⚠️ VigilOps 告警</font>\n"
+                f"> **标题**: {variables['title']}\n"
+                f"> **级别**: {variables['severity']}\n"
+                f"> **消息**: {variables['message']}\n"
+                f"> **主机**: {variables.get('host_name', '-')}\n"
+                f"> **内网IP**: {variables.get('private_ip', '-')}\n"
+                f"> **公网IP**: {variables.get('public_ip', '-')}\n"
+                f"> **触发时间**: {variables['fired_at']}"
+            )
 
     payload = {
         "msgtype": "markdown",

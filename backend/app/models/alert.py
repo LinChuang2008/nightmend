@@ -53,6 +53,7 @@ class AlertRule(Base):
     db_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 数据库 ID (Database ID)
     # 冷却期与静默窗口 (Cooldown and Silence Window)
     cooldown_seconds: Mapped[int] = mapped_column(Integer, default=300)  # 告警冷却期秒数 (Alert Cooldown Seconds)
+    continuous_alert: Mapped[bool] = mapped_column(Boolean, default=True)  # 是否持续发送告警通知 (Continuous Alert Notification)
     silence_start: Mapped[Optional[time]] = mapped_column(Time, nullable=True)  # 静默窗口开始时间 (Silence Window Start Time)
     silence_end: Mapped[Optional[time]] = mapped_column(Time, nullable=True)  # 静默窗口结束时间 (Silence Window End Time)
     # 通知渠道配置 (Notification Channels Configuration)

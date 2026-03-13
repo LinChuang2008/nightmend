@@ -31,7 +31,10 @@ class Host(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)  # 主键 ID (Primary Key ID)
     hostname: Mapped[str] = mapped_column(String(255), nullable=False, index=True)  # 主机名称 (Hostname)
-    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)  # IP 地址（支持 IPv6） (IP Address)
+    display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)  # 自定义显示名称 (Custom Display Name)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)  # IP 地址（支持 IPv6，保留兼容） (IP Address)
+    private_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)  # 内网 IP 地址 (Private IP Address)
+    public_ip: Mapped[str | None] = mapped_column(String(45), nullable=True)  # 公网 IP 地址 (Public IP Address)
     os: Mapped[str | None] = mapped_column(String(100), nullable=True)  # 操作系统类型 (Operating System)
     os_version: Mapped[str | None] = mapped_column(String(100), nullable=True)  # 操作系统版本 (OS Version)
     arch: Mapped[str | None] = mapped_column(String(50), nullable=True)  # 系统架构，如 x86_64, arm64 (System Architecture)
@@ -41,6 +44,7 @@ class Host(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="online")  # 在线状态：在线/离线 (Online Status: online/offline)
     tags: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=dict)  # 主机标签 JSON 数据 (Host Tags JSON)
     group_name: Mapped[str | None] = mapped_column(String(100), nullable=True)  # 主机分组名称 (Host Group Name)
+    network_info: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # 网络接口详细信息 (Network Interfaces Info)
     agent_token_id: Mapped[int] = mapped_column(Integer, nullable=False)  # Agent 认证令牌 ID (Agent Token ID)
     last_heartbeat: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # 最后心跳时间 (Last Heartbeat Time)
     created_at: Mapped[datetime] = mapped_column(
@@ -49,3 +53,13 @@ class Host(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )  # 更新时间 (Update Time)
+
+    @property
+    def display_hostname(self) -> str:
+        """获取显示名称（优先使用 display_name，否则使用 hostname）。"""
+        return self.display_name or self.hostname
+
+    @property
+    def display_ip(self) -> str:
+        """获取显示 IP（优先公网 IP，否则内网 IP，最后兼容旧字段）。"""
+        return self.public_ip or self.private_ip or self.ip_address or "N/A"

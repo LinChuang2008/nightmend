@@ -321,6 +321,8 @@ const zh = {
       operator: '运算符',
       durationSeconds: '持续时间(秒)',
       cooldown: '冷却期（秒）',
+      continuousAlert: '持续告警',
+      continuousAlertTooltip: '开启后将在持续违规期间按冷却期重复发送通知，关闭则仅在恢复时发送',
       silenceStart: '静默开始',
       silenceEnd: '静默结束',
       notificationChannels: '通知渠道',
@@ -333,7 +335,11 @@ const zh = {
   hosts: {
     title: '服务器列表',
     hostname: '主机名',
+    displayName: '显示名称',
     ip: 'IP 地址',
+    privateIp: '内网 IP',
+    publicIp: '公网 IP',
+    networkInfo: '网络信息',
     os: '操作系统',
     cpu: 'CPU',
     memory: '内存',
@@ -370,6 +376,11 @@ const zh = {
     diskUsage: '磁盘使用率',
     activeAlerts: '活跃告警（{{count}}）',
     noActiveAlerts: '无活跃告警',
+    editDisplayName: '编辑显示名称',
+    enterDisplayName: '请输入显示名称',
+    displayNameCannotBeEmpty: '显示名称不能为空',
+    displayNameUpdated: '显示名称已更新',
+    updateFailed: '更新失败',
   },
 
   // ========== 服务监控 ==========

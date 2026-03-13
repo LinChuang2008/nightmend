@@ -33,3 +33,6 @@ backend/.coverage
 backend/.python-version
 .python-version
 *.pyc
+
+# Backups
+backups/

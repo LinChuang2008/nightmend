@@ -107,8 +107,8 @@ async def register_agent(
 
     if existing:
         # 更新已有主机信息，支持Agent重启或配置变更 (Update existing host info for Agent restart or config changes)
-        for field in ["ip_address", "os", "os_version", "arch", "cpu_cores", "memory_total_mb", "agent_version", "tags", "group_name"]:
-            val = getattr(body, field)
+        for field in ["ip_address", "display_name", "private_ip", "public_ip", "network_info", "os", "os_version", "arch", "cpu_cores", "memory_total_mb", "agent_version", "tags", "group_name"]:
+            val = getattr(body, field, None)
             if val is not None:
                 setattr(existing, field, val)
         existing.status = "online"  # 重新标记为在线状态
@@ -120,7 +120,11 @@ async def register_agent(
     # 创建新主机
     host = Host(
         hostname=body.hostname,
+        display_name=body.display_name,
         ip_address=body.ip_address,
+        private_ip=body.private_ip,
+        public_ip=body.public_ip,
+        network_info=body.network_info,
         os=body.os,
         os_version=body.os_version,
         arch=body.arch,
@@ -234,6 +238,40 @@ async def report_metrics(
     latest = body.model_dump(exclude={"host_id", "timestamp"}, exclude_none=True)
     latest["recorded_at"] = recorded_at.isoformat()
     await redis.set(f"metrics:latest:{body.host_id}", _json.dumps(latest), ex=600)  # 10分钟过期
+
+    # 存储指标历史到 Redis（用于精确持续时间判断）
+    # 保留最近 20 个数据点（5 分钟历史，15秒间隔）
+    try:
+        history_key = f"metrics:history:{body.host_id}"
+        history_entry = {
+            "cpu_percent": body.cpu_percent,
+            "memory_percent": body.memory_percent,
+            "disk_percent": body.disk_percent,
+            "cpu_load_1": body.cpu_load_1,
+            "cpu_load_5": body.cpu_load_5,
+            "cpu_load_15": body.cpu_load_15,
+            "ts": recorded_at.isoformat()
+        }
+
+        # 获取现有历史
+        existing_history = await redis.get(history_key)
+        if existing_history:
+            history = _json.loads(existing_history)
+        else:
+            history = []
+
+        # 添加新数据点
+        history.append(history_entry)
+
+        # 只保留最近 20 个数据点
+        history = history[-20:]
+
+        # 存储回 Redis，TTL 10 分钟
+        await redis.set(history_key, _json.dumps(history), ex=600)
+    except Exception as e:
+        # 不影响主流程，仅记录警告
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to update metrics history: {e}")
 
     return {"status": "ok", "metric_id": metric.id}
 

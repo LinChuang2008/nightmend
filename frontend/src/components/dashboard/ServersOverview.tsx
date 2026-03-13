@@ -12,7 +12,17 @@ const { Text } = Typography;
 interface HostItem {
   id: string;
   hostname: string;
-  ip_address?: string;
+  display_name?: string | null;
+  ip_address?: string | null;
+  private_ip?: string | null;
+  public_ip?: string | null;
+  network_info?: {
+    private_ip?: string;
+    public_ip?: string;
+    all_private?: string[];
+    all_public?: string[];
+    interfaces?: Record<string, { ipv4: string; type: string }>;
+  } | null;
   status: string;
   cpu_cores?: number;
   memory_total_mb?: number;
@@ -50,6 +60,21 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
     return null;
   }
 
+  // 获取主机显示名称（优先使用 display_name）
+  const getDisplayName = (host: HostItem): string => {
+    return host.display_name || host.hostname;
+  };
+
+  // 获取主机显示 IP（优先公网 IP，否则内网 IP，最后兼容旧字段）
+  const getDisplayIp = (host: HostItem): string => {
+    return host.public_ip || host.private_ip || host.ip_address || 'N/A';
+  };
+
+  // 判断是否有多个 IP 需要显示提示
+  const hasMultipleIps = (host: HostItem): boolean => {
+    return !!(host.private_ip && host.public_ip);
+  };
+
   return (
     <Card
       title={<Space><DesktopOutlined /> {t('dashboard.serverHealthOverview')}</Space>}
@@ -60,6 +85,8 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
         {hosts.map(host => {
           const m = host.latest_metrics;
           const isOnline = host.status === 'online';
+          const displayName = getDisplayName(host);
+          const displayIp = getDisplayIp(host);
 
           const hasDanger =
             (m?.cpu_percent ?? 0) > 80 ||
@@ -110,11 +137,33 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
                       }}
                     />
                     <Text strong style={{ fontSize: 13 }}>
-                      {host.hostname}
+                      {displayName}
                     </Text>
                   </Space>
                   <ArrowRightOutlined style={{ color: '#999', fontSize: 11 }} />
                 </div>
+
+                {/* IP 地址显示 */}
+                <div style={{ marginBottom: 6 }}>
+                  {hasMultipleIps(host) ? (
+                    <Tooltip title={
+                      <div>
+                        <div>公网: {host.public_ip}</div>
+                        <div>内网: {host.private_ip}</div>
+                      </div>
+                    }>
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {displayIp}
+                        <Text type="secondary"> (+1)</Text>
+                      </Text>
+                    </Tooltip>
+                  ) : (
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      {displayIp}
+                    </Text>
+                  )}
+                </div>
+
                 {m ? (
                   <div style={{ display: 'flex', gap: 12 }}>
                     <Tooltip title={`CPU: ${m.cpu_percent}%`}>

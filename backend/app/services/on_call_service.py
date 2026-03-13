@@ -36,9 +36,9 @@ class OnCallService:
         today = date.today()
         
         query = select(
-            OnCallSchedule, 
+            OnCallSchedule,
             OnCallGroup.name.label('group_name'),
-            User.username
+            User.email
         ).select_from(
             OnCallSchedule
         ).join(
@@ -62,10 +62,10 @@ class OnCallService:
         row = result.first()
         
         if row:
-            schedule, group_name, username = row
+            schedule, group_name, email = row
             return {
                 "user_id": schedule.user_id,
-                "username": username,
+                "email": email,
                 "group_id": schedule.group_id,
                 "group_name": group_name,
                 "schedule_id": schedule.id,
@@ -154,7 +154,7 @@ class OnCallService:
         Returns:
             dict: 覆盖情况统计
         """
-        query = select(OnCallSchedule, OnCallGroup.name, User.username).select_from(
+        query = select(OnCallSchedule, OnCallGroup.name, User.email).select_from(
             OnCallSchedule
         ).join(
             OnCallGroup, OnCallSchedule.group_id == OnCallGroup.id
@@ -176,11 +176,11 @@ class OnCallService:
         result = await db.execute(query)
         schedules = []
         
-        for schedule, group_name, username in result:
+        for schedule, group_name, email in result:
             schedules.append({
                 "schedule_id": schedule.id,
                 "user_id": schedule.user_id,
-                "username": username,
+                "email": email,
                 "group_id": schedule.group_id,
                 "group_name": group_name,
                 "start_date": schedule.start_date,

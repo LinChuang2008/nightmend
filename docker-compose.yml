@@ -5,6 +5,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-vigilops}
       POSTGRES_USER: ${POSTGRES_USER:-vigilops}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vigilops_dev_password}
+      TZ: Asia/Shanghai
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
@@ -19,6 +20,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    environment:
+      TZ: Asia/Shanghai
     command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
       - "${REDIS_PORT:-6380}:6379"
@@ -41,6 +44,7 @@ services:
       CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE:-vigilops}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      TZ: Asia/Shanghai
     volumes:
       - clickhousedata:/var/lib/clickhouse
       - ./clickhouse-config:/etc/clickhouse-server/conf.d
@@ -56,6 +60,8 @@ services:
   # Grafana Loki 日志聚合 (Grafana Loki Log Aggregation) - 可选
   loki:
     image: grafana/loki:2.9.0
+    environment:
+      TZ: Asia/Shanghai
     ports:
       - "${LOKI_PORT:-3100}:3100"
     command: -config.file=/etc/loki/local-config.yaml
@@ -75,6 +81,7 @@ services:
       # not the host-mapped ports from .env
       REDIS_PORT: 6379
       POSTGRES_PORT: 5432
+      TZ: Asia/Shanghai
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,6 +104,7 @@ services:
       VIGILOPS_MCP_PORT: "8003"
       REDIS_PORT: 6379
       POSTGRES_PORT: 5432
+      TZ: Asia/Shanghai
     command: ["python", "-m", "app.mcp.server"]
     depends_on:
       postgres:
@@ -109,6 +117,8 @@ services:
 
   frontend:
     build: ./frontend
+    environment:
+      TZ: Asia/Shanghai
     ports:
       - "${FRONTEND_PORT:-3001}:80"
     depends_on:

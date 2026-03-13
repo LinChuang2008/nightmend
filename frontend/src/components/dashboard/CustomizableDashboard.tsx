@@ -56,7 +56,17 @@ const STORAGE_KEY = 'vigilops-dashboard-config';
 interface HostItem {
   id: string;
   hostname: string;
-  ip_address?: string;
+  display_name?: string | null;
+  ip_address?: string | null;
+  private_ip?: string | null;
+  public_ip?: string | null;
+  network_info?: {
+    private_ip?: string;
+    public_ip?: string;
+    all_private?: string[];
+    all_public?: string[];
+    interfaces?: Record<string, { ipv4: string; type: string }>;
+  } | null;
   status: string;
   cpu_cores?: number;
   memory_total_mb?: number;

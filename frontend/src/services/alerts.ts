@@ -70,6 +70,8 @@ export interface AlertRule {
   db_id?: number;
   /** 冷却时间（秒），避免重复告警 */
   cooldown_seconds?: number;
+  /** 持续告警模式：开启后将在持续违规期间按冷却期重复发送通知，关闭则仅在恢复时发送 */
+  continuous_alert?: boolean;
   /** 静默开始时间 */
   silence_start?: string | null;
   /** 静默结束时间 */

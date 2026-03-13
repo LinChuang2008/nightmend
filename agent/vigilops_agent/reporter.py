@@ -45,14 +45,37 @@ class AgentReporter:
         return self._client
 
     def _get_local_ip(self) -> str:
-        """获取本机主要 IP 地址。
+        """获取本机主要 IP 地址（保留兼容性）。"""
+        network_info = self._get_network_info()
+        # 优先返回公网 IP，否则返回内网 IP
+        return network_info.get("public_ip") or network_info.get("private_ip") or ""
 
-        优先尝试通过外部服务获取公网 IP（适用于云主机），
-        失败后回退到 UDP socket 方式获取内网 IP。
+    def _get_network_info(self) -> dict:
+        """获取本机网络接口信息。
+
+        返回格式：
+        {
+            "private_ip": "10.0.1.123",      # 主要内网 IP
+            "public_ip": "54.255.123.45",     # 公网 IP（如果可检测）
+            "all_private": ["10.0.1.123"],    # 所有内网 IP
+            "all_public": ["54.255.123.45"],  # 所有公网 IP
+            "interfaces": {                   # 网卡详细信息
+                "eth0": {"ipv4": "10.0.1.123", "type": "private"}
+            }
+        }
         """
         import socket
+        import platform
 
-        # 1) 尝试通过公网服务获取外网 IP
+        result = {
+            "private_ip": None,
+            "public_ip": None,
+            "all_private": [],
+            "all_public": [],
+            "interfaces": {},
+        }
+
+        # 1. 尝试通过外部服务获取公网 IP
         for url in [
             "https://api.ipify.org",
             "https://ifconfig.me/ip",
@@ -62,34 +85,111 @@ class AgentReporter:
                 import urllib.request
                 with urllib.request.urlopen(url, timeout=3) as resp:
                     ip = resp.read().decode().strip()
-                    if ip and ip != "127.0.0.1":
-                        return ip
+                    if ip and self._is_valid_public_ip(ip):
+                        result["public_ip"] = ip
+                        result["all_public"].append(ip)
+                        break
             except Exception:
                 continue
 
-        # 2) 回退：通过 UDP socket 连接目标获取本机出口 IP
+        # 2. 获取本地网络接口信息
         try:
-            from urllib.parse import urlparse
-            parsed = urlparse(self.config.server.url)
-            host = parsed.hostname or "10.211.55.2"
-            port = parsed.port or 80
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect((host, port))
-            ip = s.getsockname()[0]
-            s.close()
-            if ip and ip != "127.0.0.1":
-                return ip
-        except Exception:
+            # 尝试使用 netifaces 获取详细信息
+            import netifaces
+            for interface in netifaces.interfaces():
+                addrs = netifaces.ifaddresses(interface)
+                if netifaces.AF_INET in addrs:
+                    for addr_info in addrs[netifaces.AF_INET]:
+                        ip = addr_info.get('addr')
+                        if ip and self._is_valid_ip(ip):
+                            ip_type = self._classify_ip(ip)
+                            result["interfaces"][interface] = {
+                                "ipv4": ip,
+                                "type": ip_type
+                            }
+                            if ip_type == "private":
+                                if not result["private_ip"]:
+                                    result["private_ip"] = ip
+                                if ip not in result["all_private"]:
+                                    result["all_private"].append(ip)
+                            elif ip_type == "public":
+                                if ip not in result["all_public"]:
+                                    result["all_public"].append(ip)
+        except ImportError:
+            # netifaces 不可用，使用备用方法
             pass
 
-        return ""
+        # 3. 备用方法：通过 socket 获取主要 IP
+        if not result["private_ip"]:
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(self.config.server.url)
+                host = parsed.hostname or "10.211.55.2"
+                port = parsed.port or 80
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect((host, port))
+                ip = s.getsockname()[0]
+                s.close()
+                if ip and self._is_valid_ip(ip):
+                    ip_type = self._classify_ip(ip)
+                    result["private_ip"] = ip
+                    result["all_private"].append(ip)
+                    result["interfaces"]["default"] = {"ipv4": ip, "type": ip_type}
+            except Exception:
+                pass
+
+        return result
+
+    @staticmethod
+    def _is_valid_ip(ip: str) -> bool:
+        """验证 IP 地址格式是否有效。"""
+        import ipaddress
+        try:
+            ipaddress.ip_address(ip)
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def _is_valid_public_ip(ip: str) -> bool:
+        """验证是否为有效的公网 IP 地址。"""
+        import ipaddress
+        try:
+            addr = ipaddress.ip_address(ip)
+            # 排除私网地址、本地回环和链路本地地址
+            return not addr.is_private and not addr.is_loopback and not addr.is_link_local
+        except ValueError:
+            return False
+
+    @staticmethod
+    def _classify_ip(ip: str) -> str:
+        """分类 IP 地址类型。"""
+        import ipaddress
+        try:
+            addr = ipaddress.ip_address(ip)
+            if addr.is_loopback:
+                return "loopback"
+            elif addr.is_link_local:
+                return "link_local"
+            elif addr.is_private:
+                return "private"
+            else:
+                return "public"
+        except ValueError:
+            return "unknown"
 
     async def register(self):
         """向服务端注册本 Agent，获取 host_id。"""
         info = collect_system_info()
+        network_info = self._get_network_info()
+
         payload = {
             "hostname": self.config.host.name or info["hostname"],
-            "ip_address": self.config.host.ip or self._get_local_ip(),
+            "display_name": self.config.host.display_name or None,
+            "ip_address": self.config.host.ip or (network_info.get("public_ip") or network_info.get("private_ip")),
+            "private_ip": self.config.host.private_ip or network_info.get("private_ip"),
+            "public_ip": self.config.host.public_ip or network_info.get("public_ip"),
+            "network_info": network_info if network_info.get("interfaces") else None,
             "os": info["os"],
             "os_version": info["os_version"],
             "arch": info["arch"],

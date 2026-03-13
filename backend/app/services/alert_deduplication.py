@@ -1,346 +1,279 @@
 """
-告警去重和聚合服务 (Alert Deduplication and Aggregation Service)
+告警去重服务 (Alert Deduplication Service)
 
-实现智能告警去重和聚合逻辑，防止告警风暴，提升运维效率。
-支持基于时间窗口、相似性规则、主机/服务等维度的告警管理。
+实现智能告警去重逻辑，支持：
+- 基于冷却期的告警控制（使用规则自身的 cooldown_seconds）
+- 分离聚合记录与通知发送
+- 持续告警模式：每冷却期发送一次通知
+- 静默聚合模式：只在恢复时发送通知
 
-Implements intelligent alert deduplication and aggregation logic to prevent
-alert storms and improve operational efficiency. Supports alert management
-based on time windows, similarity rules, and host/service dimensions.
+Implements intelligent alert deduplication logic.
+Supports:
+- Cooldown-based alert control (using rule's own cooldown_seconds)
+- Separated aggregation records from notification sending
+- Continuous alert mode: send notification every cooldown period
+- Silent aggregation mode: send notification only on recovery
 """
 import hashlib
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Tuple
 
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.alert import Alert, AlertRule
-from app.models.alert_group import AlertGroup, AlertDeduplication
+from app.models.alert_group import AlertDeduplication
 from app.models.setting import Setting
 
 logger = logging.getLogger(__name__)
 
-# 默认配置
-DEFAULT_DEDUPLICATION_WINDOW = 300  # 去重窗口：5分钟
-DEFAULT_AGGREGATION_WINDOW = 600    # 聚合窗口：10分钟
-DEFAULT_MAX_ALERTS_PER_GROUP = 50   # 每个聚合组最多告警数
-
-# 配置键名
-DEDUP_WINDOW_KEY = "alert_deduplication_window_seconds"
-AGGREGATION_WINDOW_KEY = "alert_aggregation_window_seconds"
-MAX_ALERTS_PER_GROUP_KEY = "alert_max_alerts_per_group"
-
 
 class AlertDeduplicationService:
-    """告警去重和聚合服务类"""
+    """告警去重服务类"""
 
     def __init__(self, db: Session):
         self.db = db
 
-    def get_config(self, key: str, default_value: int) -> int:
-        """获取配置值"""
-        try:
-            setting = self.db.query(Setting).filter(Setting.key == key).first()
-            if setting:
-                return int(setting.value)
-            return default_value
-        except (ValueError, TypeError):
-            return default_value
-
-    def set_config(self, key: str, value: int, description: str) -> None:
-        """设置配置值"""
-        setting = self.db.query(Setting).filter(Setting.key == key).first()
-        if setting:
-            setting.value = str(value)
-        else:
-            setting = Setting(key=key, value=str(value), description=description)
-            self.db.add(setting)
-        self.db.commit()
-
-    def generate_alert_fingerprint(self, rule_id: int, host_id: Optional[int], 
+    def generate_alert_fingerprint(self, rule_id: int, host_id: Optional[int],
                                    service_id: Optional[int], metric: str) -> str:
         """
-        生成告警指纹，用于去重判断
-        
+        生成告警指纹，        用于唯一标识一条告警（规则 + 主机/服务 + 指标）
+
         Args:
             rule_id: 告警规则 ID
-            host_id: 主机 ID  
+            host_id: 主机 ID
             service_id: 服务 ID
             metric: 监控指标名
-            
+
         Returns:
             str: 告警指纹哈希值
         """
-        # 创建唯一标识符
         identifier = f"{rule_id}:{host_id or 'none'}:{service_id or 'none'}:{metric}"
         return hashlib.md5(identifier.encode()).hexdigest()
 
-    def generate_group_key(self, rule_name: str, severity: str, 
-                          host_ids: List[int], service_ids: List[int]) -> str:
+    def get_or_create_dedup_record(self, rule: AlertRule, host_id: Optional[int],
+                                   service_id: Optional[int]) -> Tuple[AlertDeduplication, bool]:
         """
-        生成告警组键，用于聚合判断
-        
-        Args:
-            rule_name: 规则名称
-            severity: 严重程度
-            host_ids: 相关主机 ID 列表
-            service_ids: 相关服务 ID 列表
-            
-        Returns:
-            str: 告警组键
-        """
-        # 按相似性聚合：相同规则名前缀 + 相同严重程度
-        rule_prefix = rule_name.split(' - ')[0] if ' - ' in rule_name else rule_name
-        
-        # 如果涉及少量主机（<=3），按主机聚合；否则按规则聚合
-        if len(host_ids) <= 3:
-            hosts_part = ','.join(map(str, sorted(host_ids)))
-            return f"{rule_prefix}:{severity}:hosts:{hosts_part}"
-        else:
-            return f"{rule_prefix}:{severity}:rule_based"
+        获取或创建去重记录
 
-    def should_deduplicate_alert(self, fingerprint: str) -> Tuple[bool, Optional[AlertDeduplication]]:
-        """
-        检查是否应该去重
-        
-        Args:
-            fingerprint: 告警指纹
-            
         Returns:
-            Tuple[bool, Optional[AlertDeduplication]]: (是否去重, 现有去重记录)
+            Tuple[AlertDeduplication, bool]: (去重记录, 是否新建)
         """
-        dedup_window = self.get_config(DEDUP_WINDOW_KEY, DEFAULT_DEDUPLICATION_WINDOW)
-        cutoff_time = datetime.utcnow() - timedelta(seconds=dedup_window)
+        fingerprint = self.generate_alert_fingerprint(rule.id, host_id, service_id, rule.metric)
 
-        # 查找近期的去重记录
-        existing_dedup = self.db.query(AlertDeduplication).filter(
-            and_(
-                AlertDeduplication.fingerprint == fingerprint,
-                AlertDeduplication.last_occurrence > cutoff_time
-            )
+        existing = self.db.query(AlertDeduplication).filter(
+            AlertDeduplication.fingerprint == fingerprint
         ).first()
 
-        return existing_dedup is not None, existing_dedup
+        if existing:
+            return existing, False
 
-    def find_or_create_alert_group(self, group_key: str, rule_id: int, host_id: Optional[int],
-                                   service_id: Optional[int], severity: str, title: str) -> AlertGroup:
+        # 创建新的去重记录
+        now = datetime.now(timezone.utc)
+        new_record = AlertDeduplication(
+            fingerprint=fingerprint,
+            rule_id=rule.id,
+            host_id=host_id,
+            service_id=service_id,
+            first_violation_time=now,
+            first_alert_time=None,  # 尚未触发告警
+            last_alert_time=None,
+            last_check_time=now,
+            occurrence_count=1,
+            alert_sent_count=0,
+            alert_triggered=False,
+            suppressed=False,
+            recovery_start_time=None
+        )
+        self.db.add(new_record)
+        self.db.commit()
+        logger.info(f"Created new dedup record for rule {rule.id}")
+        return new_record, True
+
+    def process_alert_evaluation(self, rule: AlertRule, host_id: Optional[int],
+                                service_id: Optional[int], metric_value: float,
+                                alert_title: str) -> Dict:
         """
-        查找或创建告警聚合组
-        
-        Args:
-            group_key: 聚合组键
-            rule_id: 规则 ID
-            host_id: 主机 ID
-            service_id: 服务 ID
-            severity: 严重程度
-            title: 告警标题
-            
-        Returns:
-            AlertGroup: 告警聚合组
-        """
-        aggregation_window = self.get_config(AGGREGATION_WINDOW_KEY, DEFAULT_AGGREGATION_WINDOW)
-        window_start = datetime.utcnow() - timedelta(seconds=aggregation_window)
+        处理告警评估结果
 
-        # 查找活跃的聚合组
-        existing_group = self.db.query(AlertGroup).filter(
-            and_(
-                AlertGroup.group_key == group_key,
-                AlertGroup.status.in_(["firing", "acknowledged"]),
-                AlertGroup.window_end > window_start
-            )
-        ).first()
+        核心逻辑：
+        1. 持续时间判断由 alert_engine 通过 Redis 历史数据完成
+        2. 此方法只负责去重记录的更新和通知决策
 
-        if existing_group:
-            # 更新现有组
-            existing_group.last_occurrence = datetime.utcnow()
-            existing_group.window_end = datetime.utcnow() + timedelta(seconds=aggregation_window)
-            existing_group.alert_count += 1
-            
-            # 更新涉及的资源列表
-            if rule_id not in (existing_group.rule_ids or []):
-                rule_ids = list(existing_group.rule_ids or [])
-                rule_ids.append(rule_id)
-                existing_group.rule_ids = rule_ids
-                
-            if host_id and host_id not in (existing_group.host_ids or []):
-                host_ids = list(existing_group.host_ids or [])
-                host_ids.append(host_id)
-                existing_group.host_ids = host_ids
-                
-            if service_id and service_id not in (existing_group.service_ids or []):
-                service_ids = list(existing_group.service_ids or [])
-                service_ids.append(service_id)
-                existing_group.service_ids = service_ids
-
-            # 提升严重程度（如果需要）
-            severity_order = {"info": 1, "warning": 2, "critical": 3}
-            current_level = severity_order.get(existing_group.severity, 1)
-            new_level = severity_order.get(severity, 1)
-            if new_level > current_level:
-                existing_group.severity = severity
-
-            self.db.commit()
-            return existing_group
-        else:
-            # 创建新的聚合组
-            new_group = AlertGroup(
-                group_key=group_key,
-                title=f"聚合告警: {title}",
-                severity=severity,
-                status="firing",
-                alert_count=1,
-                rule_ids=[rule_id],
-                host_ids=[host_id] if host_id else [],
-                service_ids=[service_id] if service_id else [],
-                window_start=datetime.utcnow(),
-                window_end=datetime.utcnow() + timedelta(seconds=aggregation_window),
-                last_occurrence=datetime.utcnow()
-            )
-            self.db.add(new_group)
-            self.db.flush()
-            return new_group
-
-    def process_alert_deduplication(self, rule: AlertRule, host_id: Optional[int], 
-                                   service_id: Optional[int], metric_value: float,
-                                   alert_title: str) -> Tuple[bool, Optional[str]]:
-        """
-        处理告警去重和聚合
-        
         Args:
             rule: 告警规则
             host_id: 主机 ID
-            service_id: 服务 ID  
-            metric_value: 指标值
+            service_id: 服务 ID
+            metric_value: 当前指标值
             alert_title: 告警标题
-            
+
         Returns:
-            Tuple[bool, Optional[str]]: (是否应该创建告警, 处理信息)
+            Dict: {
+                "should_send_notification": bool,  # 是否发送通知
+                "notification_type": str,        # first/continuous/recovery
+                "dedup_record": AlertDeduplication,
+                "duration_seconds": int,         # 持续时长（秒）
+                "message": str                   # 处理信息
+            }
         """
-        # 生成告警指纹
-        fingerprint = self.generate_alert_fingerprint(rule.id, host_id, service_id, rule.metric)
-        
-        # 检查去重
-        should_dedup, existing_dedup = self.should_deduplicate_alert(fingerprint)
-        
-        if should_dedup and existing_dedup:
-            # 更新现有去重记录
-            existing_dedup.last_occurrence = datetime.utcnow()
-            existing_dedup.occurrence_count += 1
+        now = datetime.now(timezone.utc)
+        cooldown_seconds = rule.cooldown_seconds or 300  # 默认 5 分钟
+
+        # 获取或创建去重记录
+        dedup_record, is_new = self.get_or_create_dedup_record(rule, host_id, service_id)
+
+        # 更新检查时间和违规计数
+        dedup_record.last_check_time = now
+        dedup_record.occurrence_count += 1
+
+        result = {
+            "should_send_notification": False,
+            "notification_type": None,
+            "dedup_record": dedup_record,
+            "duration_seconds": 0,
+            "message": ""
+        }
+
+        # 检查是否首次告警
+        if not dedup_record.alert_triggered:
+            # 首次告警触发
+            dedup_record.first_alert_time = now
+            dedup_record.last_alert_time = now
+            dedup_record.alert_triggered = True
+            dedup_record.alert_sent_count = 1
+            dedup_record.recovery_start_time = None  # 清除恢复计时
+
+            result["should_send_notification"] = True
+            result["notification_type"] = "first"
+            result["message"] = f"首次告警，发送通知"
+
             self.db.commit()
-            
-            logger.info(f"Alert deduplicated: {alert_title} (count: {existing_dedup.occurrence_count})")
-            return False, f"告警已去重，累计触发 {existing_dedup.occurrence_count} 次"
+            logger.info(f"First alert triggered: {alert_title}")
+            return result
 
-        # 生成聚合组键
-        group_key = self.generate_group_key(
-            rule.name, 
-            rule.severity,
-            [host_id] if host_id else [],
-            [service_id] if service_id else []
-        )
+        # 已有告警，计算持续时长
+        if dedup_record.first_alert_time:
+            # 确保 first_alert_time 是带时区的
+            first_alert_time = dedup_record.first_alert_time
+            if first_alert_time.tzinfo is None:
+                first_alert_time = first_alert_time.replace(tzinfo=timezone.utc)
+            duration = (now - first_alert_time).total_seconds()
+            result["duration_seconds"] = int(duration)
 
-        # 查找或创建聚合组
-        alert_group = self.find_or_create_alert_group(
-            group_key, rule.id, host_id, service_id, rule.severity, alert_title
-        )
+        # 检查冷却期
+        last_alert_time = dedup_record.last_alert_time or now
+        if last_alert_time.tzinfo is None:
+            last_alert_time = last_alert_time.replace(tzinfo=timezone.utc)
+        time_since_last_alert = (now - last_alert_time).total_seconds()
 
-        # 检查聚合组是否已达到最大告警数
-        max_alerts = self.get_config(MAX_ALERTS_PER_GROUP_KEY, DEFAULT_MAX_ALERTS_PER_GROUP)
-        if alert_group.alert_count > max_alerts:
-            logger.warning(f"Alert group {group_key} exceeds max alerts ({max_alerts})")
+        # 判断是否需要发送持续告警
+        if rule.continuous_alert:
+            # 持续告警模式：检查冷却期是否已过
+            if time_since_last_alert >= cooldown_seconds:
+                # 冷却期已过，发送持续告警
+                dedup_record.last_alert_time = now
+                dedup_record.alert_sent_count += 1
 
-        # 创建或更新去重记录
-        if existing_dedup:
-            existing_dedup.last_occurrence = datetime.utcnow()
-            existing_dedup.occurrence_count += 1
-            existing_dedup.alert_group_id = alert_group.id
+                result["should_send_notification"] = True
+                result["notification_type"] = "continuous"
+                result["message"] = f"持续告警，已持续 {result['duration_seconds']}秒，发送通知"
+
+                self.db.commit()
+                logger.info(f"Continuous alert: {alert_title}, duration: {result['duration_seconds']}s")
+                return result
+            else:
+                # 冷却期内，抑制
+                remaining = cooldown_seconds - time_since_last_alert
+                result["message"] = f"冷却期内，剩余 {int(remaining)}秒"
+
+                self.db.commit()
+                return result
         else:
-            dedup_record = AlertDeduplication(
-                fingerprint=fingerprint,
-                rule_id=rule.id,
-                host_id=host_id,
-                service_id=service_id,
-                first_occurrence=datetime.utcnow(),
-                last_occurrence=datetime.utcnow(),
-                occurrence_count=1,
-                alert_group_id=alert_group.id
-            )
-            self.db.add(dedup_record)
+            # 静默聚合模式：不发送通知，只更新聚合
+            result["message"] = f"静默聚合模式，累计违规 {dedup_record.occurrence_count} 次"
+
+            self.db.commit()
+            return result
+
+    def process_recovery(self, rule: AlertRule, host_id: Optional[int],
+                        service_id: Optional[int]) -> Dict:
+        """
+        处理告警恢复
+
+        Args:
+            rule: 告警规则
+            host_id: 主机 ID
+            service_id: 服务 ID
+
+        Returns:
+            Dict: {
+                "should_send_notification": bool,  # 是否发送恢复通知
+                "dedup_record": AlertDeduplication,
+                "duration_seconds": int,         # 持续时长
+                "message": str
+            }
+        """
+        fingerprint = self.generate_alert_fingerprint(rule.id, host_id, service_id, rule.metric)
+
+        dedup_record = self.db.query(AlertDeduplication).filter(
+            AlertDeduplication.fingerprint == fingerprint
+        ).first()
+
+        result = {
+            "should_send_notification": False,
+            "dedup_record": dedup_record,
+            "duration_seconds": 0,
+            "message": "无去重记录"
+        }
+
+        if not dedup_record:
+            return result
+
+        now = datetime.now(timezone.utc)
+
+        # 计算持续时长
+        if dedup_record.first_alert_time:
+            # 确保 first_alert_time 是带时区的
+            first_alert_time = dedup_record.first_alert_time
+            if first_alert_time.tzinfo is None:
+                first_alert_time = first_alert_time.replace(tzinfo=timezone.utc)
+            duration = (now - first_alert_time).total_seconds()
+            result["duration_seconds"] = int(duration)
+
+        # 只有触发过告警才发送恢复通知
+        if dedup_record.alert_triggered:
+            result["should_send_notification"] = True
+            result["message"] = f"告警恢复，持续时长 {result['duration_seconds']}秒"
+
+            logger.info(f"Alert recovery: rule {rule.id}, duration: {result['duration_seconds']}s")
+
+        # 删除去重记录（恢复后允许立即重新触发）
+        self.db.delete(dedup_record)
+        self.db.commit()
+
+        return result
+
+    def cleanup_expired_records(self, max_age_hours: int = 24) -> int:
+        """
+        清理过期的去重记录
+
+        Args:
+            max_age_hours: 最大保留时间（小时）
+
+        Returns:
+            int: 清理的记录数
+        """
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
+
+        count = self.db.query(AlertDeduplication).filter(
+            AlertDeduplication.last_check_time < cutoff
+        ).delete()
 
         self.db.commit()
 
-        # 对于聚合组中的第一个告警或每10个告警，允许创建个别告警
-        if alert_group.alert_count == 1 or alert_group.alert_count % 10 == 0:
-            return True, f"告警已聚合到组 {group_key}，当前组内共 {alert_group.alert_count} 个告警"
-        else:
-            return False, f"告警已聚合，组内共 {alert_group.alert_count} 个告警，暂不单独通知"
+        if count > 0:
+            logger.info(f"Cleaned up {count} expired dedup records")
 
-    def cleanup_expired_records(self) -> Dict[str, int]:
-        """清理过期的去重和聚合记录"""
-        dedup_window = self.get_config(DEDUP_WINDOW_KEY, DEFAULT_DEDUPLICATION_WINDOW)
-        aggregation_window = self.get_config(AGGREGATION_WINDOW_KEY, DEFAULT_AGGREGATION_WINDOW)
-        
-        now = datetime.utcnow()
-        dedup_cutoff = now - timedelta(seconds=dedup_window * 2)  # 保留时间更长一些
-        aggregation_cutoff = now - timedelta(seconds=aggregation_window * 2)
-
-        # 清理过期的去重记录
-        expired_dedup_count = self.db.query(AlertDeduplication).filter(
-            AlertDeduplication.last_occurrence < dedup_cutoff
-        ).delete()
-
-        # 清理过期的聚合组
-        expired_group_count = self.db.query(AlertGroup).filter(
-            and_(
-                AlertGroup.window_end < aggregation_cutoff,
-                AlertGroup.status.in_(["resolved"])
-            )
-        ).delete()
-
-        self.db.commit()
-
-        stats = {
-            "expired_dedup_records": expired_dedup_count,
-            "expired_alert_groups": expired_group_count
-        }
-
-        logger.info(f"Cleaned up expired alert records: {stats}")
-        return stats
-
-    def get_deduplication_statistics(self) -> Dict[str, any]:
-        """获取去重和聚合统计信息"""
-        # 活跃的去重记录数
-        active_dedup_count = self.db.query(AlertDeduplication).filter(
-            AlertDeduplication.last_occurrence > datetime.utcnow() - timedelta(hours=1)
-        ).count()
-
-        # 活跃的聚合组数
-        active_group_count = self.db.query(AlertGroup).filter(
-            AlertGroup.status.in_(["firing", "acknowledged"])
-        ).count()
-
-        # 去重率统计（最近24小时）
-        yesterday = datetime.utcnow() - timedelta(hours=24)
-        total_occurrences = self.db.query(AlertDeduplication).filter(
-            AlertDeduplication.last_occurrence > yesterday
-        ).count()
-
-        suppressed_occurrences = sum(
-            dedup.occurrence_count - 1 for dedup in 
-            self.db.query(AlertDeduplication).filter(
-                AlertDeduplication.last_occurrence > yesterday
-            ).all()
-        )
-
-        dedup_rate = (suppressed_occurrences / total_occurrences * 100) if total_occurrences > 0 else 0
-
-        return {
-            "active_dedup_records": active_dedup_count,
-            "active_alert_groups": active_group_count,
-            "deduplication_rate_24h": round(dedup_rate, 2),
-            "suppressed_alerts_24h": suppressed_occurrences,
-            "total_alert_occurrences_24h": total_occurrences
-        }
+        return count

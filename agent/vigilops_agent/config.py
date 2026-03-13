@@ -23,7 +23,10 @@ class ServerConfig:
 class HostConfig:
     """主机标识配置。"""
     name: str = ""
+    display_name: str = ""  # 自定义显示名称
     ip: str = ""  # 手动指定 IP（留空则自动检测）
+    private_ip: str = ""  # 手动指定内网 IP
+    public_ip: str = ""  # 手动指定公网 IP
     tags: List[str] = field(default_factory=list)
 
 
@@ -144,7 +147,10 @@ def load_config(path: str) -> AgentConfig:
     # 解析主机配置
     h = data.get("host", {})
     cfg.host.name = h.get("name", "")
+    cfg.host.display_name = h.get("display_name", "")
     cfg.host.ip = h.get("ip", "")
+    cfg.host.private_ip = h.get("private_ip", "")
+    cfg.host.public_ip = h.get("public_ip", "")
     cfg.host.tags = h.get("tags", [])
 
     # 解析指标采集配置

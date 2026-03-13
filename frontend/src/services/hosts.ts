@@ -9,21 +9,49 @@ export interface Host {
   id: string;
   /** 主机名 */
   hostname: string;
-  /** IP 地址 */
-  ip_address: string;
+  /** 自定义显示名称 */
+  display_name?: string | null;
+  /** IP 地址（主要 IP，兼容旧数据） */
+  ip_address?: string | null;
+  /** 内网 IP */
+  private_ip?: string | null;
+  /** 公网 IP */
+  public_ip?: string | null;
+  /** 网络接口详细信息 */
+  network_info?: NetworkInfo | null;
   /** 操作系统 */
-  os: string;
+  os?: string | null;
   /** 运行状态（online / offline / warning） */
   status: string;
   /** 标签（支持对象或数组格式） */
-  tags: Record<string, boolean> | string[] | null;
+  tags?: Record<string, boolean> | string[] | null;
   /** 所属分组 */
-  group: string;
+  group_name?: string | null;
   /** 最后心跳时间 */
-  last_heartbeat: string | null;
-  created_at: string;
+  last_heartbeat?: string | null;
+  created_at?: string;
   /** 最新性能指标 */
   latest_metrics?: HostMetrics;
+}
+
+/** 网络接口信息 */
+export interface NetworkInfo {
+  /** 主要内网 IP */
+  private_ip?: string;
+  /** 公网 IP */
+  public_ip?: string;
+  /** 所有内网 IP 列表 */
+  all_private?: string[];
+  /** 所有公网 IP 列表 */
+  all_public?: string[];
+  /** 网卡详细信息 */
+  interfaces?: Record<string, NetworkInterface>;
+}
+
+/** 网络接口 */
+export interface NetworkInterface {
+  ipv4: string;
+  type: 'private' | 'public' | 'loopback' | 'link_local' | 'unknown';
 }
 
 /** 主机性能指标 */
@@ -80,4 +108,6 @@ export const hostService = {
   /** 获取主机性能指标历史 */
   getMetrics: (id: string, params?: Record<string, unknown>) =>
     api.get<HostMetrics[]>(`/hosts/${id}/metrics`, { params }),
+  /** 更新主机信息（如显示名称） */
+  update: (id: string, data: { display_name?: string | null }) => api.patch<Host>(`/hosts/${id}`, data),
 };

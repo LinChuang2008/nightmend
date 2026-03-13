@@ -321,6 +321,8 @@ const en = {
       operator: 'Operator',
       durationSeconds: 'Duration (seconds)',
       cooldown: 'Cooldown (seconds)',
+      continuousAlert: 'Continuous Alert',
+      continuousAlertTooltip: 'When enabled, send notifications every cooldown period during ongoing violations; when disabled, only send on recovery',
       silenceStart: 'Silence Start',
       silenceEnd: 'Silence End',
       notificationChannels: 'Notification Channels',
@@ -333,7 +335,11 @@ const en = {
   hosts: {
     title: 'Server List',
     hostname: 'Hostname',
+    displayName: 'Display Name',
     ip: 'IP Address',
+    privateIp: 'Private IP',
+    publicIp: 'Public IP',
+    networkInfo: 'Network Info',
     os: 'Operating System',
     cpu: 'CPU Usage',
     memory: 'Memory Usage',
@@ -370,6 +376,11 @@ const en = {
     diskUsage: 'Disk Usage',
     activeAlerts: 'Active Alerts ({{count}})',
     noActiveAlerts: 'No Active Alerts',
+    editDisplayName: 'Edit Display Name',
+    enterDisplayName: 'Enter display name',
+    displayNameCannotBeEmpty: 'Display name cannot be empty',
+    displayNameUpdated: 'Display name updated',
+    updateFailed: 'Update failed',
   },
 
   // ========== Services ==========

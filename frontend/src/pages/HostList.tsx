@@ -5,14 +5,35 @@
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Card, Tag, Input, Select, Row, Col, Progress, Typography, Space, Button, Segmented, Empty } from 'antd';
-import { CloudServerOutlined, AppstoreOutlined, UnorderedListOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Card, Tag, Input, Select, Row, Col, Progress, Typography, Space, Button, Segmented, Empty, Tooltip, Modal, message } from 'antd';
+import { CloudServerOutlined, AppstoreOutlined, UnorderedListOutlined, PlusOutlined, EditOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { hostService } from '../services/hosts';
 import type { Host } from '../services/hosts';
 import PageHeader from '../components/PageHeader';
 
 const { Search } = Input;
+
+/**
+ * 获取主机显示名称（优先使用 display_name）
+ */
+const getDisplayName = (host: Host): string => {
+  return host.display_name || host.hostname;
+};
+
+/**
+ * 获取主机显示 IP（优先公网 IP，否则内网 IP，最后兼容旧字段）
+ */
+const getDisplayIp = (host: Host): string => {
+  return host.public_ip || host.private_ip || host.ip_address || 'N/A';
+};
+
+/**
+ * 判断是否有多个 IP 需要显示提示
+ */
+const hasMultipleIps = (host: Host): boolean => {
+  return !!(host.private_ip && host.public_ip);
+};
 
 /**
  * 主机列表组件
@@ -30,6 +51,12 @@ export default function HostList() {
   const [viewMode, setViewMode] = useState<string>('table');
   const navigate = useNavigate();
 
+  // 编辑相关状态
+  const [editingHost, setEditingHost] = useState<Host | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [displayNameInput, setDisplayNameInput] = useState('');
+  const [updating, setUpdating] = useState(false);
+
   const fetchHosts = async () => {
     setLoading(true);
     try {
@@ -46,14 +73,88 @@ export default function HostList() {
 
   useEffect(() => { fetchHosts(); }, [page, pageSize, statusFilter, search]);
 
+  // 打开编辑模态框
+  const openEditModal = (host: Host) => {
+    setEditingHost(host);
+    setDisplayNameInput(host.display_name || '');
+    setEditModalVisible(true);
+  };
+
+  // 保存显示名称
+  const saveDisplayName = async () => {
+    if (!editingHost) return;
+
+    // 验证不能为纯空格
+    if (displayNameInput.trim() === '') {
+      message.error(t('hosts.displayNameCannotBeEmpty'));
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const updateData = displayNameInput.trim() ? { display_name: displayNameInput.trim() } : { display_name: null };
+      await hostService.update(editingHost.id.toString(), updateData);
+
+      // 更新本地状态
+      setHosts(hosts.map(h =>
+        h.id === editingHost.id ? { ...h, display_name: updateData.display_name } : h
+      ));
+
+      message.success(t('hosts.displayNameUpdated'));
+      setEditModalVisible(false);
+    } catch {
+      message.error(t('hosts.updateFailed'));
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const columns = [
     {
       title: t('hosts.hostname'), dataIndex: 'hostname', key: 'hostname',
-      render: (text: string, record: Host) => (
-        <Button type="link" onClick={() => navigate(`/hosts/${record.id}`)}>{text}</Button>
-      ),
+      render: (_: string, record: Host) => {
+        const displayName = getDisplayName(record);
+        const hasCustomName = record.display_name && record.display_name !== record.hostname;
+        return (
+          <Space size={4}>
+            <Button type="link" onClick={() => navigate(`/hosts/${record.id}`)} style={{ padding: 0 }}>
+              {displayName}
+            </Button>
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              size="small"
+              onClick={(e) => { e.stopPropagation(); openEditModal(record); }}
+              style={{ padding: 0, fontSize: 12 }}
+            />
+            {hasCustomName && (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                ({record.hostname})
+              </Typography.Text>
+            )}
+          </Space>
+        );
+      },
     },
-    { title: t('hosts.ip'), dataIndex: 'ip_address', key: 'ip_address' },
+    {
+      title: t('hosts.ip'), dataIndex: 'ip_address', key: 'ip',
+      render: (_: string, record: Host) => {
+        const displayIp = getDisplayIp(record);
+        if (hasMultipleIps(record)) {
+          return (
+            <Tooltip title={
+              <div>
+                <div>公网: {record.public_ip}</div>
+                <div>内网: {record.private_ip}</div>
+              </div>
+            }>
+              <Typography.Text>{displayIp} <Typography.Text type="secondary">(+1)</Typography.Text></Typography.Text>
+            </Tooltip>
+          );
+        }
+        return displayIp;
+      },
+    },
     { title: t('hosts.os'), dataIndex: 'os', key: 'os' },
     {
       title: t('hosts.status'), dataIndex: 'status', key: 'status',
@@ -93,32 +194,55 @@ export default function HostList() {
 
   const cardView = (
     <Row gutter={[16, 16]}>
-      {hosts.map(host => (
-        <Col key={host.id} xs={24} sm={12} md={8} lg={6}>
-          <Card
-            hoverable
-            onClick={() => navigate(`/hosts/${host.id}`)}
-            size="small"
-          >
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Space>
-                <CloudServerOutlined style={{ fontSize: 20 }} />
-                <Typography.Text strong>{host.hostname}</Typography.Text>
-                <Tag color={host.status === 'online' ? 'success' : host.status === 'offline' ? 'error' : 'default'}>
+      {hosts.map(host => {
+        const displayName = getDisplayName(host);
+        const displayIp = getDisplayIp(host);
+        const hasCustomName = host.display_name && host.display_name !== host.hostname;
+        return (
+          <Col key={host.id} xs={24} sm={12} md={8} lg={6}>
+            <Card
+              hoverable
+              onClick={() => navigate(`/hosts/${host.id}`)}
+              size="small"
+            >
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Space>
+                  <CloudServerOutlined style={{ fontSize: 20 }} />
+                  <Space direction="vertical" size={0}>
+                    <Typography.Text strong>{displayName}</Typography.Text>
+                    {hasCustomName && (
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {host.hostname}
+                      </Typography.Text>
+                    )}
+                  </Space>
+                  <Tag color={host.status === 'online' ? 'success' : host.status === 'offline' ? 'error' : 'default'}>
                     {host.status === 'online' ? t('hosts.online') : host.status === 'offline' ? t('hosts.offline') : t('common.unknown')}
                   </Tag>
+                </Space>
+                {hasMultipleIps(host) ? (
+                  <Tooltip title={
+                    <div>
+                      <div>公网: {host.public_ip}</div>
+                      <div>内网: {host.private_ip}</div>
+                    </div>
+                  }>
+                    <Typography.Text type="secondary">{displayIp} <Typography.Text type="secondary">(+1)</Typography.Text></Typography.Text>
+                  </Tooltip>
+                ) : (
+                  <Typography.Text type="secondary">{displayIp}</Typography.Text>
+                )}
+                {host.latest_metrics && (
+                  <>
+                    <div>CPU: <Progress percent={Math.round(host.latest_metrics.cpu_percent)} size="small" /></div>
+                    <div>{t('hosts.memory')}: <Progress percent={Math.round(host.latest_metrics.memory_percent)} size="small" /></div>
+                  </>
+                )}
               </Space>
-              <Typography.Text type="secondary">{host.ip_address}</Typography.Text>
-              {host.latest_metrics && (
-                <>
-                  <div>CPU: <Progress percent={Math.round(host.latest_metrics.cpu_percent)} size="small" /></div>
-                  <div>{t('hosts.memory')}: <Progress percent={Math.round(host.latest_metrics.memory_percent)} size="small" /></div>
-                </>
-              )}
-            </Space>
-          </Card>
-        </Col>
-      ))}
+            </Card>
+          </Col>
+        );
+      })}
     </Row>
   );
 
@@ -153,6 +277,29 @@ export default function HostList() {
           pagination={{ current: page, pageSize, total, onChange: (p, ps) => { setPage(p); setPageSize(ps); } }}
         />
       ) : cardView}
+
+      {/* 编辑显示名称模态框 */}
+      <Modal
+        title={t('hosts.editDisplayName')}
+        open={editModalVisible}
+        onOk={saveDisplayName}
+        onCancel={() => setEditModalVisible(false)}
+        confirmLoading={updating}
+        okText={t('common.save')}
+        cancelText={t('common.cancel')}
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Typography.Text>{t('hosts.hostname')}: {editingHost?.hostname}</Typography.Text>
+          <Input
+            placeholder={t('hosts.enterDisplayName')}
+            value={displayNameInput}
+            onChange={(e) => setDisplayNameInput(e.target.value)}
+            onPressEnter={saveDisplayName}
+            maxLength={100}
+            showCount
+          />
+        </Space>
+      </Modal>
     </div>
   );
 }

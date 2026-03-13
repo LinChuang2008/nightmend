@@ -10,6 +10,7 @@ class TestNotifierService:
 
     async def test_build_template_vars(self):
         from app.services.notifier import _build_template_vars
+        from app.core.database import async_session
         # Create a mock alert
         alert = MagicMock()
         alert.id = 1
@@ -22,7 +23,8 @@ class TestNotifierService:
         alert.threshold = 80.0
         from datetime import datetime
         alert.fired_at = datetime(2026, 2, 21, 0, 0, 0)
-        result = _build_template_vars(alert)
+        async with async_session() as db:
+            result = await _build_template_vars(db, alert)
         assert isinstance(result, dict)
         assert result["title"] == "Test Alert"
 
