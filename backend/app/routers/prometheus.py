@@ -12,21 +12,91 @@ API端点：GET /metrics (Prometheus 标准端点)
 
 Author: VigilOps Team
 """
+import hashlib
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Union
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Response
-from sqlalchemy import select, func, desc
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select, func, desc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.redis import get_redis
+from app.core.security import decode_token
+from app.core.redis import is_token_blacklisted
 from app.models.host import Host
 from app.models.host_metric import HostMetric
 from app.models.service import Service
 from app.models.service import ServiceCheck
 from app.models.alert import Alert
+from app.models.user import User
+from app.models.agent_token import AgentToken
+
+# Bearer Token 认证（auto_error=False 允许回退到 cookie）
+_security = HTTPBearer(auto_error=False)
+
+
+async def _require_user_or_agent_token(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_security),
+    db: AsyncSession = Depends(get_db),
+) -> Union[User, AgentToken]:
+    """
+    组合认证：接受用户 JWT 或 Agent Token。
+    Prometheus server 用 agent token 拉取，Web UI 用用户 JWT 访问。
+    """
+    token_str: Optional[str] = None
+
+    if credentials is not None:
+        token_str = credentials.credentials
+    else:
+        token_str = request.cookies.get("access_token")
+
+    if not token_str:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 1. 尝试作为用户 JWT 解析
+    payload = decode_token(token_str)
+    if payload is not None and payload.get("type") == "access":
+        jti = payload.get("jti")
+        if jti and await is_token_blacklisted(jti):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
+        user_id = payload.get("sub")
+        if user_id is not None:
+            result = await db.execute(select(User).where(User.id == int(user_id)))
+            user = result.scalar_one_or_none()
+            if user is not None and user.is_active:
+                return user
+
+    # 2. 回退：尝试作为 Agent Token 验证
+    token_hash = hashlib.sha256(token_str.encode()).hexdigest()
+    result = await db.execute(
+        select(AgentToken).where(
+            AgentToken.token_hash == token_hash,
+            AgentToken.is_active == True,  # noqa: E712
+        )
+    )
+    agent_token = result.scalar_one_or_none()
+    if agent_token is not None:
+        await db.execute(
+            update(AgentToken)
+            .where(AgentToken.id == agent_token.id)
+            .values(last_used_at=datetime.now(timezone.utc))
+        )
+        await db.commit()
+        return agent_token
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 router = APIRouter(prefix="/api/v1", tags=["prometheus"])
 
@@ -64,6 +134,7 @@ def format_prometheus_metric(name: str, value: float, labels: Dict[str, str] = N
 
 @router.get("/metrics", response_class=Response)
 async def prometheus_metrics(
+    auth: Union[User, AgentToken] = Depends(_require_user_or_agent_token),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -324,6 +395,7 @@ async def prometheus_metrics(
 
 @router.get("/prometheus/targets")
 async def prometheus_targets(
+    auth: Union[User, AgentToken] = Depends(_require_user_or_agent_token),
     db: AsyncSession = Depends(get_db),
 ):
     """
