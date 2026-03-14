@@ -109,7 +109,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-或者直接看在线 Demo：[http://139.196.210.68:3001](http://139.196.210.68:3001)（`demo@vigilops.io` / `demo123`）
+或者直接看在线 Demo：[https://demo.lchuangnet.com](https://demo.lchuangnet.com)（`demo@vigilops.io` / `demo123`）
 
 在告警详情页，你可以看到 AI 分析结果字段，包括根因推断、严重程度评估和建议操作。
 

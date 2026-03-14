@@ -1,0 +1,60 @@
+===========================================================
+   __     ___       _ _  ___
+   \ \   / (_) __ _(_) |/ _ \ _ __  ___
+    \ \ / /| |/ _` | | | | | | '_ \/ __|
+     \ V / | | (_| | | | |_| | |_) \__ \
+      \_/  |_|\__, |_|_|\___/| .__/|___/
+              |___/           |_|
+
+  AI-Powered Infrastructure Monitoring Platform
+===========================================================
+
+Thank you for installing {{ .Chart.Name }} (v{{ .Chart.Version }})!
+感谢安装 {{ .Chart.Name }} (v{{ .Chart.Version }})！
+
+Your release is named: {{ .Release.Name }}
+
+{{- if .Values.ingress.enabled }}
+
+1. Access VigilOps via Ingress / 通过 Ingress 访问 VigilOps:
+   {{- if .Values.ingress.tls }}
+   https://{{ .Values.ingress.host }}
+   {{- else }}
+   http://{{ .Values.ingress.host }}
+   {{- end }}
+
+{{- else }}
+
+1. Get the application URL by running these commands:
+   获取应用访问地址：
+
+   # Frontend / 前端:
+   export FRONTEND_POD=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "vigilops.name" . }},app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/component=frontend" -o jsonpath="{.items[0].metadata.name}")
+   kubectl --namespace {{ .Release.Namespace }} port-forward $FRONTEND_POD 3001:80
+   echo "Frontend: http://localhost:3001"
+
+   # Backend API / 后端 API:
+   export BACKEND_POD=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "vigilops.name" . }},app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/component=backend" -o jsonpath="{.items[0].metadata.name}")
+   kubectl --namespace {{ .Release.Namespace }} port-forward $BACKEND_POD 8000:8000
+   echo "Backend API: http://localhost:8000"
+
+{{- end }}
+
+{{- if .Values.mcp.enabled }}
+
+2. MCP Server is enabled / MCP 服务已启用:
+   export MCP_POD=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "vigilops.name" . }},app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/component=mcp" -o jsonpath="{.items[0].metadata.name}")
+   kubectl --namespace {{ .Release.Namespace }} port-forward $MCP_POD 8003:{{ .Values.mcp.service.port }}
+   echo "MCP Server: http://localhost:8003"
+{{- end }}
+
+IMPORTANT / 重要提示:
+- Change the JWT secret key for production! / 生产环境请务必修改 JWT 密钥！
+- Change the PostgreSQL password for production! / 生产环境请务必修改数据库密码！
+{{- if .Values.postgresql.enabled }}
+- Bundled PostgreSQL is enabled. For production, consider using a managed database service.
+  当前使用内置 PostgreSQL，生产环境建议使用托管数据库服务。
+{{- end }}
+
+For more information, visit: https://github.com/linchuang2008/vigilops
+更多信息请访问: https://github.com/linchuang2008/vigilops

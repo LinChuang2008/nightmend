@@ -53,7 +53,10 @@ def _parse_period(period: str) -> timedelta:
             status_code=400,
             detail=f"无效的时间周期参数 '{period}'，支持格式示例：1h、7d、30m"
         ) from exc
-    return timedelta(hours=1)  # 默认返回 1 小时
+    raise HTTPException(
+        status_code=400,
+        detail=f"无效的时间周期参数 '{period}'，支持格式示例：1h、7d、30m"
+    )
 
 
 @router.get("")

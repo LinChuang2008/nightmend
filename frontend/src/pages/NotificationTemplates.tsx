@@ -12,7 +12,7 @@ import type { NotificationTemplate } from '../services/notificationTemplates';
 const { TextArea } = Input;
 
 /** 渠道类型 value 列表 */
-const CHANNEL_TYPES = ['all', 'webhook', 'email', 'dingtalk', 'feishu', 'wecom'] as const;
+const CHANNEL_TYPES = ['all', 'webhook', 'email', 'dingtalk', 'feishu', 'wecom', 'slack', 'telegram'] as const;
 
 /** 渠道类型 Tag 颜色映射 */
 const TYPE_TAG_COLOR: Record<string, string | undefined> = {
@@ -22,6 +22,8 @@ const TYPE_TAG_COLOR: Record<string, string | undefined> = {
   dingtalk: 'cyan',
   feishu: 'purple',
   wecom: 'green',
+  slack: 'geekblue',
+  telegram: 'magenta',
 };
 
 /** 渠道类型 i18n key 映射 */
@@ -32,6 +34,8 @@ const TYPE_LABEL_KEY: Record<string, string> = {
   dingtalk: 'notifications.typeDingtalk',
   feishu: 'notifications.typeFeishu',
   wecom: 'notifications.typeWecom',
+  slack: 'notifications.typeSlack',
+  telegram: 'notifications.typeTelegram',
 };
 
 /** 可用模板变量 */

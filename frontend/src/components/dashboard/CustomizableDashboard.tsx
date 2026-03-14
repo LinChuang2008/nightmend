@@ -178,6 +178,7 @@ export default function CustomizableDashboard() {
   const { token } = theme.useToken();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wsReconnectCountRef = useRef(0);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 健康评分扣分项（前端推算）
@@ -278,7 +279,7 @@ export default function CustomizableDashboard() {
   const fetchTrends = useCallback(async () => {
     try {
       setTrends((await api.get('/dashboard/trends')).data.trends || []);
-    } catch {}
+    } catch (err) { console.warn('Failed to fetch trends:', err); }
   }, []);
 
   // WebSocket 相关函数
@@ -299,24 +300,29 @@ export default function CustomizableDashboard() {
 
   const connectWs = useCallback(() => {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/ws/dashboard`;
+    const token = localStorage.getItem('token') || '';
+    const wsUrl = `${wsProtocol}//${window.location.host}/api/v1/ws/dashboard?token=${encodeURIComponent(token)}`;
 
     try {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
+      wsReconnectCountRef.current = 0;
 
       ws.onopen = () => { setWsConnected(true); stopPolling(); };
-      ws.onmessage = (e) => { try { setWsData(JSON.parse(e.data)); } catch {} };
+      ws.onmessage = (e) => { try { setWsData(JSON.parse(e.data)); } catch (err) { console.warn('WS parse error:', err); } };
       ws.onclose = () => {
         setWsConnected(false);
         wsRef.current = null;
         startPolling();
-        reconnectTimerRef.current = setTimeout(connectWs, 5000);
+        if (wsReconnectCountRef.current < 10) {
+          wsReconnectCountRef.current += 1;
+          const delay = Math.min(5000 * Math.pow(1.5, wsReconnectCountRef.current), 60000);
+          reconnectTimerRef.current = setTimeout(connectWs, delay);
+        }
       };
       ws.onerror = () => { ws.close(); };
     } catch {
       startPolling();
-      reconnectTimerRef.current = setTimeout(connectWs, 5000);
     }
   }, [startPolling, stopPolling]);
 

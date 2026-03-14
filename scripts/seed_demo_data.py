@@ -356,7 +356,7 @@ async def main(clean=False):
         print(f"  ✅ 种子数据插入完成！")
         print(f"     修复记录: {r1} 条 | 升级规则: {r2} 条 | 升级历史: {r3} 条")
         print(f"{'=' * 60}")
-        print(f"\n  请访问: http://139.196.210.68:3001")
+        print(f"\n  请访问: https://demo.lchuangnet.com")
         print(f"  账号: demo@vigilops.io / demo123")
 
     finally:

@@ -1,0 +1,17 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vigilops.fullname" . }}-postgresql
+  labels:
+    {{- include "vigilops.postgresql.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.postgresql.service.type }}
+  ports:
+    - port: {{ .Values.postgresql.service.port }}
+      targetPort: tcp-postgresql
+      protocol: TCP
+      name: tcp-postgresql
+  selector:
+    {{- include "vigilops.postgresql.selectorLabels" . | nindent 4 }}
+{{- end }}

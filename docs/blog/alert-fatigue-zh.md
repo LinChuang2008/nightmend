@@ -114,7 +114,7 @@ docker compose up -d
 # http://localhost:3001
 ```
 
-或者直接访问在线 Demo：[http://139.196.210.68:3001](http://139.196.210.68:3001)（账号 `demo@vigilops.io` / `demo123`，只读）
+或者直接访问在线 Demo：[https://demo.lchuangnet.com](https://demo.lchuangnet.com)（账号 `demo@vigilops.io` / `demo123`，只读）
 
 在 Demo 中，你可以：
 - 查看告警列表，注意 AI 分析结果字段

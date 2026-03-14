@@ -211,7 +211,9 @@ python -m app.mcp.cli --verbose --host 127.0.0.1 --port 8003
 
 - **Local access only** by default (127.0.0.1)
 - **Database credentials** in environment variables
-- **No authentication** in current version (add JWT for production)
+- **Bearer Token authentication** required in production via `VIGILOPS_MCP_API_KEY` environment variable
+- Production refuses to start without API key configured
+- Development mode (`ENVIRONMENT=development`) allows unauthenticated access for local testing
 - **Rate limiting** recommended for public exposure
 
 ## Marketing Message

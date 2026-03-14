@@ -166,7 +166,7 @@ Open `http://localhost:3001` and explore the Runbook section to see how each bui
 
 ### Try the Demo
 
-[http://139.196.210.68:3001](http://139.196.210.68:3001) — `demo@vigilops.io` / `demo123` (read-only)
+[https://demo.lchuangnet.com](https://demo.lchuangnet.com) — `demo@vigilops.io` / `demo123` (read-only)
 
 In the demo, navigate to:
 - **Runbooks** — See the 6 built-in runbooks with their logic and parameters

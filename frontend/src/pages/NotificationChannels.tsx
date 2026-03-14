@@ -17,6 +17,8 @@ const TYPE_TAG_COLOR: Record<string, string | undefined> = {
   dingtalk: 'cyan',
   feishu: 'purple',
   wecom: 'green',
+  slack: 'geekblue',
+  telegram: 'magenta',
 };
 
 function buildConfig(type: string, values: Record<string, unknown>): Record<string, unknown> {
@@ -47,6 +49,10 @@ function buildConfig(type: string, values: Record<string, unknown>): Record<stri
       };
     case 'wecom':
       return { webhook_url: values.webhook_url };
+    case 'slack':
+      return { webhook_url: values.webhook_url };
+    case 'telegram':
+      return { bot_token: values.bot_token, chat_id: values.chat_id };
     default:
       return {};
   }
@@ -73,6 +79,10 @@ function parseConfigToFields(type: string, config: Record<string, unknown>): Rec
       return { webhook_url: config.webhook_url, secret: config.secret };
     case 'wecom':
       return { webhook_url: config.webhook_url };
+    case 'slack':
+      return { webhook_url: config.webhook_url };
+    case 'telegram':
+      return { bot_token: config.bot_token, chat_id: config.chat_id };
     default:
       return {};
   }
@@ -203,6 +213,8 @@ export default function NotificationChannels() {
           dingtalk: t('notifications.typeDingtalk'),
           feishu: t('notifications.typeFeishu'),
           wecom: t('notifications.typeWecom'),
+          slack: t('notifications.typeSlack'),
+          telegram: t('notifications.typeTelegram'),
         };
         return <Tag color={TYPE_TAG_COLOR[val]}>{typeLabel[val] || val}</Tag>;
       },
@@ -290,6 +302,23 @@ export default function NotificationChannels() {
             <Input placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..." />
           </Form.Item>
         );
+      case 'slack':
+        return (
+          <Form.Item name="webhook_url" label="Webhook URL" rules={[{ required: true, message: t('notifications.slackUrlRequired') }]}>
+            <Input placeholder="https://hooks.slack.com/services/T.../B.../..." />
+          </Form.Item>
+        );
+      case 'telegram':
+        return (
+          <>
+            <Form.Item name="bot_token" label={t('notifications.telegramBotToken')} rules={[{ required: true, message: t('notifications.telegramBotTokenRequired') }]}>
+              <Input placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" />
+            </Form.Item>
+            <Form.Item name="chat_id" label={t('notifications.telegramChatId')} rules={[{ required: true, message: t('notifications.telegramChatIdRequired') }]}>
+              <Input placeholder="-1001234567890" />
+            </Form.Item>
+          </>
+        );
       default:
         return null;
     }
@@ -301,6 +330,8 @@ export default function NotificationChannels() {
     { value: 'dingtalk', label: t('notifications.channelDingtalk') },
     { value: 'feishu', label: t('notifications.channelFeishu') },
     { value: 'wecom', label: t('notifications.channelWecom') },
+    { value: 'slack', label: t('notifications.channelSlack') },
+    { value: 'telegram', label: t('notifications.channelTelegram') },
   ];
 
   return (

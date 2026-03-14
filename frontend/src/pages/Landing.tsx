@@ -89,7 +89,7 @@ export default function Landing() {
         <Space align="center">
           <SafetyCertificateOutlined style={{ fontSize: 28, color: '#1677ff' }} />
           <Text strong style={{ fontSize: 20, color: isDark ? '#fff' : '#000' }}>VigilOps</Text>
-          <Tag color="blue" style={{ marginLeft: 8 }}>v0.9.2</Tag>
+          <Tag color="blue" style={{ marginLeft: 8 }}>v2026.03.14</Tag>
         </Space>
         <Space>
           <Button type="text" href="https://github.com/lchuangnet/vigilops" target="_blank" rel="noopener noreferrer">

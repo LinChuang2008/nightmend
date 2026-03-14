@@ -77,19 +77,24 @@ OAUTH_PROVIDERS = {
     }
 }
 
-# CSRF state 存储（生产环境应使用 Redis 等分布式存储）
-# 使用 (state -> (provider, created_time)) 格式，支持过期清理
-import time as _time
+# OAuth state 使用 Redis 存储，支持多实例部署和自动过期
+from app.core.redis import get_redis
 _OAUTH_STATE_TTL = 600  # 10 分钟过期
-_oauth_states: Dict[str, tuple] = {}
 
 
-def _cleanup_expired_states():
-    """清理过期的 OAuth state，防止内存泄漏"""
-    now = _time.time()
-    expired = [k for k, v in _oauth_states.items() if now - v[1] > _OAUTH_STATE_TTL]
-    for k in expired:
-        _oauth_states.pop(k, None)
+async def _save_oauth_state(state: str, provider: str):
+    """将 OAuth state 保存到 Redis，设置 10 分钟过期"""
+    redis = await get_redis()
+    await redis.setex(f"oauth_state:{state}", _OAUTH_STATE_TTL, provider)
+
+
+async def _get_oauth_state(state: str) -> str | None:
+    """从 Redis 获取并删除 OAuth state（一次性使用）"""
+    redis = await get_redis()
+    provider = await redis.get(f"oauth_state:{state}")
+    if provider:
+        await redis.delete(f"oauth_state:{state}")
+    return provider
 
 
 class LDAPLoginRequest(BaseModel):
@@ -129,10 +134,9 @@ async def oauth_login(provider: str, request: Request):
     # 生成授权URL
     callback_url = str(request.url_for("oauth_callback", provider=provider))
     
-    # 生成随机 state 并临时保存，用于回调时的 CSRF 校验
-    _cleanup_expired_states()
+    # 生成随机 state 并保存到 Redis，用于回调时的 CSRF 校验
     csrf_state = secrets.token_urlsafe(32)
-    _oauth_states[csrf_state] = (provider, _time.time())
+    await _save_oauth_state(csrf_state, provider)
 
     params = {
         "client_id": provider_config["client_id"],
@@ -177,13 +181,10 @@ async def oauth_callback(
     if provider not in OAUTH_PROVIDERS:
         raise HTTPException(status_code=400, detail=f"不支持的OAuth提供商: {provider}")
     
-    # 验证 state 参数防 CSRF（校验随机 token 并立即消费，防止重放）
-    state_entry = _oauth_states.pop(state, None) if state else None
-    if not state_entry or state_entry[0] != provider:
+    # 验证 state 参数防 CSRF（从 Redis 获取并删除，一次性使用防重放）
+    stored_provider = await _get_oauth_state(state) if state else None
+    if not stored_provider or stored_provider != provider:
         raise HTTPException(status_code=400, detail="无效的状态参数")
-    # 检查 state 是否过期
-    if _time.time() - state_entry[1] > _OAUTH_STATE_TTL:
-        raise HTTPException(status_code=400, detail="授权状态已过期，请重新发起登录")
     
     provider_config = OAUTH_PROVIDERS[provider]
     

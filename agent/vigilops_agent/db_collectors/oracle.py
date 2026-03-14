@@ -110,8 +110,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                 )
                 row = cur.fetchone()
                 metrics.connections_max = int(row[0]) if row else 0
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Failed to collect max connections: %s", e)
 
             # --- 数据库大小 ---
             cur.execute(
@@ -131,8 +131,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                     "SELECT count(*) FROM v$lock WHERE block = 1"
                 )
                 metrics.lock_waits = cur.fetchone()[0]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Failed to collect lock waits: %s", e)
 
             # --- 表空间使用率 ---
             tablespace_pct = self._fetch_tablespace(cur)
@@ -176,7 +176,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                     sql_text=str(r[3] or ""),
                 ))
             return result
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to collect slow queries: %s", e)
             return []
 
     def _fetch_tablespace(self, cur) -> float:
@@ -189,8 +190,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
             )
             row = cur.fetchone()
             return float(row[0] or 0)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Failed to collect tablespace from usage_metrics: %s", e)
         try:
             cur.execute(
                 "SELECT ROUND("
@@ -200,7 +201,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
             )
             row = cur.fetchone()
             return float(row[0] or 0)
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to collect tablespace from dba_free_space: %s", e)
             return 0.0
 
     def _connection_breakdown_direct(self, cur) -> dict:
@@ -217,7 +219,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
             breakdown["by_user"] = [
                 {"user": r[0], "count": r[1]} for r in cur.fetchall()
             ]
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to collect by_user (FETCH FIRST): %s", e)
             try:
                 cur.execute(
                     "SELECT username, count(*) cnt FROM v$session "
@@ -226,8 +229,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                 )
                 rows = cur.fetchmany(10)
                 breakdown["by_user"] = [{"user": r[0], "count": r[1]} for r in rows]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Failed to collect by_user (fallback): %s", e)
 
         # 2. 按程序/应用分布
         try:
@@ -240,7 +243,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                 {"program": r[0], "machine": r[1], "count": r[2]}
                 for r in cur.fetchall()
             ]
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to collect by_program (FETCH FIRST): %s", e)
             try:
                 cur.execute(
                     "SELECT program, machine, count(*) cnt FROM v$session "
@@ -251,8 +255,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                 breakdown["by_program"] = [
                     {"program": r[0], "machine": r[1], "count": r[2]} for r in rows
                 ]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Failed to collect by_program (fallback): %s", e)
 
         # 3. 连接状态分布
         try:
@@ -261,8 +265,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                 "WHERE type != 'BACKGROUND' GROUP BY status"
             )
             breakdown["by_status"] = {r[0]: r[1] for r in cur.fetchall()}
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Failed to collect by_status: %s", e)
 
         # 4. 长时间 INACTIVE 连接（idle 堆积）
         try:
@@ -281,7 +285,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                 }
                 for r in cur.fetchall()
             ]
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to collect longest_idle (FETCH FIRST): %s", e)
             try:
                 cur.execute(
                     "SELECT sid, serial#, username, program, machine, "
@@ -299,8 +304,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                     }
                     for r in rows
                 ]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Failed to collect longest_idle (fallback): %s", e)
 
         # 5. 等待事件分布（Oracle 11g 特有：为什么连接在等）
         try:
@@ -312,7 +317,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
             breakdown["wait_events"] = [
                 {"event": r[0], "count": r[1]} for r in cur.fetchall()
             ]
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to collect wait_events (FETCH FIRST): %s", e)
             try:
                 cur.execute(
                     "SELECT event, count(*) cnt FROM v$session "
@@ -321,8 +327,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
                 )
                 rows = cur.fetchmany(10)
                 breakdown["wait_events"] = [{"event": r[0], "count": r[1]} for r in rows]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Failed to collect wait_events (fallback): %s", e)
 
         return breakdown
 
@@ -444,7 +450,8 @@ class OracleCollector(AbstractDBCollector, db_type="oracle"):
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             output = result.stdout
-        except Exception:
+        except Exception as e:
+            logger.debug("Failed to collect docker slow queries: %s", e)
             return None
 
         queries = []

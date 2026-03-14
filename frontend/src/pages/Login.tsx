@@ -88,6 +88,7 @@ export default function Login() {
     const fetchAuthProviders = async () => {
       try {
         const response = await fetch('/api/v1/auth/providers');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         setAuthProviders(data.providers);
         setLdapEnabled(data.providers.ldap?.enabled || false);
@@ -139,6 +140,7 @@ export default function Login() {
   const handleOAuthLogin = async (provider: string) => {
     try {
       const response = await fetch(`/api/v1/auth/oauth/${provider}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const { redirect_url } = await response.json();
       window.location.href = redirect_url;
     } catch (error) {

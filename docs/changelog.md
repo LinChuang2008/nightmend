@@ -4,6 +4,7 @@
 
 ## 目录
 
+- [v2026.03.14](#v20260314)
 - [v0.9.0 (2026-02-20)](#v090-2026-02-20)
 - [v0.8.0 (2026-02-19)](#v080-2026-02-19)
 - [v0.7.0 (2026-02-18)](#v070-2026-02-18)
@@ -13,6 +14,39 @@
 - [v0.3.0 (2026-02-16)](#v030-2026-02-16)
 - [v0.2.0 (2026-02-16)](#v020-2026-02-16)
 - [v0.1.0 (2026-02-16)](#v010-2026-02-16)
+
+---
+
+## VigilOps 2026.03.14 (v2026.03.14)
+
+> 自本版本起，版本号规则变更为日期制：vYYYY.MM.DD，小版本为 vYYYY.MM.DD-beta.N
+
+### New Features
+- PromQL query support: /api/v1/promql/query, /query_range, /metadata
+- Helm Chart for Kubernetes deployment (charts/vigilops/)
+- Slack and Telegram notification channels
+- Alert service test coverage: 26 new test cases
+
+### Security Fixes
+- SQL injection fix in ClickHouse log backend (P0)
+- Command injection prevention in remediation executor (P1)
+- MCP server forced Bearer Token authentication (P1)
+- OAuth state migrated from memory to Redis (P1)
+- WebSocket authentication + reconnection limits
+- Notification channel config sanitization in API responses
+- Settings/Remediation endpoints restricted to operator+ role
+- CORS headers whitelist tightened
+- bcrypt rounds increased to 14
+
+### Bug Fixes
+- Service alert rules now respect duration_seconds threshold
+- Notification retry with exponential backoff
+- Log keyword alert deduplication (60s window)
+- Silence window timezone fix (UTC)
+- WebSocket send timeout for slow consumers
+- Orphaned alert cleanup runs periodically
+- Connection leak fixes in MySQL/Redis/Oracle collectors
+- Silent error catch blocks replaced with console.warn
 
 ---
 
@@ -83,7 +117,7 @@
 ## v0.6.0 (2026-02-18)
 
 ### 新增
-- **阿里云 ECS 部署**：全栈部署至阿里云（139.196.210.68）
+- **阿里云 ECS 部署**：全栈部署至阿里云（demo.lchuangnet.com）
 - Docker Compose 生产环境配置
 - 数据库迁移脚本 014
 

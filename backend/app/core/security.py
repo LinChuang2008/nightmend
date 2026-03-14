@@ -18,7 +18,7 @@ from app.core.config import settings
 
 # 密码哈希上下文，使用 bcrypt 算法 (Password Hash Context using bcrypt algorithm)
 # bcrypt 是密码学安全的慢哈希算法，能有效抵御彩虹表和暴力破解攻击
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=14)
 
 
 def hash_password(password: str) -> str:

@@ -4,6 +4,34 @@ All notable changes to VigilOps will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2026.03.14] - 2026-03-14
+
+> Version scheme changed to date-based: vYYYY.MM.DD (beta: vYYYY.MM.DD-beta.N)
+
+### Added
+- PromQL query support (`/api/v1/promql/query`, `/query_range`, `/metadata`)
+- Helm Chart for Kubernetes deployment (`charts/vigilops/`)
+- Slack and Telegram notification channels
+- Alert service test coverage (26 new tests)
+
+### Security
+- SQL injection fix in ClickHouse log backend (P0)
+- Command injection prevention in remediation executor (P1)
+- MCP server forced Bearer Token authentication (P1)
+- OAuth state migrated from memory to Redis (P1)
+- Notification channel config sanitization in API responses
+- Settings/Remediation endpoints restricted to operator+ role
+- CORS headers whitelist tightened
+- Removed production server IP from all public documentation
+
+### Fixed
+- Service alert rules now respect duration_seconds threshold
+- Notification retry with exponential backoff
+- Log keyword alert deduplication (60s window)
+- Silence window timezone fix (UTC)
+- WebSocket send timeout for slow consumers
+- Orphaned alert cleanup runs periodically
+
 ## [0.9.1] - 2026-03-07
 
 ### Added
@@ -55,7 +83,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [0.6.0] - 2026-02-18
 
 ### Added
-- **ECS Deployment**: Full stack deployed to Alibaba Cloud ECS (139.196.210.68)
+- **ECS Deployment**: Full stack deployed to Alibaba Cloud ECS (demo.lchuangnet.com)
 - Docker Compose production configuration
 - Migration 014 for production database
 

@@ -6,7 +6,7 @@
 
 [![Stars](https://img.shields.io/github/stars/LinChuang2008/vigilops?style=for-the-badge&logo=github&color=gold)](https://github.com/LinChuang2008/vigilops)
 [![Demo](https://img.shields.io/badge/Live_Demo-Try_Now-brightgreen?style=for-the-badge)](https://demo.lchuangnet.com/login)
-[![Version](https://img.shields.io/badge/version-v0.9.1-blue?style=for-the-badge)](https://github.com/LinChuang2008/vigilops/releases)
+[![Version](https://img.shields.io/badge/version-v2026.03.14-blue?style=for-the-badge)](https://github.com/LinChuang2008/vigilops/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/LinChuang2008/vigilops/test.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/LinChuang2008/vigilops/actions/workflows/test.yml)
 
 [Live Demo](https://demo.lchuangnet.com/login) | [English](README.md) | [安装指南](#-本地部署5分钟) | [文档](#-文档)

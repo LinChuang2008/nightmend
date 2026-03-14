@@ -101,6 +101,12 @@ from sqlalchemy.ext.compiler import compiles
 def compile_big_int_sqlite(type_, compiler, **kw):
     return "INTEGER"
 
+# SQLite 不支持 JSONB 类型，编译时替换为 JSON
+from sqlalchemy.dialects.postgresql import JSONB
+@compiles(JSONB, "sqlite")
+def compile_jsonb_sqlite(type_, compiler, **kw):
+    return "JSON"
+
 
 # ── Mock Redis ────────────────────────────────────────────────────────
 class FakeRedis:

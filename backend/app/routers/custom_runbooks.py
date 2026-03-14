@@ -8,7 +8,7 @@ import logging
 import re
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -89,8 +89,8 @@ def validate_all_steps(steps: list) -> None:
 
 @router.get("", response_model=List[CustomRunbookResponse])
 async def list_custom_runbooks(
-    skip: int = 0,
-    limit: int = 50,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
     active_only: bool = False,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),

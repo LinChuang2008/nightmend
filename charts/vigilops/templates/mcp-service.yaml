@@ -1,0 +1,17 @@
+{{- if .Values.mcp.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vigilops.fullname" . }}-mcp
+  labels:
+    {{- include "vigilops.mcp.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.mcp.service.type }}
+  ports:
+    - port: {{ .Values.mcp.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "vigilops.mcp.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -149,6 +149,6 @@ VigilOps 本身有完整的监控能力，但如果你已经有成熟的 Prometh
 
 ---
 
-*想自己试试？`docker compose up -d` 就能跑起来。在线 Demo：[http://139.196.210.68:3001](http://139.196.210.68:3001)（`demo@vigilops.io` / `demo123`）*
+*想自己试试？`docker compose up -d` 就能跑起来。在线 Demo：[https://demo.lchuangnet.com](https://demo.lchuangnet.com)（`demo@vigilops.io` / `demo123`）*
 
 *VigilOps 是一个 Apache 2.0 开源项目。GitHub：[LinChuang2008/vigilops](https://github.com/LinChuang2008/vigilops)*

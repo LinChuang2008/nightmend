@@ -1,0 +1,40 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "vigilops.fullname" . }}
+  labels:
+    {{- include "vigilops.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          # Frontend serves the root path / 前端服务根路径
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vigilops.fullname" . }}-frontend
+                port:
+                  name: http
+          # Backend API / 后端 API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vigilops.fullname" . }}-backend
+                port:
+                  name: http
+{{- end }}

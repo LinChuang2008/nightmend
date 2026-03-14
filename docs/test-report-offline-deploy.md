@@ -1,7 +1,7 @@
 # VigilOps 离线部署端到端测试报告
 
 - **测试日期**: 2026-02-20
-- **测试环境**: 阿里云 ECS 139.196.210.68 (CentOS Stream 9, 8核15GB)
+- **测试环境**: 阿里云 ECS demo.lchuangnet.com (CentOS Stream 9, 8核15GB)
 - **测试方式**: 方案 B（安全验证，不启动容器避免端口冲突）
 - **测试包**: vigilops-deploy.tar.gz (86MB)
 

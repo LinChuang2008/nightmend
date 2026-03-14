@@ -36,3 +36,15 @@ backend/.python-version
 
 # Backups
 backups/
+
+# Internal/confidential docs (keep locally, exclude from public repo)
+docs/business/
+docs/internal/
+docs/reports/
+docs/auto-company/
+docs/growth/
+docs/prd.md
+docs/backend-audit-*.md
+docs/quick-start-customer.md
+docs/service-onboarding.md
+docs/VigilOps-*.pptx

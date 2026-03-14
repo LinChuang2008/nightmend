@@ -22,7 +22,7 @@ from sqlalchemy import select, func, and_, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_operator_user
 from app.models.remediation_log import RemediationLog
 from app.models.alert import Alert
 from app.models.host import Host
@@ -45,7 +45,7 @@ async def list_remediations(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(get_operator_user),
 ):
     """获取修复日志列表，支持按状态、主机和触发方式筛选，分页返回。"""
     base_q = (
@@ -96,7 +96,7 @@ async def list_remediations(
 @router.get("/stats", response_model=RemediationStatsResponse)
 async def remediation_stats(
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(get_operator_user),
 ):
     """获取修复统计信息：成功率、平均修复时间、今日/本周数量。"""
     now = datetime.now(timezone.utc)
@@ -149,7 +149,7 @@ async def remediation_stats(
 async def get_remediation(
     remediation_id: int,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(get_operator_user),
 ):
     """根据 ID 获取单条修复日志详情。"""
     result = await db.execute(

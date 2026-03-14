@@ -67,6 +67,7 @@ from app.routers import prometheus
 from app.routers import external_auth
 from app.routers import ai_feedback
 from app.routers import custom_runbooks
+from app.routers import promql
 from app.api.v1 import data_retention
 from app.api.v1 import alert_deduplication
 
@@ -194,7 +195,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="VigilOps",
     description="AI-powered infrastructure monitoring platform | AI 驱动的基础设施监控平台",
-    version="0.9.1",
+    version="2026.03.14",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -229,7 +230,10 @@ import os
 _env = os.getenv("ENVIRONMENT", "production").lower()
 is_development = _env == "development"
 if is_development:
-    allowed_origins = ["*"]
+    allowed_origins = [
+        "http://localhost:3000", "http://localhost:3001",
+        "http://127.0.0.1:3000", "http://127.0.0.1:3001",
+    ]
 else:
     _frontend_url = os.getenv("FRONTEND_URL", "").strip()
     allowed_origins = [
@@ -247,7 +251,7 @@ app.add_middleware(
     allow_origins=allowed_origins,  # 生产环境限制具体域名 (Restrict specific domains in production)
     allow_credentials=True,  # 允许携带认证信息 (Allow credentials)
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],  # 明确允许的方法 (Explicitly allowed methods)
-    allow_headers=["*"],  # 允许所有请求头 (Allow all headers)
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],  # 明确允许的请求头 (Explicitly allowed headers)
     expose_headers=["X-Total-Count", "X-Rate-Limit-*"],  # 暴露的响应头 (Exposed response headers)
 )
 
@@ -287,6 +291,7 @@ app.include_router(alert_deduplication.router, prefix="/api/v1/alert-deduplicati
 app.include_router(prometheus.router)  # Prometheus 兼容性 (Prometheus compatibility)
 app.include_router(external_auth.router)  # 外部认证 (External Authentication)
 app.include_router(custom_runbooks.router)  # 自定义 Runbook 管理 (Custom Runbook Management)
+app.include_router(promql.router)  # PromQL 查询 (PromQL Query Engine)
 
 
 @app.get("/health")

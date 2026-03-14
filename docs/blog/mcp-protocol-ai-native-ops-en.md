@@ -125,7 +125,7 @@ The MCP endpoint is available at `http://localhost:8001/mcp`.
 
 ### Try the Demo
 
-Visit [http://139.196.210.68:3001](http://139.196.210.68:3001) (`demo@vigilops.io` / `demo123`) to see the MCP configuration and tool list in the UI.
+Visit [https://demo.lchuangnet.com](https://demo.lchuangnet.com) (`demo@vigilops.io` / `demo123`) to see the MCP configuration and tool list in the UI.
 
 ## What MCP Changes for On-Call
 

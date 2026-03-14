@@ -11,6 +11,8 @@
     3. DingTalk - 钉钉机器人，支持签名验证
     4. Feishu - 飞书机器人，支持富文本卡片
     5. WeCom - 企业微信机器人，支持Markdown格式
+    6. Slack - Slack Incoming Webhook，支持Block Kit格式
+    7. Telegram - Telegram Bot API，支持HTML格式
     
 智能降噪特性 (Intelligent Noise Reduction):
     1. 静默时间窗口 (Silence Window) - 指定时间段内不发送通知
@@ -196,6 +198,10 @@ async def send_test_notification_to_channel(channel: NotificationChannel) -> boo
             return await _send_test_feishu(channel, test_variables)
         elif channel.type == "wecom":
             return await _send_test_wecom(channel, test_variables)
+        elif channel.type == "slack":
+            return await _send_test_slack(channel, test_variables)
+        elif channel.type == "telegram":
+            return await _send_test_telegram(channel, test_variables)
         else:
             logger.warning(f"Unsupported channel type for test: {channel.type}")
             return False
@@ -413,6 +419,118 @@ async def _send_test_wecom(channel: NotificationChannel, variables: dict) -> boo
     except Exception as e:
         logger.error(f"WeCom test notification failed for channel {channel.name}: {e}", exc_info=True)
         return False
+
+
+async def _send_test_slack(channel: NotificationChannel, variables: dict) -> bool:
+    """
+    发送 Slack 测试通知 (Send Slack Test Notification)
+
+    功能描述:
+        向 Slack Incoming Webhook 发送测试通知，验证配置是否正确。
+        使用 Block Kit 格式构建结构化的测试消息。
+
+    Args:
+        channel: 待测试的通知渠道配置
+        variables: 测试模板变量字典
+
+    Returns:
+        bool: 发送成功返回 True，失败返回 False
+    """
+    config = channel.config
+    webhook_url = config.get("webhook_url", "")
+
+    if not webhook_url:
+        logger.warning(f"Slack test notification failed: webhook_url is empty for channel {channel.name}")
+        return False
+
+    # SSRF 防护：验证 URL 安全性
+    is_valid, error_msg = _validate_webhook_url(webhook_url)
+    if not is_valid:
+        logger.warning(f"Slack Webhook URL validation failed for channel {channel.name}: {error_msg}")
+        return False
+
+    payload = {
+        "blocks": [
+            {
+                "type": "header",
+                "text": {"type": "plain_text", "text": "🧪 VigilOps 测试通知", "emoji": True},
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": (
+                        f"这是一条测试通知，用于验证 Slack 配置是否正确。\n\n"
+                        f"*渠道名称*: {channel.name}\n"
+                        f"*发送时间*: {variables['fired_at']}"
+                    ),
+                },
+            },
+            {
+                "type": "context",
+                "elements": [{"type": "mrkdwn", "text": "如果收到此消息，说明 Slack 通知配置正确！"}],
+            },
+        ],
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10, verify=settings.webhook_enable_ssl_verification) as client:
+            resp = await client.post(webhook_url, json=payload)
+        logger.info(f"Slack test notification response for {channel.name}: status={resp.status_code}, body={resp.text[:200]}")
+        return 200 <= resp.status_code < 300
+    except Exception as e:
+        logger.error(f"Slack test notification failed for channel {channel.name}: {e}", exc_info=True)
+        return False
+
+
+async def _send_test_telegram(channel: NotificationChannel, variables: dict) -> bool:
+    """
+    发送 Telegram 测试通知 (Send Telegram Test Notification)
+
+    功能描述:
+        通过 Telegram Bot API 发送测试通知，验证 bot_token 和 chat_id 配置是否正确。
+        使用 HTML 格式构建结构化的测试消息。
+
+    Args:
+        channel: 待测试的通知渠道配置
+        variables: 测试模板变量字典
+
+    Returns:
+        bool: 发送成功返回 True，失败返回 False
+    """
+    config = channel.config
+    bot_token = config.get("bot_token", "")
+    chat_id = config.get("chat_id", "")
+
+    if not bot_token or not chat_id:
+        logger.warning(f"Telegram test notification failed: bot_token or chat_id is empty for channel {channel.name}")
+        return False
+
+    text = (
+        f"🧪 <b>VigilOps 测试通知</b>\n\n"
+        f"这是一条测试通知，用于验证 Telegram 配置是否正确。\n\n"
+        f"<b>渠道名称</b>: {channel.name}\n"
+        f"<b>发送时间</b>: {variables['fired_at']}\n\n"
+        f"如果收到此消息，说明 Telegram 通知配置正确！"
+    )
+
+    api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(api_url, json=payload)
+        logger.info(f"Telegram test notification response for {channel.name}: status={resp.status_code}, body={resp.text[:200]}")
+        return 200 <= resp.status_code < 300
+    except Exception as e:
+        logger.error(f"Telegram test notification failed for channel {channel.name}: {e}", exc_info=True)
+        return False
+
+
 # 供 remediation agent 调用，通知修复执行结果
 # ---------------------------------------------------------------------------
 
@@ -600,6 +718,35 @@ async def _send_remediation_to_channel(channel: NotificationChannel, body: str) 
         payload = {"msgtype": "markdown", "markdown": {"content": body}}
         async with httpx.AsyncClient(timeout=10, verify=settings.webhook_enable_ssl_verification) as client:
             await client.post(webhook_url, json=payload)
+
+    elif channel.type == "slack":
+        webhook_url = config.get("webhook_url", "")
+        if not webhook_url:
+            return
+        is_valid, _ = _validate_webhook_url(webhook_url)
+        if not is_valid:
+            return
+        payload = {
+            "blocks": [
+                {"type": "header", "text": {"type": "plain_text", "text": "VigilOps 修复通知", "emoji": True}},
+                {"type": "section", "text": {"type": "mrkdwn", "text": body}},
+            ],
+        }
+        async with httpx.AsyncClient(timeout=10, verify=settings.webhook_enable_ssl_verification) as client:
+            await client.post(webhook_url, json=payload)
+
+    elif channel.type == "telegram":
+        bot_token = config.get("bot_token", "")
+        chat_id = config.get("chat_id", "")
+        if not bot_token or not chat_id:
+            return
+        # 将 Markdown 粗体 **text** 转换为 HTML <b>text</b>
+        import re
+        text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', body)
+        api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.post(api_url, json=payload)
 
     elif channel.type == "email":
         import aiosmtplib
@@ -1013,7 +1160,7 @@ async def send_alert_notification(
     # 2. 静默时间窗口检查 (Silence Window Check) - 降噪机制
     # 在指定的静默时间段内，完全禁止发送任何通知
     if rule and rule.silence_start and rule.silence_end:
-        now_time = datetime.now().time()  # 获取当前时间（仅时分秒）
+        now_time = datetime.now(timezone.utc).time()  # 获取当前UTC时间（仅时分秒）
 
         # 2.1 处理同日静默窗口（如 09:00-18:00）
         if rule.silence_start <= rule.silence_end:
@@ -1081,6 +1228,8 @@ async def _send_to_channel(
         "dingtalk": _send_dingtalk,    # 钉钉机器人发送
         "feishu": _send_feishu,        # 飞书机器人发送
         "wecom": _send_wecom,          # 企业微信机器人发送
+        "slack": _send_slack,          # Slack Incoming Webhook发送
+        "telegram": _send_telegram,    # Telegram Bot API发送
     }
     handler = dispatchers.get(channel.type)
     if not handler:
@@ -1126,6 +1275,10 @@ async def _send_to_channel(
             # 数据库只存储摘要（限制长度）
             log.error = full_error[:500] if full_error else "Unknown error"
         log.retries = attempt + 1  # 记录重试次数
+
+        # 4.4 指数退避：在重试之间等待递增的时间，避免高频重试
+        if log.status != "sent" and attempt < MAX_RETRIES - 1:
+            await asyncio.sleep(2 ** attempt)
 
     # 5. 记录发送状态到数据库 (Record Send Status to Database)
     log.sent_at = datetime.now(timezone.utc)
@@ -1640,4 +1793,226 @@ async def _send_wecom(
 
     async with httpx.AsyncClient(timeout=10, verify=settings.webhook_enable_ssl_verification) as client:
         resp = await client.post(webhook_url, json=payload)
+    return resp.status_code
+
+
+# ---------------------------------------------------------------------------
+# Slack Incoming Webhook 通知模块 (Slack Incoming Webhook Notification Module)
+# 实现 Slack Block Kit 格式消息发送，支持 SSRF 防护
+# ---------------------------------------------------------------------------
+
+async def _send_slack(
+    alert: Alert, channel: NotificationChannel, template, variables: dict
+) -> int | None:
+    """
+    发送 Slack Incoming Webhook 通知 (Send Slack Incoming Webhook Notification)
+
+    功能描述:
+        通过 Slack Incoming Webhook 发送告警通知，使用 Block Kit 格式构建
+        结构化的富文本消息。支持三种通知类型：首次告警、持续告警、恢复通知。
+        包含 SSRF 防护，验证 Webhook URL 安全性。
+
+    Args:
+        alert: 告警对象
+        channel: Slack 通知渠道配置，config 中需包含 webhook_url
+        template: 通知模板对象（可选）
+        variables: 模板变量字典
+
+    Returns:
+        int | None: HTTP 响应状态码，URL 为空时返回 None
+    """
+    config = channel.config
+    webhook_url = config.get("webhook_url", "")
+
+    if not webhook_url:
+        return None
+
+    # SSRF 防护：验证 URL 安全性
+    is_valid, error_msg = _validate_webhook_url(webhook_url)
+    if not is_valid:
+        logger.warning(f"Slack Webhook URL 验证失败: {error_msg}")
+        raise ValueError(f"不安全的 Slack Webhook URL: {error_msg}")
+
+    # 渲染内容
+    if template:
+        _, body = _render_template(template, variables)
+        # 使用模板渲染的内容构建简单的 Block Kit 消息
+        payload = {
+            "blocks": [
+                {"type": "section", "text": {"type": "mrkdwn", "text": body}},
+            ],
+        }
+    else:
+        notification_type = variables.get("notification_type", "first")
+        status_text = variables.get("status_text", "告警")
+        duration_human = variables.get("duration_human", "")
+
+        # 根据通知类型选择 emoji 和标题
+        if notification_type == "recovery":
+            severity_emoji = "✅"
+            header_text = "VigilOps 告警恢复"
+            detail_text = (
+                f"*标题*: {variables['title']}\n"
+                f"*状态*: {status_text}\n"
+                f"*持续时长*: {duration_human}\n"
+            )
+        elif notification_type == "continuous":
+            severity_emoji = "🔁"
+            header_text = "VigilOps 持续告警"
+            detail_text = (
+                f"*标题*: {variables['title']}\n"
+                f"*级别*: {variables['severity']}\n"
+                f"*消息*: {variables['message']}\n"
+                f"*持续时长*: {duration_human}\n"
+                f"*指标值*: {variables.get('metric_value', '-')} / 阈值: {variables.get('threshold', '-')}\n"
+            )
+        else:  # first
+            severity = variables.get("severity", "")
+            severity_emoji_map = {
+                "critical": "🔴",
+                "warning": "🟡",
+                "info": "🔵",
+            }
+            severity_emoji = severity_emoji_map.get(severity, "⚠️")
+            header_text = "VigilOps 告警"
+            detail_text = (
+                f"*标题*: {variables['title']}\n"
+                f"*级别*: {variables['severity']}\n"
+                f"*消息*: {variables['message']}\n"
+                f"*指标值*: {variables.get('metric_value', '-')} / 阈值: {variables.get('threshold', '-')}\n"
+            )
+
+        host_text = (
+            f"*主机*: {variables.get('host_name', '-')}\n"
+            f"*内网IP*: {variables.get('private_ip', '-')}\n"
+            f"*公网IP*: {variables.get('public_ip', '-')}"
+        )
+
+        # 时间信息
+        if notification_type == "recovery":
+            time_text = f"恢复时间: {variables.get('resolved_at', variables['fired_at'])}"
+        else:
+            time_text = f"触发时间: {variables['fired_at']}"
+
+        payload = {
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {"type": "plain_text", "text": f"{severity_emoji} {header_text}", "emoji": True},
+                },
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": detail_text},
+                },
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": host_text},
+                },
+                {
+                    "type": "context",
+                    "elements": [{"type": "mrkdwn", "text": time_text}],
+                },
+            ],
+        }
+
+    async with httpx.AsyncClient(timeout=10, verify=settings.webhook_enable_ssl_verification) as client:
+        resp = await client.post(webhook_url, json=payload)
+    return resp.status_code
+
+
+# ---------------------------------------------------------------------------
+# Telegram Bot API 通知模块 (Telegram Bot API Notification Module)
+# 通过 Telegram Bot API 发送 HTML 格式告警消息
+# ---------------------------------------------------------------------------
+
+async def _send_telegram(
+    alert: Alert, channel: NotificationChannel, template, variables: dict
+) -> int | None:
+    """
+    发送 Telegram Bot API 通知 (Send Telegram Bot API Notification)
+
+    功能描述:
+        通过 Telegram Bot API 的 sendMessage 接口发送告警通知。
+        使用 HTML parse_mode 构建格式化的告警消息，包含 emoji 指示器。
+        支持三种通知类型：首次告警、持续告警、恢复通知。
+
+    Args:
+        alert: 告警对象
+        channel: Telegram 通知渠道配置，config 中需包含 bot_token 和 chat_id
+        template: 通知模板对象（可选）
+        variables: 模板变量字典
+
+    Returns:
+        int | None: HTTP 响应状态码，配置缺失时返回 None
+    """
+    config = channel.config
+    bot_token = config.get("bot_token", "")
+    chat_id = config.get("chat_id", "")
+
+    if not bot_token or not chat_id:
+        return None
+
+    # 渲染内容
+    if template:
+        _, body = _render_template(template, variables)
+        text = body
+    else:
+        notification_type = variables.get("notification_type", "first")
+        status_text = variables.get("status_text", "告警")
+        duration_human = variables.get("duration_human", "")
+
+        # 根据通知类型构建不同格式的 HTML 消息
+        if notification_type == "recovery":
+            text = (
+                f"✅ <b>VigilOps 告警恢复</b>\n\n"
+                f"<b>标题</b>: {variables['title']}\n"
+                f"<b>状态</b>: {status_text}\n"
+                f"<b>持续时长</b>: {duration_human}\n"
+                f"<b>主机</b>: {variables.get('host_name', '-')}\n"
+                f"<b>内网IP</b>: {variables.get('private_ip', '-')}\n"
+                f"<b>公网IP</b>: {variables.get('public_ip', '-')}\n"
+                f"<b>恢复时间</b>: {variables.get('resolved_at', variables['fired_at'])}"
+            )
+        elif notification_type == "continuous":
+            text = (
+                f"🔁 <b>VigilOps 持续告警</b>\n\n"
+                f"<b>标题</b>: {variables['title']}\n"
+                f"<b>级别</b>: {variables['severity']}\n"
+                f"<b>消息</b>: {variables['message']}\n"
+                f"<b>持续时长</b>: {duration_human}\n"
+                f"<b>指标值</b>: {variables.get('metric_value', '-')} / 阈值: {variables.get('threshold', '-')}\n"
+                f"<b>主机</b>: {variables.get('host_name', '-')}\n"
+                f"<b>内网IP</b>: {variables.get('private_ip', '-')}\n"
+                f"<b>公网IP</b>: {variables.get('public_ip', '-')}\n"
+                f"<b>触发时间</b>: {variables['fired_at']}"
+            )
+        else:  # first
+            severity = variables.get("severity", "")
+            severity_emoji_map = {
+                "critical": "🔴",
+                "warning": "🟡",
+                "info": "🔵",
+            }
+            severity_emoji = severity_emoji_map.get(severity, "⚠️")
+            text = (
+                f"{severity_emoji} <b>VigilOps 告警</b>\n\n"
+                f"<b>标题</b>: {variables['title']}\n"
+                f"<b>级别</b>: {variables['severity']}\n"
+                f"<b>消息</b>: {variables['message']}\n"
+                f"<b>指标值</b>: {variables.get('metric_value', '-')} / 阈值: {variables.get('threshold', '-')}\n"
+                f"<b>主机</b>: {variables.get('host_name', '-')}\n"
+                f"<b>内网IP</b>: {variables.get('private_ip', '-')}\n"
+                f"<b>公网IP</b>: {variables.get('public_ip', '-')}\n"
+                f"<b>触发时间</b>: {variables['fired_at']}"
+            )
+
+    api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+    }
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.post(api_url, json=payload)
     return resp.status_code

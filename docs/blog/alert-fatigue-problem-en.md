@@ -116,7 +116,7 @@ docker compose up -d
 # Open http://localhost:3001
 ```
 
-Or try the live demo: [http://139.196.210.68:3001](http://139.196.210.68:3001) — Login: `demo@vigilops.io` / `demo123` (read-only)
+Or try the live demo: [https://demo.lchuangnet.com](https://demo.lchuangnet.com) — Login: `demo@vigilops.io` / `demo123` (read-only)
 
 In the demo, check out:
 - The alert list — notice the AI analysis field

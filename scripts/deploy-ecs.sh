@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# scripts/deploy-ecs.sh — 部署到 ECS（阿里云 139.196.210.68）
+# scripts/deploy-ecs.sh — 部署到 ECS（阿里云 demo.lchuangnet.com）
 # 用法: bash scripts/deploy-ecs.sh
 set -euo pipefail
 
-ECS_HOST="${ECS_HOST:-root@139.196.210.68}"
+ECS_HOST="${ECS_HOST:-root@demo.lchuangnet.com}"
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/vigilops}"
-HEALTH_URL="http://139.196.210.68:8001/health"
+HEALTH_URL="https://demo.lchuangnet.com/health"
 HEALTH_TIMEOUT=120   # 等待健康检查最长秒数
 
 RED='\033[0;31m'
@@ -77,5 +77,5 @@ log_ok "ECS 后端健康检查通过：${HEALTH_URL}"
 # ──────────────────────────────────────────
 echo ""
 echo -e "${GREEN}✅ 部署成功${NC}"
-echo "   前端：http://139.196.210.68:3001"
+echo "   前端：https://demo.lchuangnet.com"
 echo "   API ：${HEALTH_URL%/health}/api/v1/"

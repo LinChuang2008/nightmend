@@ -1,0 +1,360 @@
+# VigilOps Helm Chart - values.yaml
+# AI-powered infrastructure monitoring platform
+# AI 驱动的基础设施监控平台
+
+# -- Global settings / 全局设置 --
+global:
+  # Container image registry / 容器镜像仓库
+  imageRegistry: "ghcr.io"
+  # Image pull secrets for private registries / 私有仓库拉取凭证
+  imagePullSecrets: []
+  #   - name: my-registry-secret
+
+# ============================================================
+# Backend / 后端服务
+# ============================================================
+backend:
+  # Container image settings / 容器镜像设置
+  image:
+    repository: linchuang2008/vigilops-backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  # Number of replicas / 副本数量
+  replicas: 1
+  # Service settings / 服务设置
+  service:
+    type: ClusterIP
+    port: 8000
+  # Resource limits and requests / 资源限制与请求
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  # Liveness probe / 存活探针
+  livenessProbe:
+    httpGet:
+      path: /api/v1/health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # Readiness probe / 就绪探针
+  readinessProbe:
+    httpGet:
+      path: /api/v1/health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # Extra environment variables (list of name/value pairs)
+  # 额外环境变量（name/value 键值对列表）
+  extraEnv: []
+  #   - name: MY_VAR
+  #     value: "my-value"
+
+  # Environment / 运行环境 (production / development)
+  environment: "production"
+
+  # Backend host binding / 后端监听地址
+  host: "0.0.0.0"
+
+# ============================================================
+# Frontend / 前端服务
+# ============================================================
+frontend:
+  # Container image settings / 容器镜像设置
+  image:
+    repository: linchuang2008/vigilops-frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  # Number of replicas / 副本数量
+  replicas: 1
+  # Service settings / 服务设置
+  service:
+    type: ClusterIP
+    port: 80
+  # Resource limits and requests / 资源限制与请求
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  # Liveness probe / 存活探针
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 3
+    failureThreshold: 3
+  # Readiness probe / 就绪探针
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# ============================================================
+# MCP Server / MCP 服务 (Model Context Protocol)
+# ============================================================
+mcp:
+  # Enable MCP server / 是否启用 MCP 服务
+  enabled: false
+  # Container image settings / 容器镜像设置 (shares backend image)
+  image:
+    repository: linchuang2008/vigilops-backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  # Number of replicas / 副本数量
+  replicas: 1
+  # Service settings / 服务设置
+  service:
+    type: ClusterIP
+    port: 8003
+  # Resource limits and requests / 资源限制与请求
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  # Liveness probe / 存活探针
+  livenessProbe:
+    tcpSocket:
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  # Readiness probe / 就绪探针
+  readinessProbe:
+    tcpSocket:
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# ============================================================
+# PostgreSQL / 数据库
+# ============================================================
+postgresql:
+  # Use bundled PostgreSQL / 是否使用内置 PostgreSQL
+  # Set to false if using an external database
+  # 设为 false 以使用外部数据库
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  # Authentication / 认证配置
+  auth:
+    database: vigilops
+    username: vigilops
+    # Password for PostgreSQL user / PostgreSQL 用户密码
+    # WARNING: Change this in production! / 警告：生产环境务必修改！
+    password: "changeme"
+  # Service settings / 服务设置
+  service:
+    type: ClusterIP
+    port: 5432
+  # Persistent volume / 持久化存储
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+  # Resource limits and requests / 资源限制与请求
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  # Extra PostgreSQL config args / 额外 PostgreSQL 启动参数
+  extraArgs:
+    - "-c"
+    - "shared_preload_libraries=pg_stat_statements"
+
+  # External PostgreSQL connection settings / 外部 PostgreSQL 连接设置
+  # Only used when postgresql.enabled is false / 仅在 postgresql.enabled=false 时使用
+  external:
+    host: ""
+    port: 5432
+    database: vigilops
+    username: vigilops
+    password: ""
+
+# ============================================================
+# Redis / 缓存
+# ============================================================
+redis:
+  # Use bundled Redis / 是否使用内置 Redis
+  # Set to false if using an external Redis
+  # 设为 false 以使用外部 Redis
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+  # Authentication / 认证配置
+  auth:
+    # Redis password / Redis 密码 (leave empty to disable auth)
+    # 留空则禁用认证；生产环境强烈建议设置密码
+    password: ""
+  # Service settings / 服务设置
+  service:
+    type: ClusterIP
+    port: 6379
+  # Persistent volume / 持久化存储
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+  # Resource limits and requests / 资源限制与请求
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  # Max memory and eviction policy / 最大内存与淘汰策略
+  maxmemory: "256mb"
+  maxmemoryPolicy: "allkeys-lru"
+
+  # External Redis connection settings / 外部 Redis 连接设置
+  # Only used when redis.enabled is false / 仅在 redis.enabled=false 时使用
+  external:
+    host: ""
+    port: 6379
+    password: ""
+
+# ============================================================
+# JWT Authentication / JWT 认证
+# ============================================================
+jwt:
+  # Secret key for JWT token signing / JWT 令牌签名密钥
+  # WARNING: MUST be changed in production! / 警告：生产环境必须修改！
+  # Generate with: python -c "import secrets; print(secrets.token_urlsafe(64))"
+  secretKey: "change-me-in-production"
+  algorithm: "HS256"
+  # Access token expiration in minutes / 访问令牌过期时间（分钟）
+  accessTokenExpireMinutes: 120
+  # Refresh token expiration in days / 刷新令牌过期时间（天）
+  refreshTokenExpireDays: 7
+
+# ============================================================
+# AI Configuration / AI 配置 (optional / 可选)
+# ============================================================
+ai:
+  # AI provider name / AI 服务提供商
+  provider: "deepseek"
+  # API key for AI service / AI 服务 API 密钥
+  apiKey: ""
+  # API base URL / API 基础地址
+  apiBase: "https://api.deepseek.com/v1"
+  # Model name / 模型名称
+  model: "deepseek-chat"
+  # Max tokens per response / 每次响应最大 token 数
+  maxTokens: 2000
+  # Auto scan enabled / 是否启用自动扫描
+  autoScan: false
+
+# ============================================================
+# MCP Authentication / MCP 认证
+# ============================================================
+mcpAuth:
+  # MCP server authentication token / MCP 服务认证令牌
+  # Leave empty to disable auth / 留空则禁用认证
+  token: ""
+
+# ============================================================
+# Agent Configuration / Agent 自动修复配置
+# ============================================================
+agent:
+  # Enable auto-remediation agent / 是否启用自动修复 Agent
+  enabled: false
+  # Dry-run mode: log only, do not execute / Dry-run 模式：只记录不执行
+  dryRun: true
+  # Max auto-remediation actions per hour / 每小时最大自动修复次数
+  maxAutoPerHour: 10
+  # Notify on success / 修复成功时发送通知
+  notifyOnSuccess: true
+  # Notify on failure / 修复失败时发送通知
+  notifyOnFailure: true
+
+# ============================================================
+# Notification System / 通知系统配置
+# ============================================================
+notification:
+  # Allowed webhook domains (comma-separated) / 允许的 Webhook 域名白名单（逗号分隔）
+  # Leave empty to allow all (dev only) / 留空则不限制（仅开发环境）
+  webhookAllowedDomains: ""
+  # Enable SSL verification for webhooks / 是否启用 Webhook SSL 验证
+  webhookEnableSSLVerification: true
+  # Max retries for sending notifications / 通知发送失败最大重试次数
+  maxRetries: 3
+  # Template cache TTL in seconds / 模板缓存 TTL（秒）
+  templateCacheTTL: 3600
+  # Channel cache TTL in seconds / 渠道缓存 TTL（秒）
+  channelCacheTTL: 1800
+  # Default cooldown in seconds / 默认冷却时间（秒）
+  defaultCooldown: 300
+
+# ============================================================
+# Ingress / 入口配置
+# ============================================================
+ingress:
+  # Enable Ingress resource / 是否启用 Ingress
+  enabled: false
+  # Ingress class name / Ingress 类名
+  className: "nginx"
+  # Annotations / 注解
+  annotations: {}
+    # kubernetes.io/tls-acme: "true"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  # Hostname / 域名
+  host: "vigilops.local"
+  # TLS configuration / TLS 配置
+  tls: []
+  #   - secretName: vigilops-tls
+  #     hosts:
+  #       - vigilops.local
+
+# ============================================================
+# Common settings / 通用设置
+# ============================================================
+# Timezone / 时区
+timezone: "Asia/Shanghai"
+# Pod security context / Pod 安全上下文
+podSecurityContext: {}
+# Container security context / 容器安全上下文
+securityContext: {}
+# Node selector / 节点选择器
+nodeSelector: {}
+# Tolerations / 容忍度
+tolerations: []
+# Affinity rules / 亲和性规则
+affinity: {}
+# Service account / 服务账户
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}

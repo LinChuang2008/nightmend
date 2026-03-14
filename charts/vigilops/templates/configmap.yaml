@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vigilops.configmapName" . }}
+  labels:
+    {{- include "vigilops.labels" . | nindent 4 }}
+data:
+  # Database / 数据库
+  POSTGRES_HOST: {{ include "vigilops.postgresql.host" . | quote }}
+  POSTGRES_PORT: {{ include "vigilops.postgresql.port" . | quote }}
+  POSTGRES_DB: {{ include "vigilops.postgresql.database" . | quote }}
+  POSTGRES_USER: {{ include "vigilops.postgresql.username" . | quote }}
+  # Redis
+  REDIS_HOST: {{ include "vigilops.redis.host" . | quote }}
+  REDIS_PORT: {{ include "vigilops.redis.port" . | quote }}
+  # JWT (non-sensitive settings)
+  JWT_ALGORITHM: {{ .Values.jwt.algorithm | quote }}
+  JWT_ACCESS_TOKEN_EXPIRE_MINUTES: {{ .Values.jwt.accessTokenExpireMinutes | toString | quote }}
+  JWT_REFRESH_TOKEN_EXPIRE_DAYS: {{ .Values.jwt.refreshTokenExpireDays | toString | quote }}
+  # Backend
+  BACKEND_HOST: {{ .Values.backend.host | quote }}
+  BACKEND_PORT: {{ .Values.backend.service.port | toString | quote }}
+  ENVIRONMENT: {{ .Values.backend.environment | quote }}
+  # AI (non-sensitive settings)
+  AI_PROVIDER: {{ .Values.ai.provider | quote }}
+  AI_API_BASE: {{ .Values.ai.apiBase | quote }}
+  AI_MODEL: {{ .Values.ai.model | quote }}
+  AI_MAX_TOKENS: {{ .Values.ai.maxTokens | toString | quote }}
+  AI_AUTO_SCAN: {{ .Values.ai.autoScan | toString | quote }}
+  # MCP
+  VIGILOPS_MCP_ENABLED: {{ .Values.mcp.enabled | toString | quote }}
+  VIGILOPS_MCP_HOST: "0.0.0.0"
+  VIGILOPS_MCP_PORT: {{ .Values.mcp.service.port | toString | quote }}
+  # Agent
+  AGENT_ENABLED: {{ .Values.agent.enabled | toString | quote }}
+  AGENT_DRY_RUN: {{ .Values.agent.dryRun | toString | quote }}
+  AGENT_MAX_AUTO_PER_HOUR: {{ .Values.agent.maxAutoPerHour | toString | quote }}
+  AGENT_NOTIFY_ON_SUCCESS: {{ .Values.agent.notifyOnSuccess | toString | quote }}
+  AGENT_NOTIFY_ON_FAILURE: {{ .Values.agent.notifyOnFailure | toString | quote }}
+  # Notification / 通知
+  WEBHOOK_ALLOWED_DOMAINS: {{ .Values.notification.webhookAllowedDomains | quote }}
+  WEBHOOK_ENABLE_SSL_VERIFICATION: {{ .Values.notification.webhookEnableSSLVerification | toString | quote }}
+  NOTIFICATION_MAX_RETRIES: {{ .Values.notification.maxRetries | toString | quote }}
+  NOTIFICATION_TEMPLATE_CACHE_TTL: {{ .Values.notification.templateCacheTTL | toString | quote }}
+  NOTIFICATION_CHANNEL_CACHE_TTL: {{ .Values.notification.channelCacheTTL | toString | quote }}
+  NOTIFICATION_DEFAULT_COOLDOWN: {{ .Values.notification.defaultCooldown | toString | quote }}
+  # Timezone / 时区
+  TZ: {{ .Values.timezone | quote }}

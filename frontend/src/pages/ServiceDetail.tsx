@@ -42,7 +42,7 @@ export default function ServiceDetail() {
             status: found.status ?? found.sla_status ?? 'no_data',
           });
         }
-      } catch { /* ignore */ } finally { setLoading(false); }
+      } catch (err) { console.warn('Failed to fetch service data:', err); } finally { setLoading(false); }
     };
     fetchData();
   }, [id]);

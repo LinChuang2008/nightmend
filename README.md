@@ -7,7 +7,7 @@
 [![Stars](https://img.shields.io/github/stars/LinChuang2008/vigilops?style=for-the-badge&logo=github&color=gold)](https://github.com/LinChuang2008/vigilops)
 [![CI](https://img.shields.io/github/actions/workflow/status/LinChuang2008/vigilops/test.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/LinChuang2008/vigilops/actions/workflows/test.yml)
 [![Docker](https://img.shields.io/github/actions/workflow/status/LinChuang2008/vigilops/docker-publish.yml?branch=main&style=for-the-badge&label=Docker&logo=docker)](https://github.com/LinChuang2008/vigilops/actions/workflows/docker-publish.yml)
-[![Version](https://img.shields.io/badge/version-v0.9.1-blue?style=for-the-badge)](https://github.com/LinChuang2008/vigilops/releases)
+[![Version](https://img.shields.io/badge/version-v2026.03.14-blue?style=for-the-badge)](https://github.com/LinChuang2008/vigilops/releases)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 
 [Live Demo](https://demo.lchuangnet.com/login) | [Install](#quickstart) | [Docs](#documentation) | [中文文档](README.zh-CN.md)
@@ -45,7 +45,7 @@ VigilOps is the **first open-source AI platform** that doesn't just monitor — 
 git clone https://github.com/LinChuang2008/vigilops.git && cd vigilops
 cp .env.example .env   # Add your DeepSeek API key
 docker compose up -d
-# Open http://localhost:3001 — first account becomes admin
+# Open http://localhost:3001 — first registered account becomes admin
 ```
 
 > On first startup, the backend auto-creates 37 tables, 5 alert rules, and 8 dashboard components.
@@ -59,6 +59,7 @@ docker compose up -d
 | AI Root Cause Analysis | Built-in | - | - | Enterprise | - |
 | Auto-Remediation | 6 Runbooks | - | - | Enterprise | - |
 | MCP Integration | **First** | - | - | Early | - |
+| PromQL Queries | ✓ | - | Native | Enterprise | - |
 | Self-Hosted | Docker | K8s/Docker | Complex | SaaS | Yes |
 | Cost | **Free** | Free/Ent | Free | $$$ | Free/Ent |
 | Setup Time | **5 min** | 30 min | 2+ hrs | 5 min | 1+ hr |
@@ -106,12 +107,32 @@ Your AI assistant (Claude Code, Cursor) queries live production data via MCP:
 # Enable in backend/.env
 VIGILOPS_MCP_ENABLED=true
 VIGILOPS_MCP_PORT=8003
-VIGILOPS_MCP_TOKEN=your-secret-token
+VIGILOPS_MCP_API_KEY=your-secret-token
 ```
+
+> **Note**: Authentication via `VIGILOPS_MCP_API_KEY` is required in production.
 
 **5 MCP Tools**: `get_servers_health` | `get_alerts` | `search_logs` | `analyze_incident` | `get_topology`
 
 Ask your AI: *"Show all critical alerts on prod-server-01"* / *"Analyze last night's CPU spike"* / *"Search for OOM errors in the past 2 hours"*
+
+---
+
+## PromQL Query Support
+
+Query metrics using familiar PromQL syntax via API:
+
+```bash
+# Instant query
+GET /api/v1/promql/query?query=vigilops_host_cpu_percent
+
+# Range query
+GET /api/v1/promql/query_range?query=avg(vigilops_host_cpu_percent)&start=...&end=...&step=5m
+
+# Supported: rate(), avg(), sum(), min(), max(), count(), avg_over_time(), label matchers
+```
+
+Compatible with Prometheus HTTP API format for Grafana integration.
 
 ---
 
@@ -142,7 +163,7 @@ See [docs/installation.md](docs/installation.md) for full guide.
 | Backend | Python 3.9+, FastAPI, SQLAlchemy, AsyncIO |
 | Database | PostgreSQL 15+, Redis 7+ |
 | AI | DeepSeek API (configurable LLM) |
-| Deploy | Docker Compose |
+| Deploy | Docker Compose, Helm Chart (K8s) |
 
 ---
 

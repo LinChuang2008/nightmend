@@ -120,7 +120,7 @@ docker compose up -d
 # Open http://localhost:3001
 ```
 
-Live demo: [http://139.196.210.68:3001](http://139.196.210.68:3001) — `demo@vigilops.io` / `demo123` (read-only)
+Live demo: [https://demo.lchuangnet.com](https://demo.lchuangnet.com) — `demo@vigilops.io` / `demo123` (read-only)
 
 ## Looking Ahead
 
