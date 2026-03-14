@@ -66,9 +66,9 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
     return host.display_name || host.hostname;
   };
 
-  // 获取主机显示 IP（优先公网 IP，否则内网 IP，最后兼容旧字段）
+  // 获取主机显示 IP（优先内网 IP，否则公网 IP，最后兼容旧字段）
   const getDisplayIp = (host: HostItem): string => {
-    return host.public_ip || host.private_ip || host.ip_address || 'N/A';
+    return host.private_ip || host.ip_address || host.public_ip || 'N/A';
   };
 
   // 判断是否有多个 IP 需要显示提示

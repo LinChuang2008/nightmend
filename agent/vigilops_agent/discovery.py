@@ -25,7 +25,8 @@ HTTP_PORTS = {80, 443, 8080, 8000, 8001, 8443, 3000, 3001, 5000, 9090,
 # 需要跳过的系统服务（通常不需要监控）
 SKIP_PROCESSES = {"sshd", "systemd", "systemd-resolve", "chronyd", "dbus-daemon",
                   "polkitd", "agetty", "containerd", "dockerd", "docker-proxy",
-                  "rpcbind", "nscd", "cupsd"}
+                  "rpcbind", "nscd", "cupsd",
+                  "prlshprint", "prl_nettool", "prl_disp_service", "prltoolsd"}
 
 # 需要跳过的端口范围
 SKIP_PORTS = {22}  # SSH 不需要监控

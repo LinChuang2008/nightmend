@@ -61,5 +61,5 @@ class Host(Base):
 
     @property
     def display_ip(self) -> str:
-        """获取显示 IP（优先公网 IP，否则内网 IP，最后兼容旧字段）。"""
-        return self.public_ip or self.private_ip or self.ip_address or "N/A"
+        """获取显示 IP（优先内网 IP，否则公网 IP，最后兼容旧字段）。"""
+        return self.private_ip or self.ip_address or self.public_ip or "N/A"
