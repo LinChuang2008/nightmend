@@ -3,7 +3,7 @@
  * 大号 ECharts gauge，三段渐变弧（0-60绿/60-80黄/80-100红），下方 Top3 扣分项
  */
 import { memo } from 'react';
-import { Typography } from 'antd';
+import { Typography, theme } from 'antd';
 import { useTranslation } from 'react-i18next';
 import ReactECharts from '../ThemedECharts';
 
@@ -27,6 +27,7 @@ function getScoreColor(s: number): string {
 
 export default memo(function HealthScoreGauge({ score, breakdown }: HealthScoreGaugeProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const scoreColor = getScoreColor(score);
 
   const statusText =
@@ -70,7 +71,7 @@ export default memo(function HealthScoreGauge({ score, breakdown }: HealthScoreG
         axisLine: {
           lineStyle: {
             width: 16,
-            color: [[1, '#f0f0f0']] as [number, string][],
+            color: [[1, token.colorBorderSecondary]] as [number, string][],
           },
         },
         axisTick: { show: false },
@@ -94,13 +95,13 @@ export default memo(function HealthScoreGauge({ score, breakdown }: HealthScoreG
   return (
     <div
       style={{
-        background: '#fff',
+        background: token.colorBgContainer,
         borderRadius: 12,
         padding: '12px 16px',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        boxShadow: token.boxShadowTertiary,
       }}
     >
       <Text strong style={{ fontSize: 13 }}>
@@ -123,7 +124,7 @@ export default memo(function HealthScoreGauge({ score, breakdown }: HealthScoreG
                 marginBottom: 2,
               }}
             >
-              <Text style={{ fontSize: 11, color: '#8c8c8c' }}>▸ {d.reason}</Text>
+              <Text style={{ fontSize: 11, color: token.colorTextSecondary }}>▸ {d.reason}</Text>
               <Text style={{ fontSize: 11, color: '#ff4d4f', fontWeight: 600 }}>
                 {d.points}pt
               </Text>

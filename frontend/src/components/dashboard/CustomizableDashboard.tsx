@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
   Button, Space, Typography, Dropdown, message,
-  Tooltip
+  Tooltip, theme
 } from 'antd';
 import {
   SettingOutlined, DownloadOutlined,
@@ -175,6 +175,7 @@ export default function CustomizableDashboard() {
 
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -516,17 +517,17 @@ export default function CustomizableDashboard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Space>
           <Title level={4} style={{ margin: 0 }}>{t('dashboard.systemOverview')}</Title>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#999' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: token.colorTextTertiary }}>
             <span style={{
               width: 8, height: 8, borderRadius: '50%',
-              backgroundColor: wsConnected ? '#52c41a' : '#d9d9d9',
+              backgroundColor: wsConnected ? token.colorSuccess : token.colorTextDisabled,
               display: 'inline-block'
             }} />
             {wsConnected ? t('dashboard.realtime') : t('dashboard.polling')}
           </span>
           {isEditing && (
             <Tooltip title={t('dashboard.editModeTooltip')}>
-              <span style={{ color: '#faad14', fontSize: 12 }}>
+              <span style={{ color: token.colorWarning, fontSize: 12 }}>
                 <DragOutlined /> {t('dashboard.editMode')}
               </span>
             </Tooltip>

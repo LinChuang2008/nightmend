@@ -2,7 +2,7 @@
  * 服务器健康总览条组件
  * 三色进度条（绿/黄/红），四状态卡片边框
  */
-import { Card, Row, Col, Space, Progress, Tooltip, Typography } from 'antd';
+import { Card, Row, Col, Space, Progress, Tooltip, Typography, theme } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { DesktopOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -55,6 +55,7 @@ function getMetricColor(percent: number, dangerThreshold = 80): string {
 export default function ServersOverview({ hosts }: ServersOverviewProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { token } = theme.useToken();
 
   if (hosts.length === 0) {
     return null;
@@ -100,12 +101,12 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
               (m?.disk_percent ?? 0) > 60);
 
           const borderColor = !isOnline
-            ? '#ff4d4f'
+            ? token.colorError
             : hasDanger
-            ? '#ff4d4f'
+            ? token.colorError
             : hasWarning
-            ? '#faad14'
-            : '#52c41a';
+            ? token.colorWarning
+            : token.colorSuccess;
 
           return (
             <Col key={host.id} xs={24} sm={12} md={8} lg={6}>
@@ -133,14 +134,14 @@ export default function ServersOverview({ hosts }: ServersOverviewProps) {
                         height: 8,
                         borderRadius: '50%',
                         display: 'inline-block',
-                        backgroundColor: isOnline ? '#52c41a' : '#ff4d4f',
+                        backgroundColor: isOnline ? token.colorSuccess : token.colorError,
                       }}
                     />
                     <Text strong style={{ fontSize: 13 }}>
                       {displayName}
                     </Text>
                   </Space>
-                  <ArrowRightOutlined style={{ color: '#999', fontSize: 11 }} />
+                  <ArrowRightOutlined style={{ color: token.colorTextTertiary, fontSize: 11 }} />
                 </div>
 
                 {/* IP 地址显示 */}

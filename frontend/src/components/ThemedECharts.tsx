@@ -28,19 +28,20 @@ const ThemedECharts = forwardRef<any, ThemedEChartsProps>(({ option, ...rest }, 
     // Deep merge dark overrides into option
     const darkOption = { ...option, backgroundColor: 'transparent' };
 
-    // Title
+    // Title + subtitle
     if (darkOption.title) {
       const t = Array.isArray(darkOption.title) ? darkOption.title : [darkOption.title];
       darkOption.title = t.map((item: any) => ({
         ...item,
-        textStyle: { color: DARK_TEXT, ...item?.textStyle },
+        textStyle: { ...item?.textStyle, color: DARK_TEXT },
+        subtextStyle: { ...item?.subtextStyle, color: DARK_TEXT },
       }));
       if (!Array.isArray(option.title)) darkOption.title = darkOption.title[0];
     }
 
     // Legend
     if (darkOption.legend) {
-      darkOption.legend = { ...darkOption.legend, textStyle: { color: DARK_TEXT, ...(darkOption.legend as any)?.textStyle } };
+      darkOption.legend = { ...darkOption.legend, textStyle: { ...(darkOption.legend as any)?.textStyle, color: DARK_TEXT } };
     }
 
     // Axes

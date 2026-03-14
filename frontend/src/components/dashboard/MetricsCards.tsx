@@ -3,7 +3,7 @@
  * 显示服务器、服务、数据库统计；第5列为异常日志 KPI（健康评分圆环已移至 ZONE A）
  * 支持可选 delta 趋势指示
  */
-import { Row, Col, Card, Statistic, Tag, Button } from 'antd';
+import { Row, Col, Card, Statistic, Tag, Button, theme } from 'antd';
 import { useTranslation } from 'react-i18next';
 import {
   CloudServerOutlined, ApiOutlined, AlertOutlined,
@@ -31,20 +31,20 @@ interface MetricsCardsProps {
 }
 
 function TrendDelta({ current, previous, invertColor }: { current: number; previous?: number; invertColor?: boolean }) {
+  const { token } = theme.useToken();
   if (previous === undefined) return null;
   const delta = current - previous;
   if (delta === 0) {
     return (
-      <span style={{ fontSize: 12, color: '#999', marginLeft: 6 }}>
+      <span style={{ fontSize: 12, color: token.colorTextTertiary, marginLeft: 6 }}>
         <MinusOutlined /> 0
       </span>
     );
   }
   const isUp = delta > 0;
-  // For alerts/errors, going up is bad (red); for hosts/services, going up is good (green)
   const color = invertColor
-    ? (isUp ? '#cf1322' : '#3f8600')
-    : (isUp ? '#3f8600' : '#cf1322');
+    ? (isUp ? token.colorError : token.colorSuccess)
+    : (isUp ? token.colorSuccess : token.colorError);
   return (
     <span style={{ fontSize: 12, color, marginLeft: 6, fontWeight: 500 }}>
       {isUp ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
@@ -61,6 +61,7 @@ export default function MetricsCards({
   prevHostOnline, prevSvcHealthy, prevAlertFiring, prevAbnormalCount,
 }: MetricsCardsProps) {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const abnormalCount = fatalCount + errorCount;
 
   return (
@@ -100,7 +101,7 @@ export default function MetricsCards({
             title={t('dashboard.activeAlerts')}
             value={alertFiring}
             prefix={<AlertOutlined />}
-            valueStyle={{ color: alertFiring > 0 ? '#cf1322' : '#3f8600' }}
+            valueStyle={{ color: alertFiring > 0 ? token.colorError : token.colorSuccess }}
           />
           <TrendDelta current={alertFiring} previous={prevAlertFiring} invertColor />
         </Card>
@@ -109,7 +110,7 @@ export default function MetricsCards({
       <Col xs={24} sm={12} md={12} xxl={4}>
         <Card
           style={{
-            borderTop: abnormalCount > 0 ? '3px solid #ff4d4f' : '3px solid #f0f0f0',
+            borderTop: abnormalCount > 0 ? `3px solid ${token.colorError}` : `3px solid ${token.colorBorderSecondary}`,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -117,7 +118,7 @@ export default function MetricsCards({
               title={t('dashboard.abnormalLogs')}
               value={abnormalCount}
               prefix={<WarningOutlined />}
-              valueStyle={{ color: abnormalCount > 0 ? '#cf1322' : '#3f8600' }}
+              valueStyle={{ color: abnormalCount > 0 ? token.colorError : token.colorSuccess }}
             />
             {abnormalCount > 0 && (
               <Button type="primary" danger size="small" onClick={onAIAnalyze}>
