@@ -33,7 +33,7 @@ export default function Databases() {
       try {
         const { data } = await databaseService.list();
         setDatabases(data.databases || []);
-      } catch { /* ignore */ } finally { setLoading(false); }
+      } catch (err) { console.warn('Failed to fetch databases:', err); } finally { setLoading(false); }
     };
     fetchData();
     const interval = setInterval(fetchData, 30000);

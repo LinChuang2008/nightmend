@@ -21,6 +21,7 @@ import {
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { onCallService } from '../services/onCall';
+import api from '../services/api';
 
 const { Title, Text } = Typography;
 
@@ -144,21 +145,16 @@ export default function OnCall() {
       const { data } = await onCallService.getCoverage(start, end);
       // 确保 schedules 字段始终是数组，防止 useMemo 崩溃
       setCoverageData(data ? { ...data, schedules: Array.isArray(data.schedules) ? data.schedules : [] } : null);
-    } catch { /* ignore */ } finally { setCoverageLoading(false); }
+    } catch (err) { console.warn('Failed to fetch coverage:', err); } finally { setCoverageLoading(false); }
   }, [calendarMonth]);
 
   const fetchUsers = useCallback(async () => {
     try {
-      // Use a simple approach - fetch from users API
-      const token = localStorage.getItem('token');
-      const resp = await fetch('/api/v1/users?page_size=100', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        setUsers((data.items || []).map((u: any) => ({ id: u.id, email: u.email })));
-      }
-    } catch { /* ignore */ }
+      const { data } = await api.get('/users', { params: { page_size: 100 } });
+      setUsers((data.items || []).map((u: any) => ({ id: u.id, email: u.email })));
+    } catch (err) {
+      console.warn('Failed to fetch users:', err);
+    }
   }, []);
 
   useEffect(() => { fetchGroups(); }, [fetchGroups]);

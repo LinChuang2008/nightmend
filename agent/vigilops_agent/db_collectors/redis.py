@@ -35,17 +35,23 @@ class RedisCollector(AbstractDBCollector, db_type="redis"):
             logger.warning("redis-py not installed, skipping Redis for %s", cfg.name)
             return None
 
+        client = None
         try:
             client = self._create_client(cfg, redis_lib)
             info = client.info("all")
             keyspace = client.info("keyspace")
-            client.close()
 
             return self._parse_metrics(cfg, info, keyspace)
 
         except Exception as e:
             logger.error("Redis collection failed for %s: %s", cfg.name, e)
             return None
+        finally:
+            if client:
+                try:
+                    client.close()
+                except Exception:
+                    pass
 
     def _create_client(self, cfg: DatabaseMonitorConfig, redis_lib):
         """根据 redis_mode 创建对应的客户端。"""

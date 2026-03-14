@@ -34,6 +34,8 @@ class MySQLCollector(AbstractDBCollector, db_type="mysql"):
             logger.warning("pymysql not installed, skipping MySQL for %s", cfg.name)
             return None
 
+        conn = None
+        cur = None
         try:
             conn = pymysql.connect(
                 host=cfg.host,
@@ -128,13 +130,22 @@ class MySQLCollector(AbstractDBCollector, db_type="mysql"):
                     >= cfg.connection_threshold):
                 metrics.extra["connection_breakdown"] = self._connection_breakdown(cur)
 
-            cur.close()
-            conn.close()
             return metrics
 
         except Exception as e:
             logger.error("MySQL collection failed for %s: %s", cfg.name, e)
             return None
+        finally:
+            if cur:
+                try:
+                    cur.close()
+                except Exception:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     def _fetch_status(self, cur) -> dict:
         """批量获取 SHOW GLOBAL STATUS。"""

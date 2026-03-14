@@ -79,7 +79,7 @@ class AgentReporter:
         for url in [
             "https://api.ipify.org",
             "https://ifconfig.me/ip",
-            "http://checkip.amazonaws.com",
+            "https://checkip.amazonaws.com",
         ]:
             try:
                 import urllib.request
@@ -126,10 +126,9 @@ class AgentReporter:
                 parsed = urlparse(self.config.server.url)
                 host = parsed.hostname or "10.211.55.2"
                 port = parsed.port or 80
-                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                s.connect((host, port))
-                ip = s.getsockname()[0]
-                s.close()
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                    s.connect((host, port))
+                    ip = s.getsockname()[0]
                 if ip and self._is_valid_ip(ip):
                     ip_type = self._classify_ip(ip)
                     result["private_ip"] = ip

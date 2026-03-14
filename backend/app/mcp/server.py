@@ -514,13 +514,17 @@ def start_mcp_server(host: str = "127.0.0.1", port: int = 8003):
     logger.info(f"Starting VigilOps MCP Server on {host}:{port}")
 
     if not api_key:
-        logger.warning("VIGILOPS_MCP_API_KEY not set — MCP server running without authentication")
-        # Use streamable HTTP transport without authentication
+        import os
+        env = os.getenv("ENVIRONMENT", "production").lower()
+        if env != "development":
+            logger.error("VIGILOPS_MCP_API_KEY not set — refusing to start MCP server without authentication in production")
+            return
+        logger.warning("VIGILOPS_MCP_API_KEY not set — MCP server running without authentication (development mode)")
         asyncio.run(mcp_server.run_http_async(host=host, port=port))
         return
 
     logger.info("Bearer Token auth enabled for MCP server")
-    mcp_app = mcp_server.streamable_http_app()
+    mcp_app = mcp_server.http_app()
 
     class BearerAuthMiddleware:
         def __init__(self, app):

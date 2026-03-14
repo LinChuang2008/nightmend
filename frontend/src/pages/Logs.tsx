@@ -72,12 +72,12 @@ export default function Logs() {
       const map: Record<string, string> = {};
       items.forEach((h: { id: number; hostname: string }) => { map[String(h.id)] = h.hostname; });
       hostMapRef.current = map;
-    }).catch(() => {});
+    }).catch(err => console.warn('Failed to load hosts:', err));
     api.get('/services', { params: { page_size: 100 } }).then(res => {
       const items = res.data.items || [];
       const names = [...new Set(items.map((s: { name: string }) => s.name))] as string[];
       setServiceOptions(names.map(n => ({ label: n, value: n })));
-    }).catch(() => {});
+    }).catch(err => console.warn('Failed to load services:', err));
   }, []);
 
   const doFetch = useCallback(async () => {
@@ -89,7 +89,7 @@ export default function Logs() {
       const res = await fetchLogs(params);
       setData(res.items || []);
       setTotal(res.total || 0);
-    } catch { /* ignore */ } finally {
+    } catch (err) { console.warn('Failed to fetch logs:', err); } finally {
       setLoading(false);
     }
   }, [keyword, hostId, service, levels, timeRange, page, pageSize]);
@@ -110,6 +110,8 @@ export default function Logs() {
     if (service) params.set('service', service);
     if (levels.length) params.set('level', levels.join(','));
     if (keyword) params.set('keyword', keyword);
+    const token = localStorage.getItem('token') || '';
+    if (token) params.set('token', token);
     const url = `${proto}://${window.location.host}/ws/logs?${params.toString()}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
@@ -123,10 +125,10 @@ export default function Logs() {
           const next = [...prev, entry];
           return next.length > 500 ? next.slice(next.length - 500) : next;
         });
-      } catch { /* ignore */ }
+      } catch (err) { console.warn('WS message parse error:', err); }
     };
-    ws.onerror = () => {};
-    ws.onclose = () => {};
+    ws.onerror = (err) => { console.warn('Log WebSocket error:', err); };
+    ws.onclose = () => { console.debug('Log WebSocket closed'); };
 
     return () => { ws.close(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps

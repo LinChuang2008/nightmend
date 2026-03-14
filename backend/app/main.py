@@ -229,7 +229,10 @@ import os
 _env = os.getenv("ENVIRONMENT", "production").lower()
 is_development = _env == "development"
 if is_development:
-    allowed_origins = ["*"]
+    allowed_origins = [
+        "http://localhost:3000", "http://localhost:3001",
+        "http://127.0.0.1:3000", "http://127.0.0.1:3001",
+    ]
 else:
     _frontend_url = os.getenv("FRONTEND_URL", "").strip()
     allowed_origins = [
