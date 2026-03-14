@@ -251,7 +251,7 @@ app.add_middleware(
     allow_origins=allowed_origins,  # 生产环境限制具体域名 (Restrict specific domains in production)
     allow_credentials=True,  # 允许携带认证信息 (Allow credentials)
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],  # 明确允许的方法 (Explicitly allowed methods)
-    allow_headers=["*"],  # 允许所有请求头 (Allow all headers)
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],  # 明确允许的请求头 (Explicitly allowed headers)
     expose_headers=["X-Total-Count", "X-Rate-Limit-*"],  # 暴露的响应头 (Exposed response headers)
 )
 

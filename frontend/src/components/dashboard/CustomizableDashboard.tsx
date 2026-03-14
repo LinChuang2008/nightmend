@@ -279,7 +279,7 @@ export default function CustomizableDashboard() {
   const fetchTrends = useCallback(async () => {
     try {
       setTrends((await api.get('/dashboard/trends')).data.trends || []);
-    } catch {}
+    } catch (err) { console.warn('Failed to fetch trends:', err); }
   }, []);
 
   // WebSocket 相关函数

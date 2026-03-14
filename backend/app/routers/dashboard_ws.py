@@ -329,11 +329,19 @@ async def dashboard_ws(websocket: WebSocket):
             try:
                 # 收集最新的仪表盘数据
                 data = await _collect_dashboard_data()
-                
+
                 # 将数据序列化为 JSON 并推送给客户端
                 # ensure_ascii=False 支持中文字符正确显示
-                await websocket.send_text(json.dumps(data, ensure_ascii=False))
-                
+                # 添加 5 秒超时，防止慢消费者阻塞推送循环
+                await asyncio.wait_for(
+                    websocket.send_text(json.dumps(data, ensure_ascii=False)),
+                    timeout=5.0,
+                )
+
+            except asyncio.TimeoutError:
+                # 发送超时，客户端消费过慢，断开连接
+                logger.warning("仪表盘 WebSocket 发送超时(5s)，断开慢消费者连接")
+                break
             except (WebSocketDisconnect, RuntimeError):
                 # 客户端主动断开连接或连接异常，正常退出循环
                 break

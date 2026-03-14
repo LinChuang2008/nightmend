@@ -1160,7 +1160,7 @@ async def send_alert_notification(
     # 2. 静默时间窗口检查 (Silence Window Check) - 降噪机制
     # 在指定的静默时间段内，完全禁止发送任何通知
     if rule and rule.silence_start and rule.silence_end:
-        now_time = datetime.now().time()  # 获取当前时间（仅时分秒）
+        now_time = datetime.now(timezone.utc).time()  # 获取当前UTC时间（仅时分秒）
 
         # 2.1 处理同日静默窗口（如 09:00-18:00）
         if rule.silence_start <= rule.silence_end:
@@ -1275,6 +1275,10 @@ async def _send_to_channel(
             # 数据库只存储摘要（限制长度）
             log.error = full_error[:500] if full_error else "Unknown error"
         log.retries = attempt + 1  # 记录重试次数
+
+        # 4.4 指数退避：在重试之间等待递增的时间，避免高频重试
+        if log.status != "sent" and attempt < MAX_RETRIES - 1:
+            await asyncio.sleep(2 ** attempt)
 
     # 5. 记录发送状态到数据库 (Record Send Status to Database)
     log.sent_at = datetime.now(timezone.utc)

@@ -373,18 +373,26 @@ async def get_setup_status(
     }
 
 
-@router.get("", response_model=List[NotificationChannelResponse])
+@router.get("")
 async def list_channels(
     db: AsyncSession = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
     """
     通知渠道列表查询接口 (Notification Channels List Query)
-    
+
     获取所有配置的通知渠道（邮件、钉钉、飞书、企微、Webhook）。
+    敏感配置字段（密码、密钥、Token等）已脱敏处理。
     """
     result = await db.execute(select(NotificationChannel).order_by(NotificationChannel.id))
-    return result.scalars().all()
+    channels = result.scalars().all()
+    items = []
+    for ch in channels:
+        data = NotificationChannelResponse.model_validate(ch).model_dump(mode="json")
+        if isinstance(data.get("config"), dict):
+            data["config"] = _sanitize_config(data["config"])
+        items.append(data)
+    return items
 
 
 @router.post("", response_model=NotificationChannelResponse, status_code=status.HTTP_201_CREATED)

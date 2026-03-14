@@ -38,7 +38,7 @@ export default function HostDetail() {
       setMetrics(Array.isArray(metricsRes.data) ? metricsRes.data : []);
       const items = alertsRes.data?.items || (Array.isArray(alertsRes.data) ? alertsRes.data : []);
       setAlerts(items);
-    } catch { /* ignore */ } finally {
+    } catch (err) { console.warn('Failed to fetch host data:', err); } finally {
       setLoading(false);
     }
   };

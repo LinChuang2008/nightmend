@@ -466,6 +466,15 @@ async def _evaluate_service_rule(db, redis, rule: AlertRule, service: Service):
 
     if is_violated:
         # === 违规处理 ===
+        # 首先检查是否真正持续违规（精确判断）
+        if service.host_id:
+            is_continuously_violated = await check_duration_continuously_violated(
+                redis, service.host_id, rule, float(current_value)
+            )
+            if not is_continuously_violated:
+                # 未达到持续时间要求，不处理
+                return
+
         # 检查是否已有活跃告警
         existing_alert_result = await db.execute(
             select(Alert)
@@ -644,10 +653,18 @@ async def alert_engine_loop():
     """告警引擎后台循环，定期执行告警规则评估。"""
     logger.info("Alert engine started (refactored)")
     await cleanup_orphaned_alerts()
+    iteration_count = 0
     while True:
         try:
             await evaluate_host_rules()
             await evaluate_service_rules()
         except Exception:
             logger.exception("Error in alert engine")
+        iteration_count += 1
+        # 每 10 个周期（约 10 分钟）清理一次孤立告警
+        if iteration_count % 10 == 0:
+            try:
+                await cleanup_orphaned_alerts()
+            except Exception:
+                logger.exception("Error in orphaned alert cleanup")
         await asyncio.sleep(CHECK_INTERVAL)

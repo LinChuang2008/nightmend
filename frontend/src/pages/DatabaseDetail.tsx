@@ -48,9 +48,9 @@ export default function DatabaseDetail() {
         try {
           const sqRes = await databaseService.getSlowQueries(id);
           setSlowQueries(sqRes.data.slow_queries || []);
-        } catch { /* ignore */ }
+        } catch (err) { console.warn('Failed to fetch Oracle slow queries:', err); }
       }
-    } catch { /* ignore */ } finally { setLoading(false); }
+    } catch (err) { console.warn('Failed to fetch database data:', err); } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, [id, timeRange]);
@@ -68,7 +68,7 @@ export default function DatabaseDetail() {
       try {
         const sqRes = await databaseService.getSlowQueries(id);
         setSlowQueries(sqRes.data.slow_queries || []);
-      } catch { /* ignore */ }
+      } catch (err) { console.warn('Failed to refresh Oracle slow queries:', err); }
     }, 60000);
     return () => clearInterval(interval);
   }, [id, db?.db_type]);

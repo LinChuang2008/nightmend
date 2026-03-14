@@ -3,7 +3,10 @@
 独立模块，避免 routers/logs.py 和 services/log_service.py 之间的循环导入。
 """
 import asyncio
+import logging
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 
 class LogBroadcaster:
@@ -28,7 +31,18 @@ class LogBroadcaster:
             try:
                 queue.put_nowait(message)
             except asyncio.QueueFull:
-                pass
+                # 队列已满：丢弃最旧的消息腾出空间，并记录警告
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+                logger.warning(
+                    "Log broadcast queue full, dropped oldest message to make room"
+                )
+                try:
+                    queue.put_nowait(message)
+                except asyncio.QueueFull:
+                    pass
 
 
 log_broadcaster = LogBroadcaster()

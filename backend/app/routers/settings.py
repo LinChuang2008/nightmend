@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_operator_user
 from app.models.setting import Setting
 from app.models.user import User
 from app.services.audit import log_audit
@@ -62,7 +62,7 @@ DEFAULT_SETTINGS = {
 @router.get("")
 async def get_settings(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(get_operator_user),
 ):
     """
     获取所有系统设置 (Get All System Settings)
