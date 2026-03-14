@@ -3,7 +3,7 @@ name: vigilops
 description: AI-powered infrastructure monitoring platform
 type: application
 version: 0.1.0
-appVersion: "2026.03.14"
+appVersion: "2026.03.14-beta.1"
 keywords:
   - monitoring
   - infrastructure
