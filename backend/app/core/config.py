@@ -190,6 +190,10 @@ class Settings(BaseSettings):
 # 全局配置实例 (Global Configuration Instance)
 settings = Settings()
 
+# 数据库凭据安全检查 (Database Credentials Security Check)
+_DB_DEFAULT_PASSWORD = "vigilops_dev_password"
+_DB_DEFAULT_USER = "vigilops"
+
 # JWT 密钥安全检查 (JWT Secret Key Security Check)
 # 使用 settings.environment 保持一致性，避免 os.getenv 与 pydantic-settings 不一致
 _is_production = settings.environment.lower() == "production"
@@ -223,4 +227,18 @@ elif not _is_production and len(settings.jwt_secret_key) < 32:
     logger.warning(
         "⚠️  JWT_SECRET_KEY 长度不足 32 字符，建议使用更长的随机密钥。"
         " | JWT_SECRET_KEY is shorter than 32 chars, consider a longer key."
+    )
+
+# 数据库凭据安全检查 (Database Credentials Security Check)
+if _is_production and settings.postgres_password == _DB_DEFAULT_PASSWORD:
+    raise RuntimeError(
+        "🔴 [FATAL] POSTGRES_PASSWORD 仍使用开发默认值！生产环境必须通过环境变量设置安全密码。\n"
+        "在 .env 中添加: POSTGRES_PASSWORD=<your-secure-password>\n"
+        "| FATAL: POSTGRES_PASSWORD is still using the dev default. "
+        "Set a secure password via environment variable in production."
+    )
+elif not _is_production and settings.postgres_password == _DB_DEFAULT_PASSWORD:
+    logger.warning(
+        "⚠️  POSTGRES_PASSWORD 使用开发默认值，仅适用于本地开发。"
+        " | POSTGRES_PASSWORD is using the dev default, suitable for local dev only."
     )
