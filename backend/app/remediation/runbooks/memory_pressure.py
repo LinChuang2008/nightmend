@@ -52,8 +52,8 @@ RUNBOOK = RunbookDefinition(
     description="Relieve memory pressure by clearing caches and identifying memory hogs",
     
     # 匹配规则 (Matching Rules)
-    match_alert_types=["high_memory", "oom_warning", "memory_usage_high", "swap_usage_high"],  # 内存相关告警
-    match_keywords=["memory", "OOM", "out of memory", "swap", "ram"],  # 内存关键词
+    match_alert_types=["high_memory", "oom_warning", "memory_usage_high", "swap_usage_high", "memory_percent"],  # 内存相关告警
+    match_keywords=["memory", "OOM", "out of memory", "swap", "ram", "内存"],  # 内存关键词
     
     # 安全设置 (Safety Settings)
     risk_level=RiskLevel.CONFIRM,  # 需要确认：涉及系统内存管理，需要人工审批

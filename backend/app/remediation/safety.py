@@ -131,7 +131,7 @@ ALLOWED_COMMAND_PREFIXES: list[str] = [
     
     # 包管理器 (Package Managers) - 只允许特定安全子命令，不开放整个 apt 前缀
     # ⚠️ 不用 "apt" 前缀（apt install malware 也能通过），改为白名单精确子命令
-    "apt-get update", "apt list", "apt show",
+    "apt-get update", "apt-get clean", "apt clean", "apt list", "apt show",
     "yum list", "yum info", "yum check-update",
     "dnf list", "dnf info", "dnf check-update",
     

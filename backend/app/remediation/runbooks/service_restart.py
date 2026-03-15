@@ -45,35 +45,33 @@ RUNBOOK = RunbookDefinition(
     
     # 匹配规则 (Matching Rules)
     match_alert_types=["service_down", "service_unhealthy", "process_not_running"],  # 服务异常告警类型
-    match_keywords=["service", "down", "stopped", "not running", "unresponsive", "crashed"],  # 服务故障关键词
+    match_keywords=["service", "down", "stopped", "not running", "unresponsive", "crashed", "服务"],  # 服务故障关键词
     
     # 安全设置 (Safety Settings)
     risk_level=RiskLevel.CONFIRM,  # 需要确认：服务重启会导致短暂中断，需要人工审批
     
     # 服务重启命令序列 (Service Restart Command Sequence)
-    # 遵循"检查-操作-验证"的标准流程
+    # 优先尝试 Docker 重启，然后尝试 systemd 重启
     commands=[
-        # 第1步：重启前检查服务状态 (Step 1: Check service status before restart)
+        # 第1步：检查是否为 Docker 容器并重启 (Step 1: Check if Docker container and restart)
         RunbookStep(
-            description="Check service status before restart",
-            command="systemctl status {service_name}",  # 检查服务当前状态，{service_name} 从告警标签获取
+            description="Check Docker container status",
+            command="docker ps -a --filter name={service_name} --format '{{.Status}}'",
             timeout_seconds=10
         ),
-        
-        # 第2步：执行服务重启 (Step 2: Execute service restart)
+        # 第2步：尝试 Docker 重启 (Step 2: Try Docker restart)
         RunbookStep(
-            description="Restart the service",
-            command="systemctl restart {service_name}",  # systemd 重启服务命令
-            timeout_seconds=30  # 给足时间让服务完成重启流程
+            description="Restart Docker container",
+            command="docker restart {service_name}",
+            timeout_seconds=30
         ),
     ],
-    
+
     # 验证命令 (Verification Commands)
-    # 确认服务重启成功并正常运行
     verify_commands=[
         RunbookStep(
-            description="Verify service is running after restart",
-            command="systemctl status {service_name}",  # 重启后再次检查状态确认成功
+            description="Verify container is running after restart",
+            command="docker ps --filter name={service_name} --format '{{.Status}}'",
             timeout_seconds=10
         ),
     ],

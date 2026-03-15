@@ -35,13 +35,17 @@ def upgrade() -> None:
     op.add_column('alert_deduplications', sa.Column('recovery_start_time', sa.DateTime(timezone=True), nullable=True))
     print("Added new columns to alert_deduplications")
 
-    # 3. 将 last_occurrence 的数据迁移到 last_check_time
+    # 3. 将 last_occurrence 的数据迁移到 last_check_time，然后删除旧列
     op.execute("""
         UPDATE alert_deduplications
         SET last_check_time = last_occurrence
         WHERE last_check_time IS NULL
     """)
     print("Migrated last_occurrence data to last_check_time")
+
+    # 4. 删除已废弃的 last_occurrence 列
+    op.drop_column('alert_deduplications', 'last_occurrence')
+    print("Dropped obsolete last_occurrence column")
 
 
 def downgrade() -> None:

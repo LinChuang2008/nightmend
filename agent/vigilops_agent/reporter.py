@@ -332,23 +332,28 @@ class AgentReporter:
             await asyncio.sleep(60)
 
     async def _discovery_loop(self):
-        """周期性服务重新发现循环，每 5 分钟扫描新增/移除的服务。"""
+        """周期性服务重新发现循环，每 60 秒扫描新增/移除的服务。"""
         while True:
-            await asyncio.sleep(300)  # 5 分钟
+            await asyncio.sleep(60)
             try:
                 newly_discovered = []
 
                 if self.config.discovery.docker:
-                    from vigilops_agent.discovery import discover_docker_services
+                    from vigilops_agent.discovery import discover_docker_services, discover_stopped_docker_services
                     discovered = discover_docker_services(interval=self.config.discovery.interval)
                     newly_discovered.extend(discovered)
+
+                    # 检测已停止的容器，注册并标记为 down
+                    stopped = discover_stopped_docker_services(interval=self.config.discovery.interval)
+                    running_names = {s.name for s in discovered}
+                    stopped_new = [s for s in stopped if s.name not in running_names]
 
                 if self.config.discovery.host_services:
                     from vigilops_agent.discovery import discover_host_services
                     host_discovered = discover_host_services(interval=self.config.discovery.interval)
                     newly_discovered.extend(host_discovered)
 
-                # 找出尚未注册的新服务
+                # 找出尚未注册的新服务（运行中）
                 known_names = {s.name for s in self.config.services}
                 new_services = [s for s in newly_discovered if s.name not in known_names]
 
@@ -374,19 +379,52 @@ class AgentReporter:
                             data = resp.json()
                             self._service_ids[svc.name] = data["service_id"]
                             logger.info(f"New service registered: {svc.name} -> id={data['service_id']}")
-                            # 启动该服务的健康检查循环
                             asyncio.create_task(self._service_check_loop(svc))
                         except Exception as e:
                             logger.warning(f"Failed to register new service {svc.name}: {e}")
 
-                # 检测已消失的服务（可选上报 status=down）
+                # 注册已停止容器的服务并上报 down
+                if self.config.discovery.docker and stopped_new:
+                    client = await self._get_client()
+                    for svc in stopped_new:
+                        if svc.name in known_names or svc.name in self._service_ids:
+                            continue
+                        try:
+                            payload = {
+                                "name": svc.name,
+                                "type": svc.type,
+                                "target": svc.url or f"{svc.host}:{svc.port}",
+                                "host_id": self.host_id,
+                                "check_interval": svc.interval,
+                                "timeout": svc.timeout,
+                            }
+                            resp = await client.post("/api/v1/agent/services/register", json=payload)
+                            resp.raise_for_status()
+                            data = resp.json()
+                            self._service_ids[svc.name] = data["service_id"]
+                            self.config.services.append(svc)
+                            logger.info(f"Stopped container service registered: {svc.name} -> id={data['service_id']}")
+                            # 立即上报 down 状态
+                            down_payload = {
+                                "service_id": data["service_id"],
+                                "status": "down",
+                                "response_time_ms": 0,
+                                "status_code": None,
+                                "error": "Docker container is stopped",
+                                "checked_at": datetime.now(timezone.utc).isoformat(),
+                            }
+                            await client.post("/api/v1/agent/services", json=down_payload)
+                            logger.warning(f"Service {svc.name} reported as DOWN (container stopped)")
+                        except Exception as e:
+                            logger.warning(f"Failed to register stopped service {svc.name}: {e}")
+
+                # 检测已消失的服务（运行中→消失）
                 current_names = {s.name for s in newly_discovered}
                 for svc in list(self.config.services):
-                    # 跳过手动配置的服务（仅检测自动发现的）
                     if svc.name in self._manual_service_names:
                         continue
                     if svc.name not in current_names and svc.name in self._service_ids:
-                        logger.info(f"Service disappeared: {svc.name}")
+                        logger.warning(f"Service disappeared: {svc.name}")
                         try:
                             client = await self._get_client()
                             payload = {

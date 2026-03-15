@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_operator_user
 from app.models.remediation_log import RemediationLog
-from app.models.alert import Alert
+from app.models.alert import Alert, AlertRule
 from app.models.host import Host
 from app.models.user import User
 from app.schemas.remediation import (
@@ -188,10 +188,15 @@ async def approve_remediation(
     log.approved_by = user.id
     log.approved_at = datetime.now(timezone.utc)
     await log_audit(db, user.id, "approve_remediation", "remediation_log", remediation_id,
-                    {"comment": body.comment} if body.comment else None,
+                    body.comment or None,
                     request.client.host if request.client else None)
     await db.commit()
     await db.refresh(log)
+
+    # 审批后异步执行修复命令
+    import asyncio
+    asyncio.create_task(_execute_approved_remediation(log.id, log.alert_id))
+
     return log
 
 
@@ -215,11 +220,156 @@ async def reject_remediation(
     log.blocked_reason = body.comment or "Rejected by operator"
     log.completed_at = datetime.now(timezone.utc)
     await log_audit(db, user.id, "reject_remediation", "remediation_log", remediation_id,
-                    {"comment": body.comment} if body.comment else None,
+                    body.comment or None,
                     request.client.host if request.client else None)
     await db.commit()
     await db.refresh(log)
     return log
+
+
+async def _execute_approved_remediation(log_id: int, alert_id: int) -> None:
+    """审批通过后执行修复命令。"""
+    import logging
+    from app.core.database import async_session
+    from app.core.config import settings
+    from app.remediation.command_executor import CommandExecutor
+    from app.remediation.runbook_registry import RunbookRegistry
+    from app.remediation.models import RemediationAlert, RunbookStep
+    from app.remediation.safety import check_command_safety
+
+    _logger = logging.getLogger(__name__)
+
+    async with async_session() as db:
+        try:
+            result = await db.execute(select(RemediationLog).where(RemediationLog.id == log_id))
+            log = result.scalar_one_or_none()
+            if not log or log.status != "approved":
+                return
+
+            # 从 diagnosis_json 获取匹配的 runbook
+            runbook_name = log.runbook_name
+            if not runbook_name:
+                log.status = "failed"
+                log.blocked_reason = "No runbook name in approved log"
+                log.completed_at = datetime.now(timezone.utc)
+                await db.commit()
+                return
+
+            registry = RunbookRegistry()
+            runbook = registry.get(runbook_name)
+            if not runbook:
+                log.status = "failed"
+                log.blocked_reason = f"Runbook '{runbook_name}' not found"
+                log.completed_at = datetime.now(timezone.utc)
+                await db.commit()
+                return
+
+            # 构建 alert 信息用于命令变量替换
+            host_name = "unknown"
+            labels = {}
+            if log.alert_id:
+                alert_res = await db.execute(select(Alert).where(Alert.id == log.alert_id))
+                alert_obj = alert_res.scalar_one_or_none()
+                if alert_obj and alert_obj.host_id:
+                    host_res = await db.execute(select(Host).where(Host.id == alert_obj.host_id))
+                    host_obj = host_res.scalar_one_or_none()
+                    if host_obj:
+                        host_name = host_obj.private_ip or host_obj.ip_address or host_obj.hostname
+                if alert_obj and alert_obj.service_id:
+                    from app.models.service import Service
+                    svc_res = await db.execute(select(Service).where(Service.id == alert_obj.service_id))
+                    svc = svc_res.scalar_one_or_none()
+                    if svc:
+                        container_name = svc.name.split(" (")[0] if svc.name else ""
+                        labels["service"] = svc.name or ""
+                        labels["service_name"] = container_name
+
+            rem_alert = RemediationAlert(
+                alert_id=alert_id,
+                alert_type="approved_execution",
+                severity="critical",
+                host=host_name,
+                host_id=log.host_id,
+                message="",
+                labels=labels,
+            )
+
+            # 解析并执行命令
+            log.status = "executing"
+            log.started_at = datetime.now(timezone.utc)
+            await db.commit()
+
+            executor = CommandExecutor(
+                dry_run=settings.agent_dry_run,
+                remote_host=host_name if host_name != "unknown" else "",
+                ssh_user=settings.agent_ssh_user,
+                ssh_password=settings.agent_ssh_password,
+            )
+
+            def _resolve(cmd: str) -> str:
+                resolved = cmd.replace("{host}", rem_alert.host)
+                for key, value in rem_alert.labels.items():
+                    resolved = resolved.replace(f"{{{key}}}", value)
+                return resolved
+
+            # 安全检查
+            for step in runbook.commands:
+                resolved_cmd = _resolve(step.command)
+                is_safe, reason = check_command_safety(resolved_cmd)
+                if not is_safe:
+                    log.status = "failed"
+                    log.blocked_reason = f"Unsafe command: {reason}"
+                    log.completed_at = datetime.now(timezone.utc)
+                    await db.commit()
+                    return
+
+            resolved_steps = [
+                RunbookStep(
+                    description=s.description,
+                    command=_resolve(s.command),
+                    timeout_seconds=s.timeout_seconds,
+                )
+                for s in runbook.commands
+            ]
+            command_results = await executor.execute_steps(resolved_steps)
+
+            any_failure = any(r.exit_code != 0 for r in command_results)
+
+            verification_passed = None
+            if not any_failure and runbook.verify_commands:
+                resolved_verify = [
+                    RunbookStep(
+                        description=s.description,
+                        command=_resolve(s.command),
+                        timeout_seconds=s.timeout_seconds,
+                    )
+                    for s in runbook.verify_commands
+                ]
+                verify_results = await executor.execute_steps(resolved_verify)
+                command_results.extend(verify_results)
+                verification_passed = all(r.exit_code == 0 for r in verify_results)
+
+            success = not any_failure and (verification_passed is not False)
+            log.status = "success" if success else "failed"
+            log.command_results_json = [r.model_dump() for r in command_results]
+            log.verification_passed = verification_passed
+            log.completed_at = datetime.now(timezone.utc)
+            await db.commit()
+
+            _logger.info("Approved remediation %d completed: %s", log_id, log.status)
+
+        except Exception:
+            _logger.exception("Error executing approved remediation %d", log_id)
+            try:
+                result = await db.execute(select(RemediationLog).where(RemediationLog.id == log_id))
+                log = result.scalar_one_or_none()
+                if log:
+                    log.status = "failed"
+                    log.blocked_reason = "Execution error"
+                    log.completed_at = datetime.now(timezone.utc)
+                    await db.commit()
+            except Exception:
+                pass
 
 
 # 手动触发修复 — 挂在 alerts 前缀下
@@ -279,18 +429,43 @@ async def trigger_remediation(
                 bg_alert = alert_res.scalar_one_or_none()
                 if not bg_alert:
                     return
+
+                # 从关联的 AlertRule 获取 metric 作为 alert_type
+                alert_type = "unknown"
+                rule_res = await bg_db.execute(
+                    select(AlertRule).where(AlertRule.id == bg_alert.rule_id)
+                )
+                rule = rule_res.scalar_one_or_none()
+                if rule:
+                    alert_type = rule.metric or "unknown"
+
+                # 获取主机名用于命令执行
+                host_name = str(bg_alert.host_id or "unknown")
+                if bg_alert.host_id:
+                    host_res = await bg_db.execute(
+                        select(Host).where(Host.id == bg_alert.host_id)
+                    )
+                    host_obj = host_res.scalar_one_or_none()
+                    if host_obj:
+                        host_name = host_obj.private_ip or host_obj.ip_address or host_obj.hostname
+
                 rem_alert = RemediationAlert(
                     alert_id=bg_alert.id,
-                    alert_type=getattr(bg_alert, "metric", "unknown"),
+                    alert_type=alert_type,
                     severity=bg_alert.severity,
-                    host=str(bg_alert.host_id or "unknown"),
+                    host=host_name,
                     host_id=bg_alert.host_id,
                     message=bg_alert.title or "",
                 )
                 ai_client = RemediationAIClient()
-                executor = CommandExecutor(dry_run=settings.agent_dry_run)
+                executor = CommandExecutor(
+                    dry_run=settings.agent_dry_run,
+                    remote_host=host_name if host_name != "unknown" else "",
+                    ssh_user=settings.agent_ssh_user,
+                    ssh_password=settings.agent_ssh_password,
+                )
                 agent = RemediationAgent(ai_client=ai_client, executor=executor)
-                await agent.handle_alert(rem_alert, bg_db, triggered_by="manual")
+                await agent.handle_alert(rem_alert, bg_db, triggered_by="manual", existing_log_id=log_id)
             except Exception:
                 import logging
                 logging.getLogger(__name__).exception(

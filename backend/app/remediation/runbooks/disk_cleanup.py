@@ -42,8 +42,8 @@ RUNBOOK = RunbookDefinition(
     description="Clean up disk space by removing temp files, old logs, and package caches",
     
     # 匹配规则 (Matching Rules)
-    match_alert_types=["disk_full", "disk_space_low", "disk_usage_high"],  # 精确匹配的告警类型
-    match_keywords=["disk", "space", "full", "no space left", "inode"],    # 关键词匹配（模糊匹配）
+    match_alert_types=["disk_full", "disk_space_low", "disk_usage_high", "disk_percent"],  # 精确匹配的告警类型
+    match_keywords=["disk", "space", "full", "no space left", "inode", "磁盘"],    # 关键词匹配（模糊匹配）
     
     # 安全设置 (Safety Settings)
     risk_level=RiskLevel.AUTO,  # 自动执行：磁盘清理是安全的低风险操作

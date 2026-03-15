@@ -256,12 +256,14 @@ class RemediationAIClient:
             )
         except Exception as e:
             # AI 调用失败，返回降级诊断确保系统继续运行 (AI call failed, return fallback diagnosis)
+            # 置信度设为 0.5，允许通过类型匹配的 Runbook 走 CONFIRM 流程而非 BLOCK
+            # Confidence set to 0.5, allowing type-matched Runbooks to go through CONFIRM flow instead of BLOCK
             logger.error("AI diagnosis failed: %s", e)
             return Diagnosis(
-                root_cause="AI diagnosis unavailable",  # 标记 AI 不可用
-                confidence=0.0,  # 置信度为 0 表示诊断失败
+                root_cause="AI diagnosis unavailable",
+                confidence=0.5,
                 suggested_runbook=None,
-                reasoning=f"AI call failed: {e}",  # 记录失败原因
+                reasoning=f"AI call failed: {e}",
             )
 
     async def _call_llm(

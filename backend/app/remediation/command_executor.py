@@ -70,7 +70,7 @@ class CommandExecutor:
     维护完整的执行历史，包括命令内容、退出码、输出、耗时等
     """
 
-    def __init__(self, dry_run: bool = True) -> None:
+    def __init__(self, dry_run: bool = True, remote_host: str = "", ssh_user: str = "", ssh_password: str = "") -> None:
         """初始化命令执行器 (Initialize Command Executor)
         
         Args:
@@ -82,6 +82,9 @@ class CommandExecutor:
         默认值为 True 是为了防止意外执行危险命令，生产环境需要显式设置为 False
         """
         self.dry_run = dry_run  # 执行模式标志 (Execution mode flag)
+        self.remote_host = remote_host  # 远程主机 IP
+        self.ssh_user = ssh_user
+        self.ssh_password = ssh_password
         self._execution_log: list[CommandResult] = []  # 执行历史记录 (Execution history log)
 
     @property
@@ -158,6 +161,8 @@ class CommandExecutor:
             return result
 
         # 真实执行模式：调用系统命令 (Real execution mode: call system command)
+        if self.remote_host and self.ssh_user:
+            return await self._execute_ssh(step)
         return await self._execute_real(step)
 
     async def execute_steps(self, steps: list[RunbookStep]) -> list[CommandResult]:
@@ -293,4 +298,54 @@ class CommandExecutor:
                 duration_ms=elapsed,  # 记录到异常发生的时间 (Record time until exception occurred)
             )
             self._execution_log.append(result)  # 记录异常结果 (Record exception result)
+            return result
+
+    async def _execute_ssh(self, step: RunbookStep) -> CommandResult:
+        """通过 SSH 在远程主机上执行命令。"""
+        start = time.monotonic()
+        try:
+            import asyncssh
+            async with asyncssh.connect(
+                self.remote_host,
+                username=self.ssh_user,
+                password=self.ssh_password,
+                known_hosts=None,
+            ) as conn:
+                ssh_result = await asyncio.wait_for(
+                    conn.run(step.command),
+                    timeout=step.timeout_seconds,
+                )
+                elapsed = int((time.monotonic() - start) * 1000)
+                result = CommandResult(
+                    command=step.command,
+                    exit_code=ssh_result.exit_status or 0,
+                    stdout=(ssh_result.stdout or "")[:4096],
+                    stderr=(ssh_result.stderr or "")[:4096],
+                    executed=True,
+                    duration_ms=elapsed,
+                )
+                self._execution_log.append(result)
+                logger.info("[SSH %s] %s -> exit=%d", self.remote_host, step.command, result.exit_code)
+                return result
+        except asyncio.TimeoutError:
+            elapsed = int((time.monotonic() - start) * 1000)
+            result = CommandResult(
+                command=step.command,
+                exit_code=-1,
+                stderr=f"SSH command timed out after {step.timeout_seconds}s",
+                executed=True,
+                duration_ms=elapsed,
+            )
+            self._execution_log.append(result)
+            return result
+        except Exception as e:
+            elapsed = int((time.monotonic() - start) * 1000)
+            result = CommandResult(
+                command=step.command,
+                exit_code=-1,
+                stderr=f"SSH error: {e}",
+                executed=True,
+                duration_ms=elapsed,
+            )
+            self._execution_log.append(result)
             return result

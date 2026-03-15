@@ -26,10 +26,11 @@ HTTP_PORTS = {80, 443, 8080, 8000, 8001, 8443, 3000, 3001, 5000, 9090,
 SKIP_PROCESSES = {"sshd", "systemd", "systemd-resolve", "chronyd", "dbus-daemon",
                   "polkitd", "agetty", "containerd", "dockerd", "docker-proxy",
                   "rpcbind", "nscd", "cupsd",
-                  "prlshprint", "prl_nettool", "prl_disp_service", "prltoolsd"}
+                  "prlshprint", "prl_nettool", "prl_disp_service", "prltoolsd",
+                  "sh", "sed", "awk", "grep", "cat", "sleep"}  # 常见工具进程，非真正服务
 
 # 需要跳过的端口范围
-SKIP_PORTS = {22}  # SSH 不需要监控
+SKIP_PORTS = {22, 30631}  # SSH、Parallels shared printing 不需要监控
 
 
 def discover_docker_services(interval: int = 30) -> List[ServiceCheckConfig]:
@@ -110,6 +111,89 @@ def discover_docker_services(interval: int = 30) -> List[ServiceCheckConfig]:
             services.append(svc)
 
     logger.info(f"Docker discovery: found {len(services)} services from {_count_containers(result.stdout)} containers")
+    return services
+
+
+def discover_stopped_docker_services(interval: int = 30) -> List[ServiceCheckConfig]:
+    """从已停止的 Docker 容器发现服务（用于检测容器宕机）。
+
+    使用 docker ps -a --filter status=exited 获取已停止容器的端口配置，
+    通过 docker inspect 获取端口映射信息。
+
+    Returns:
+        已停止容器对应的服务配置列表（用于注册并标记为 down）。
+    """
+    if not shutil.which("docker"):
+        return []
+
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "-a", "--filter", "status=exited", "--format", "{{json .}}"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            return []
+    except Exception:
+        return []
+
+    services = []
+    for line in result.stdout.strip().splitlines():
+        if not line.strip():
+            continue
+        try:
+            container = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        name = container.get("Names", "").strip()
+        if not name:
+            continue
+
+        # 已停止容器的 Ports 字段可能为空，需要通过 docker inspect 获取端口映射
+        try:
+            inspect_result = subprocess.run(
+                ["docker", "inspect", name, "--format", "{{json .HostConfig.PortBindings}}"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if inspect_result.returncode != 0:
+                continue
+            port_bindings = json.loads(inspect_result.stdout.strip())
+            if not port_bindings:
+                continue
+        except Exception:
+            continue
+
+        for container_port, bindings in port_bindings.items():
+            if not bindings:
+                continue
+            for binding in bindings:
+                host_port_str = binding.get("HostPort", "")
+                if not host_port_str:
+                    continue
+                try:
+                    host_port = int(host_port_str)
+                except ValueError:
+                    continue
+
+                if host_port in HTTP_PORTS:
+                    svc = ServiceCheckConfig(
+                        name=f"{name} (:{host_port})",
+                        type="http",
+                        url=f"http://localhost:{host_port}",
+                        interval=interval,
+                    )
+                else:
+                    svc = ServiceCheckConfig(
+                        name=f"{name} (:{host_port})",
+                        type="tcp",
+                        host="localhost",
+                        port=host_port,
+                        interval=interval,
+                    )
+                services.append(svc)
+
+    if services:
+        logger.info(f"Stopped Docker discovery: found {len(services)} services from stopped containers")
     return services
 
 

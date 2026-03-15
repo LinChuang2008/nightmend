@@ -77,6 +77,8 @@ class Settings(BaseSettings):
     agent_max_auto_per_hour: int = 10  # 每小时最大自动修复次数（限流） (Max Auto-Remediations Per Hour)
     agent_notify_on_success: bool = True  # 修复成功时发送通知 (Notify on Successful Remediation)
     agent_notify_on_failure: bool = True  # 修复失败/升级时发送通知 (Notify on Failed/Escalated Remediation)
+    agent_ssh_user: str = ""  # SSH 用户名（用于远程命令执行）
+    agent_ssh_password: str = ""  # SSH 密码
 
     # JWT 认证配置 (JWT Authentication Configuration)
     # ⚠️ 生产环境必须通过环境变量 JWT_SECRET_KEY 设置！未设置时自动生成随机密钥（每次重启会变化）

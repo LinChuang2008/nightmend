@@ -110,13 +110,14 @@ class RemediationAgent:
         db: AsyncSession,
         context: Optional[dict[str, Any]] = None,
         triggered_by: str = "auto",
+        existing_log_id: Optional[int] = None,
     ) -> RemediationResult:
         """主入口：端到端处理告警的完整流程 (Main Entry: End-to-End Alert Processing)
-        
+
         这是整个自动修复系统的核心方法，负责协调所有子组件完成一次完整的修复任务。
-        This is the core method of the entire automated remediation system, coordinating all 
+        This is the core method of the entire automated remediation system, coordinating all
         sub-components to complete a full remediation task.
-        
+
         处理流程 (Processing Flow):
         1. 创建数据库记录，开始审计日志
         2. 熔断器检查：防止对故障主机过度操作
@@ -126,31 +127,50 @@ class RemediationAgent:
         6. 限流检查：防止短时间内频繁执行
         7. 安全执行：运行修复命令并验证结果
         8. 结果持久化：更新数据库并发送通知
-        
+
         Args:
             alert: 待处理的告警信息 (Alert information to be processed)
             db: 数据库会话 (Database session)
             context: 额外上下文信息，用于 AI 诊断 (Additional context for AI diagnosis)
             triggered_by: 触发方式："auto"、"manual"、"schedule" (Trigger method)
-            
+            existing_log_id: 已有的修复记录 ID，避免重复创建 (Existing log ID to avoid duplicate creation)
+
         Returns:
             RemediationResult: 包含执行状态、诊断结果、命令输出等完整信息
-            
+
         异常处理 (Exception Handling):
         所有异常都会被捕获并转换为 RemediationResult，确保系统稳定性
         """
         logger.info("Handling alert: %s", alert.summary())
 
-        # 创建数据库记录，开始修复任务的审计追踪
-        # Create database record to start audit trail for remediation task
-        log = RemediationLog(
-            alert_id=alert.alert_id,
-            host_id=alert.host_id,
-            status="diagnosing",  # 初始状态：诊断中 (Initial status: diagnosing)
-            triggered_by=triggered_by,
-        )
-        db.add(log)
-        await db.flush()  # 立即写入获取 ID，但不提交事务 (Flush to get ID without committing transaction)
+        # 复用已有记录或创建新记录
+        if existing_log_id:
+            from sqlalchemy import select
+            result = await db.execute(
+                select(RemediationLog).where(RemediationLog.id == existing_log_id)
+            )
+            log = result.scalar_one_or_none()
+            if log:
+                log.status = "diagnosing"
+                await db.flush()
+            else:
+                log = RemediationLog(
+                    alert_id=alert.alert_id,
+                    host_id=alert.host_id,
+                    status="diagnosing",
+                    triggered_by=triggered_by,
+                )
+                db.add(log)
+                await db.flush()
+        else:
+            log = RemediationLog(
+                alert_id=alert.alert_id,
+                host_id=alert.host_id,
+                status="diagnosing",
+                triggered_by=triggered_by,
+            )
+            db.add(log)
+            await db.flush()
 
         # Step 0: 熔断器检查 - 保护故障主机免受过度操作
         # Step 0: Circuit breaker check - protect failing hosts from excessive operations

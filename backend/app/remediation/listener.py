@@ -65,7 +65,14 @@ async def start_listener():
                         if svc:
                             service_name = svc.name or ""
 
+                    # 从服务名中提取容器/进程名，如 "redis (:6379)" -> "redis"
+                    container_name = service_name.split(" (")[0] if service_name else ""
+
                     # 构建 RemediationAlert
+                    labels = {}
+                    if service_name:
+                        labels["service"] = service_name
+                        labels["service_name"] = container_name
                     alert = RemediationAlert(
                         alert_id=alert_id,
                         alert_type=data.get("metric", "unknown"),
@@ -73,11 +80,16 @@ async def start_listener():
                         host=host_name,
                         host_id=data.get("host_id"),
                         message=data.get("title", ""),
-                        labels={"service": service_name} if service_name else {},
+                        labels=labels,
                     )
 
                     ai_client = RemediationAIClient()
-                    executor = CommandExecutor(dry_run=settings.agent_dry_run)
+                    executor = CommandExecutor(
+                        dry_run=settings.agent_dry_run,
+                        remote_host=host_name if host_name != "unknown" else "",
+                        ssh_user=settings.agent_ssh_user,
+                        ssh_password=settings.agent_ssh_password,
+                    )
                     agent = RemediationAgent(ai_client=ai_client, executor=executor)
                     result = await agent.handle_alert(alert, db)
                     await db.commit()
