@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vigilops-agent"
-version = "0.1.0"
+version = "0.2.2"
 description = "VigilOps monitoring agent"
 requires-python = ">=3.9"
 dependencies = [
@@ -13,6 +13,7 @@ dependencies = [
     "pyyaml>=6.0",
     "click>=8.1",
     "netifaces>=0.11",
+    "websocket-client>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +27,7 @@ db = [
     "oracledb>=2.0",
     "redis>=4.0",
 ]
+windows = ["pywin32>=306"]
 
 [project.scripts]
 vigilops-agent = "vigilops_agent.cli:main"

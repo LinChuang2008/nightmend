@@ -10,17 +10,20 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table, Card, Tag, Typography, Progress, Button,
-  Row, Col, Select, Space, Statistic, Collapse, Badge, Empty,
+  Row, Col, Select, Space, Statistic, Collapse, Badge, Empty, Tooltip,
 } from 'antd';
 import {
   CloudServerOutlined, DatabaseOutlined, AppstoreOutlined,
   ApiOutlined, DesktopOutlined, ReloadOutlined,
+  StopOutlined, CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { serviceService } from '../services/services';
 import type { Service } from '../services/services';
 import api from '../services/api';
+import { suppressionRuleService } from '../services/suppressionRules';
 import PageHeader from '../components/PageHeader';
+import QuickSuppressModal from '../components/QuickSuppressModal';
 
 const { Text } = Typography;
 
@@ -96,6 +99,16 @@ export default function ServiceList() {
   const [globalStats, setGlobalStats] = useState({ total: 0, middleware: 0, business: 0, infrastructure: 0, healthy: 0, unhealthy: 0 });
   const navigate = useNavigate();
 
+  // 屏蔽规则状态映射：service_id -> suppression_info
+  const [suppressionMap, setSuppressionMap] = useState<Record<string, { suppressed: boolean; endTime?: string }>>({});
+
+  // 快速屏蔽模态框状态
+  const [quickSuppressModal, setQuickSuppressModal] = useState({
+    visible: false,
+    serviceId: '' as string | number,
+    serviceName: '',
+  });
+
   /** 获取按主机分组的服务数据 (Fetch services grouped by host)
    * 使用 group_by_host=true 参数获取主机分组数据结构
    * 支持按状态和分类筛选，同时获取不受筛选影响的全局统计信息
@@ -113,6 +126,7 @@ export default function ServiceList() {
       setServices(data.items || []);
       setHostGroups(data.host_groups || []);
       if (data.stats) setGlobalStats(data.stats);
+
       // 构建 slaMap: service_id -> sla_status
       const map: Record<string, string> = {};
       const slaList = Array.isArray(slaRes.data) ? slaRes.data : (slaRes.data?.items || []);
@@ -120,6 +134,30 @@ export default function ServiceList() {
         if (item.service_id != null) map[String(item.service_id)] = item.status || item.sla_status || 'no_data';
       }
       setSlaMap(map);
+
+      // 获取所有服务的屏蔽状态
+      const allServices = data.host_groups?.flatMap((g: HostGroup) => g.services) || [];
+      const suppressionPromises = allServices.map(async (service: ServiceItem) => {
+        try {
+          const result = await suppressionRuleService.check({
+            resource_type: 'service',
+            resource_id: typeof service.id === 'number' ? service.id : parseInt(service.id, 10),
+          });
+          return [String(service.id), { suppressed: result.data.suppressed, endTime: result.data.rules?.[0]?.end_time }];
+        } catch {
+          return [String(service.id), { suppressed: false }];
+        }
+      });
+
+      const suppressionResults = await Promise.allSettled(suppressionPromises);
+      const newSuppressionMap: Record<string, { suppressed: boolean; endTime?: string }> = {};
+      for (const result of suppressionResults) {
+        if (result.status === 'fulfilled') {
+          const [serviceId, info] = result.value as [string, { suppressed: boolean; endTime?: string }];
+          newSuppressionMap[serviceId] = info;
+        }
+      }
+      setSuppressionMap(newSuppressionMap);
     } catch { /* ignore */ } finally { setLoading(false); }
   };
 
@@ -192,13 +230,17 @@ export default function ServiceList() {
       key: 'uptime',
       width: 150,
       // 可用率进度条：99%以上=绿色，95%以上=正常，以下=异常红色
-      render: (v: number) => (
-        <Progress
-          percent={v != null ? Math.round(v * 100) / 100 : 0}
-          size="small"
-          status={v >= 99 ? 'success' : v >= 95 ? 'normal' : 'exception'}
-        />
-      ),
+      render: (v: number, record: ServiceItem) => {
+        // DEBUG: 打印 uptime_percent 值
+        console.log(`Service ${record.name}: uptime_percent = ${v} (type: ${typeof v})`);
+        return (
+          <Progress
+            percent={v != null ? Math.round(v * 100) / 100 : 0}
+            size="small"
+            status={v >= 99 ? 'success' : v >= 95 ? 'normal' : 'exception'}
+          />
+        );
+      },
     },
     {
       title: t('services.lastCheck'),
@@ -219,6 +261,41 @@ export default function ServiceList() {
         if (status === 'non_compliant' || status === 'violated' || status === 'breached') return <Tag color="red">{t('services.slaNotMet')}</Tag>;
         if (status === 'no_data') return <Tag>-</Tag>;
         return <Tag color="default">{t('services.slaNotConfigured')}</Tag>;
+      },
+    },
+    {
+      title: t('common.actions'),
+      key: 'actions',
+      width: 120,
+      render: (_: unknown, r: ServiceItem) => {
+        const suppression = suppressionMap[String(r.id)];
+        if (suppression?.suppressed) {
+          // 服务已被屏蔽
+          const endTime = suppression.endTime ? new Date(suppression.endTime) : null;
+          const isPermanent = !endTime;
+          return (
+            <Tooltip title={isPermanent ? t('suppressionRules.permanent') : `${t('suppressionRules.suppressedUntil')}: ${endTime?.toLocaleString()}`}>
+              <Tag icon={<CheckCircleOutlined />} color="orange">
+                {t('suppressionRules.suppressed')}
+              </Tag>
+            </Tooltip>
+          );
+        }
+        // 服务未被屏蔽，显示忽略按钮
+        return (
+          <Button
+            type="text"
+            size="small"
+            icon={<StopOutlined />}
+            onClick={() => setQuickSuppressModal({
+              visible: true,
+              serviceId: r.id,
+              serviceName: r.name,
+            })}
+          >
+            {t('suppressionRules.ignoreService')}
+          </Button>
+        );
       },
     },
   ];
@@ -361,6 +438,16 @@ export default function ServiceList() {
           style={{ background: 'transparent' }}
         />
       )}
+
+      {/* 快速屏蔽模态框 */}
+      <QuickSuppressModal
+        visible={quickSuppressModal.visible}
+        onClose={() => setQuickSuppressModal({ ...quickSuppressModal, visible: false })}
+        onSuccess={fetchData}
+        resourceType="service"
+        resourceId={quickSuppressModal.serviceId}
+        resourceName={quickSuppressModal.serviceName}
+      />
     </div>
   );
 }

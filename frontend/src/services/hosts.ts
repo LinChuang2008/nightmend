@@ -32,6 +32,9 @@ export interface Host {
   created_at?: string;
   /** 最新性能指标 */
   latest_metrics?: HostMetrics;
+
+  /** Agent 版本号 */
+  agent_version?: string | null;
 }
 
 /** 网络接口信息 */

@@ -35,6 +35,7 @@ from app.models.nginx_upstream import NginxUpstream
 from app.models.dashboard_config import DashboardLayout, DashboardComponent
 from app.models.ai_feedback import AIFeedback, AIFeedbackSummary
 from app.models.topology_layout import TopologyLayout
+from app.models.suppression_rule import SuppressionRule
 
 # 导出所有模型类供外部模块使用 (Export all model classes for external modules)
 __all__ = [
@@ -45,5 +46,5 @@ __all__ = [
     "SLARule", "SLAViolation", "Server", "ServiceGroup", "ServerService",
     "NginxUpstream", "DashboardLayout", "DashboardComponent", "AIFeedback", "AIFeedbackSummary",
     "TopologyLayout", "AlertGroup", "AlertDeduplication", "EscalationRule", "AlertEscalation",
-    "OnCallGroup", "OnCallSchedule", "RemediationLog",
+    "OnCallGroup", "OnCallSchedule", "RemediationLog", "SuppressionRule",
 ]

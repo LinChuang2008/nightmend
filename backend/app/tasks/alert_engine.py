@@ -25,6 +25,7 @@ from app.models.alert import Alert, AlertRule
 from app.models.host import Host
 from app.models.service import Service
 from app.services.alert_deduplication import AlertDeduplicationService
+from app.services.suppression_service import SuppressionService
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,68 @@ OPERATORS = {
 
 # 可从 Redis 缓存中读取的主机指标字段
 METRIC_FIELDS = {"cpu_percent", "memory_percent", "disk_percent", "cpu_load_1", "cpu_load_5", "cpu_load_15"}
+
+
+async def _check_suppression_for_host(
+    db,
+    host_id: int,
+    alert_rule_id: int,
+    check_type: str = "alerts"
+) -> bool:
+    """检查主机是否被屏蔽 (Check if Host is Suppressed)
+
+    Args:
+        db: 数据库会话
+        host_id: 主机 ID
+        alert_rule_id: 告警规则 ID
+        check_type: 检查类型（alerts/notifications）
+
+    Returns:
+        bool: True 表示被屏蔽，False 表示未被屏蔽
+    """
+    try:
+        suppression_service = SuppressionService(db)
+        return await suppression_service.is_suppressed(
+            resource_type=SuppressionService.RESOURCE_HOST,
+            resource_id=host_id,
+            alert_rule_id=alert_rule_id,
+            check_type=check_type
+        )
+    except Exception as e:
+        logger.warning(f"Failed to check suppression for host {host_id}: {e}")
+        return False
+
+
+async def _check_suppression_for_service(
+    db,
+    service_id: int,
+    host_id: int,
+    alert_rule_id: int,
+    check_type: str = "alerts"
+) -> bool:
+    """检查服务是否被屏蔽 (Check if Service is Suppressed)
+
+    Args:
+        db: 数据库会话
+        service_id: 服务 ID
+        host_id: 主机 ID
+        alert_rule_id: 告警规则 ID
+        check_type: 检查类型（alerts/notifications）
+
+    Returns:
+        bool: True 表示被屏蔽，False 表示未被屏蔽
+    """
+    try:
+        suppression_service = SuppressionService(db)
+        return await suppression_service.is_suppressed(
+            resource_type=SuppressionService.RESOURCE_SERVICE,
+            resource_id=service_id,
+            alert_rule_id=alert_rule_id,
+            check_type=check_type
+        )
+    except Exception as e:
+        logger.warning(f"Failed to check suppression for service {service_id}: {e}")
+        return False
 
 
 async def get_metrics_history(redis, host_id: int) -> List[Dict]:
@@ -298,10 +361,18 @@ async def _evaluate_rule(db, redis, rule: AlertRule, host: Host, metrics: dict):
         if existing_alert:
             # 已有活跃告警，检查是否需要发送持续告警通知
             if result["should_send_notification"] and result["notification_type"] == "continuous":
+                # 检查是否屏蔽通知
+                if await _check_suppression_for_host(db, host.id, rule.id, check_type="notifications"):
+                    logger.debug(f"Host {host.id} notifications are suppressed for rule {rule.id}")
+                    return
+
                 # 更新告警记录的当前指标值和消息
                 existing_alert.metric_value = float(current_value)
                 duration_seconds = result["duration_seconds"]
-                existing_alert.message = f"{rule.metric} = {current_value} {rule.operator} {rule.threshold} (已持续 {duration_seconds}秒)"
+                if rule.metric == "host_offline":
+                    existing_alert.message = f"主机 {host.display_hostname} 已离线 (已持续 {duration_seconds}秒)"
+                else:
+                    existing_alert.message = f"{rule.metric} = {current_value} {rule.operator} {rule.threshold} (已持续 {duration_seconds}秒)"
                 await db.flush()
 
                 logger.info(f"Sending continuous alert notification for existing alert: {existing_alert.title}")
@@ -315,6 +386,11 @@ async def _evaluate_rule(db, redis, rule: AlertRule, host: Host, metrics: dict):
             return
 
         if result["should_send_notification"]:
+            # 检查是否屏蔽告警创建
+            if await _check_suppression_for_host(db, host.id, rule.id, check_type="alerts"):
+                logger.debug(f"Host {host.id} alert creation is suppressed for rule {rule.id}")
+                return
+
             # 发送首次告警或持续告警通知
             notification_type = result["notification_type"]
             duration_seconds = result["duration_seconds"]
@@ -324,10 +400,16 @@ async def _evaluate_rule(db, redis, rule: AlertRule, host: Host, metrics: dict):
             alert_title = f"{rule.name} - {host.display_hostname}"
             alert_title_en = f"{rule_name_en} - {host.display_hostname}"
 
-            if notification_type == "first":
-                message = f"{rule.metric} = {current_value} {rule.operator} {rule.threshold}"
-            else:  # continuous
-                message = f"{rule.metric} = {current_value} {rule.operator} {rule.threshold} (已持续 {duration_seconds}秒)"
+            if rule.metric == "host_offline":
+                if notification_type == "first":
+                    message = f"主机 {host.display_hostname} 已离线"
+                else:
+                    message = f"主机 {host.display_hostname} 已离线 (已持续 {duration_seconds}秒)"
+            else:
+                if notification_type == "first":
+                    message = f"{rule.metric} = {current_value} {rule.operator} {rule.threshold}"
+                else:
+                    message = f"{rule.metric} = {current_value} {rule.operator} {rule.threshold} (已持续 {duration_seconds}秒)"
 
             alert = Alert(
                 rule_id=rule.id,
@@ -402,13 +484,15 @@ async def _evaluate_rule(db, redis, rule: AlertRule, host: Host, metrics: dict):
             duration_seconds = result.get("duration_seconds", 0)
             logger.info(f"Alert resolved: {existing_alert.title} (持续 {duration_seconds}秒)")
 
-            # 发送恢复通知（传递通知类型和持续时长）
-            from app.services.notifier import send_alert_notification
-            await send_alert_notification(
-                db, existing_alert,
-                notification_type="recovery",
-                duration_seconds=duration_seconds
-            )
+            # 检查是否屏蔽恢复通知
+            if not await _check_suppression_for_host(db, host.id, rule.id, check_type="notifications"):
+                # 发送恢复通知（传递通知类型和持续时长）
+                from app.services.notifier import send_alert_notification
+                await send_alert_notification(
+                    db, existing_alert,
+                    notification_type="recovery",
+                    duration_seconds=duration_seconds
+                )
 
 
 async def evaluate_service_rules():
@@ -426,11 +510,26 @@ async def evaluate_service_rules():
         if not rules:
             return
 
+        # 获取所有离线主机的 ID 集合，主机离线时其服务告警无意义
+        offline_result = await db.execute(
+            select(Host.id).where(Host.status == "offline")
+        )
+        offline_host_ids = {row[0] for row in offline_result.fetchall()}
+
         # 获取所有服务
         result = await db.execute(select(Service))
         services = result.scalars().all()
 
         for service in services:
+            # 若服务关联的主机已离线，跳过告警评估
+            # 主机离线时服务必然不可达，不应产生独立的服务告警噪音
+            if service.host_id and service.host_id in offline_host_ids:
+                logger.debug(
+                    f"Skipping service {service.name} (id={service.id}): "
+                    f"host {service.host_id} is offline"
+                )
+                continue
+
             for rule in rules:
                 await _evaluate_service_rule(db, redis, rule, service)
 
@@ -484,6 +583,11 @@ async def _evaluate_service_rule(db, redis, rule: AlertRule, service: Service):
         if existing_alert:
             # 已有活跃告警，检查是否需要发送持续告警通知
             if result["should_send_notification"] and result["notification_type"] == "continuous":
+                # 检查是否屏蔽通知
+                if await _check_suppression_for_service(db, service.id, service.host_id, rule.id, check_type="notifications"):
+                    logger.debug(f"Service {service.id} notifications are suppressed for rule {rule.id}")
+                    return
+
                 # 更新告警记录的当前指标值和消息
                 existing_alert.metric_value = float(current_value)
                 duration_seconds = result["duration_seconds"]
@@ -501,6 +605,11 @@ async def _evaluate_service_rule(db, redis, rule: AlertRule, service: Service):
             return
 
         if result["should_send_notification"]:
+            # 检查是否屏蔽告警创建
+            if await _check_suppression_for_service(db, service.id, service.host_id, rule.id, check_type="alerts"):
+                logger.debug(f"Service {service.id} alert creation is suppressed for rule {rule.id}")
+                return
+
             notification_type = result["notification_type"]
             duration_seconds = result["duration_seconds"]
 
@@ -578,13 +687,15 @@ async def _evaluate_service_rule(db, redis, rule: AlertRule, service: Service):
             duration_seconds = result.get("duration_seconds", 0)
             logger.info(f"Service alert resolved: {existing_alert.title} (持续 {duration_seconds}秒)")
 
-            # 发送恢复通知
-            from app.services.notifier import send_alert_notification
-            await send_alert_notification(
-                db, existing_alert,
-                notification_type="recovery",
-                duration_seconds=duration_seconds
-            )
+            # 检查是否屏蔽恢复通知
+            if not await _check_suppression_for_service(db, service.id, service.host_id, rule.id, check_type="notifications"):
+                # 发送恢复通知
+                from app.services.notifier import send_alert_notification
+                await send_alert_notification(
+                    db, existing_alert,
+                    notification_type="recovery",
+                    duration_seconds=duration_seconds
+                )
 
 
 async def cleanup_orphaned_alerts():

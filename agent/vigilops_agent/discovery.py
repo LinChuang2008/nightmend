@@ -3,7 +3,7 @@
 
 支持两种发现方式：
 1. Docker 容器发现 — 通过 docker ps 获取运行中容器及端口映射
-2. 宿主机进程发现 — 通过 ss -tlnp 获取监听端口和进程名，排除 Docker 管理的端口
+2. 宿主机进程发现 — Linux 通过 ss -tlnp，Windows 通过 psutil 获取监听端口和进程名
 
 两种方式互补，全面覆盖容器化和非容器化的服务。
 """
@@ -12,23 +12,34 @@ import logging
 import re
 import shutil
 import subprocess
+import sys
 from typing import List, Optional, Set
+
+import psutil
 
 from vigilops_agent.config import LogSourceConfig, ServiceCheckConfig
 
 logger = logging.getLogger(__name__)
 
+IS_WINDOWS = sys.platform == "win32"
+
 # 常见 HTTP 端口集合，用于自动判断检查类型
 HTTP_PORTS = {80, 443, 8080, 8000, 8001, 8443, 3000, 3001, 5000, 9090,
               8093, 8123, 8848, 13000, 15672, 18000, 18123, 48080, 48848}
 
-# 需要跳过的系统服务（通常不需要监控）
-SKIP_PROCESSES = {"sshd", "systemd", "systemd-resolve", "chronyd", "dbus-daemon",
-                  "polkitd", "agetty", "containerd", "dockerd", "docker-proxy",
-                  "rpcbind", "nscd", "cupsd"}
+# Linux 需要跳过的系统服务
+SKIP_PROCESSES_LINUX = {"sshd", "systemd", "systemd-resolve", "chronyd", "dbus-daemon",
+                        "polkitd", "agetty", "containerd", "dockerd", "docker-proxy",
+                        "rpcbind", "nscd", "cupsd"}
 
-# 需要跳过的端口范围
-SKIP_PORTS = {22}  # SSH 不需要监控
+# Windows 需要跳过的系统进程
+SKIP_PROCESSES_WINDOWS = {"system", "svchost.exe", "lsass.exe", "services.exe",
+                           "wininit.exe", "csrss.exe", "smss.exe", "winlogon.exe",
+                           "spoolsv.exe", "searchindexer.exe", "msdtc.exe",
+                           "ntoskrnl.exe", "registry"}
+
+# 需要跳过的端口
+SKIP_PORTS = {22, 135, 139, 445, 3389}  # SSH, RPC, NetBIOS, SMB, RDP
 
 
 def discover_docker_services(interval: int = 30) -> List[ServiceCheckConfig]:
@@ -151,10 +162,10 @@ def _get_docker_ports() -> Set[int]:
 
 
 def discover_host_services(interval: int = 30) -> List[ServiceCheckConfig]:
-    """通过 ss 命令发现宿主机上直接运行的服务（非 Docker）。
+    """发现宿主机上直接运行的服务（非 Docker）。
 
-    解析 ss -tlnp 输出，获取监听端口和进程名，
-    过滤掉 Docker 管理的端口和系统服务。
+    Linux: 通过 ss -tlnp 获取监听端口和进程名。
+    Windows: 通过 psutil 获取监听端口和进程名。
 
     Args:
         interval: 发现的服务默认检查间隔（秒）。
@@ -162,6 +173,13 @@ def discover_host_services(interval: int = 30) -> List[ServiceCheckConfig]:
     Returns:
         服务检查配置列表。
     """
+    if IS_WINDOWS:
+        return _discover_host_services_windows(interval)
+    return _discover_host_services_linux(interval)
+
+
+def _discover_host_services_linux(interval: int = 30) -> List[ServiceCheckConfig]:
+    """Linux: 通过 ss -tlnp 发现宿主机服务。"""
     if not shutil.which("ss"):
         logger.debug("ss command not found, skipping host service discovery")
         return []
@@ -225,32 +243,23 @@ def discover_host_services(interval: int = 30) -> List[ServiceCheckConfig]:
         if port in SKIP_PORTS:
             continue
 
-        # 注意：不再跳过监听在 127.0.0.1 的服务
-        # VigilOps agent 运行在本地，可以通过 127.0.0.1 访问本地服务
-        # 很多服务（数据库、缓存等）默认监听 127.0.0.1，这是正常的
-
         # 提取进程名
         process_name = _extract_process_name(process_info)
         if not process_name:
             continue
 
         # 跳过系统进程
-        if process_name in SKIP_PROCESSES:
+        if process_name in SKIP_PROCESSES_LINUX:
             continue
 
         # 确定用于健康检查的地址
-        # - 0.0.0.0 表示监听所有接口，使用 localhost 连接
-        # - 127.0.0.1 表示仅本地监听，使用 localhost 连接
-        # - 其他IP（如10.0.49.101）表示仅监听该IP，必须使用该IP连接
         if listen_addr == "0.0.0.0" or listen_addr == "127.0.0.1":
             check_host = "localhost"
         else:
             check_host = listen_addr
 
-        # 生成友好的服务名
         service_name = f"{process_name} (:{port})"
 
-        # 根据进程名和端口判断检查类型
         if _is_http_service(process_name, port):
             svc = ServiceCheckConfig(
                 name=service_name,
@@ -269,6 +278,89 @@ def discover_host_services(interval: int = 30) -> List[ServiceCheckConfig]:
         services.append(svc)
 
     logger.info(f"Host service discovery: found {len(services)} non-Docker services")
+    return services
+
+
+def _discover_host_services_windows(interval: int = 30) -> List[ServiceCheckConfig]:
+    """Windows: 通过 psutil 发现宿主机监听服务。"""
+    # 获取 Docker 占用的端口，需要排除
+    docker_ports = _get_docker_ports()
+
+    # 获取当前 Agent 自身的 PID，避免把自己也发现进去
+    self_pid = psutil.Process().pid
+
+    services = []
+    seen_ports: Set[int] = set()
+
+    try:
+        connections = psutil.net_connections(kind="tcp")
+    except psutil.AccessDenied:
+        logger.warning("Access denied when reading network connections, try running as Administrator")
+        return []
+
+    for conn in connections:
+        if conn.status != "LISTEN":
+            continue
+
+        port = conn.laddr.port
+
+        if port in seen_ports:
+            continue
+        seen_ports.add(port)
+
+        if port in SKIP_PORTS:
+            continue
+
+        if port in docker_ports:
+            continue
+
+        # 获取进程名
+        pid = conn.pid
+        if not pid:
+            continue
+
+        try:
+            proc = psutil.Process(pid)
+            # 跳过自身
+            if pid == self_pid:
+                continue
+            process_name = proc.name().lower()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+        # 跳过 Windows 系统进程
+        if process_name in SKIP_PROCESSES_WINDOWS:
+            continue
+
+        # 确定监听地址
+        listen_addr = conn.laddr.ip
+        if listen_addr in ("0.0.0.0", "127.0.0.1", "::", "::1", ""):
+            check_host = "localhost"
+        else:
+            check_host = listen_addr
+
+        # 去掉 .exe 后缀作为显示名
+        display_name = process_name.removesuffix(".exe")
+        service_name = f"{display_name} (:{port})"
+
+        if _is_http_service(display_name, port):
+            svc = ServiceCheckConfig(
+                name=service_name,
+                type="http",
+                url=f"http://{check_host}:{port}",
+                interval=interval,
+            )
+        else:
+            svc = ServiceCheckConfig(
+                name=service_name,
+                type="tcp",
+                host=check_host,
+                port=port,
+                interval=interval,
+            )
+        services.append(svc)
+
+    logger.info(f"Host service discovery (Windows): found {len(services)} services")
     return services
 
 

@@ -36,8 +36,53 @@ from app.core.database import async_session
 from app.models.log_entry import LogEntry
 from app.models.ai_insight import AIInsight
 from app.services.ai_engine import ai_engine
+from app.services.suppression_service import SuppressionService
 
 logger = logging.getLogger(__name__)
+
+
+async def _get_suppressed_host_ids(db) -> set:
+    """获取被屏蔽日志扫描的主机 ID 列表 (Get Suppressed Host IDs for Log Scanning)
+
+    Args:
+        db: 异步数据库会话
+
+    Returns:
+        set: 被屏蔽的主机 ID 集合
+    """
+    try:
+        from sqlalchemy import select, and_, or_
+        from app.models.suppression_rule import SuppressionRule
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
+
+        # 查询屏蔽日志扫描的规则
+        result = await db.execute(
+            select(SuppressionRule.resource_id)
+            .where(
+                and_(
+                    SuppressionRule.is_active == True,
+                    SuppressionRule.resource_type == SuppressionService.RESOURCE_HOST,
+                    SuppressionRule.suppress_log_scan == True,
+                    SuppressionRule.resource_id != None,
+                    # 时间范围检查：开始时间为空或已过
+                    or_(
+                        SuppressionRule.start_time == None,
+                        SuppressionRule.start_time <= now
+                    ),
+                    # 时间范围检查：结束时间为空或未到
+                    or_(
+                        SuppressionRule.end_time == None,
+                        SuppressionRule.end_time >= now
+                    )
+                )
+            )
+        )
+        return set(row[0] for row in result.all())
+    except Exception as e:
+        logger.warning(f"Failed to get suppressed host IDs: {e}")
+        return set()
 
 
 async def scan_recent_logs(hours: int = 1) -> None:
@@ -89,6 +134,14 @@ async def scan_recent_logs(hours: int = 1) -> None:
             )
             result = await db.execute(q)
             entries = result.scalars().all()
+
+            # 2.1 过滤被屏蔽的主机 (Filter Suppressed Hosts)
+            suppressed_host_ids = await _get_suppressed_host_ids(db)
+            if suppressed_host_ids:
+                original_count = len(entries)
+                entries = [e for e in entries if e.host_id not in suppressed_host_ids]
+                if len(entries) < original_count:
+                    logger.info(f"Filtered out {original_count - len(entries)} log entries from suppressed hosts")
 
             # 3. 空数据检查 (Empty Data Check)
             if not entries:
