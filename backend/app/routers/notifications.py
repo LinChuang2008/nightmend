@@ -145,11 +145,11 @@ async def get_notification_logs_stats(
     Args:
         days: 统计天数 (1-365)
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     from sqlalchemy import func, and_, case
     
     # 时间范围
-    end_time = datetime.utcnow()
+    end_time = datetime.now(timezone.utc)
     start_time = end_time - timedelta(days=days)
     
     # 总体统计
@@ -287,7 +287,7 @@ async def retry_notification(
             notification_log.error = "Retry failed"
             notification_log.response_code = 500
         
-        notification_log.sent_at = datetime.utcnow()
+        notification_log.sent_at = datetime.now(timezone.utc)
         await db.commit()
         
         # 记录审计日志

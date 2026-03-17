@@ -360,8 +360,12 @@ async def clear_all_dependencies(
     user: User = Depends(get_current_user),
 ):
     """清空所有自定义依赖（回退到自动推断）"""
-    await db.execute(text("DELETE FROM service_dependencies"))
-    await db.commit()
+    try:
+        await db.execute(text("DELETE FROM service_dependencies"))
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
     return {"detail": "所有自定义依赖已清空"}
 
 

@@ -110,7 +110,7 @@
 **要求：**
 - 资源占用极低（< 50MB 内存，< 1% CPU）
 - 支持 Linux（主要）、macOS（开发环境）
-- 一键安装：`curl -sSL https://your-server/install.sh | bash`
+- 一键安装：`curl -sSL https://raw.githubusercontent.com/LinChuang2008/vigilops/main/scripts/install-agent.sh | VIGILOPS_SERVER=https://your-server AGENT_TOKEN=your-token bash`
 - 配置文件指定 Server 地址、采集项目、日志路径等
 - 断线自动重连，本地缓存未发送数据
 

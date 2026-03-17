@@ -14,10 +14,12 @@ Author: VigilOps Team
 """
 import asyncio
 import logging
+import secrets
 from typing import Dict, Any, Optional
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
@@ -46,34 +48,43 @@ OAUTH_PROVIDERS = {
         "token_url": "https://oauth2.googleapis.com/token",
         "userinfo_url": "https://www.googleapis.com/oauth2/v2/userinfo",
         "scopes": ["openid", "email", "profile"],
-        "client_id": getattr(settings, "GOOGLE_CLIENT_ID", ""),
-        "client_secret": getattr(settings, "GOOGLE_CLIENT_SECRET", ""),
+        "client_id": settings.google_client_id,
+        "client_secret": settings.google_client_secret,
     },
     "github": {
         "authorize_url": "https://github.com/login/oauth/authorize",
         "token_url": "https://github.com/login/oauth/access_token",
         "userinfo_url": "https://api.github.com/user",
         "scopes": ["user:email"],
-        "client_id": getattr(settings, "GITHUB_CLIENT_ID", ""),
-        "client_secret": getattr(settings, "GITHUB_CLIENT_SECRET", ""),
+        "client_id": settings.github_client_id,
+        "client_secret": settings.github_client_secret,
     },
     "gitlab": {
         "authorize_url": "https://gitlab.com/oauth/authorize",
-        "token_url": "https://gitlab.com/oauth/token", 
+        "token_url": "https://gitlab.com/oauth/token",
         "userinfo_url": "https://gitlab.com/api/v4/user",
         "scopes": ["read_user"],
-        "client_id": getattr(settings, "GITLAB_CLIENT_ID", ""),
-        "client_secret": getattr(settings, "GITLAB_CLIENT_SECRET", ""),
+        "client_id": settings.gitlab_client_id,
+        "client_secret": settings.gitlab_client_secret,
     },
     "microsoft": {
         "authorize_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
         "token_url": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
         "userinfo_url": "https://graph.microsoft.com/v1.0/me",
         "scopes": ["openid", "profile", "email"],
-        "client_id": getattr(settings, "MICROSOFT_CLIENT_ID", ""),
-        "client_secret": getattr(settings, "MICROSOFT_CLIENT_SECRET", ""),
+        "client_id": settings.microsoft_client_id,
+        "client_secret": settings.microsoft_client_secret,
     }
 }
+
+# CSRF state 存储（生产环境应使用 Redis 等分布式存储）
+_oauth_states: Dict[str, str] = {}
+
+
+class LDAPLoginRequest(BaseModel):
+    """LDAP 登录请求体，通过 JSON Body 传输，避免密码出现在 URL/QueryString 中"""
+    email: str
+    password: str
 
 
 @router.get("/oauth/{provider}")
@@ -107,12 +118,16 @@ async def oauth_login(provider: str, request: Request):
     # 生成授权URL
     callback_url = str(request.url_for("oauth_callback", provider=provider))
     
+    # 生成随机 state 并临时保存，用于回调时的 CSRF 校验
+    csrf_state = secrets.token_urlsafe(32)
+    _oauth_states[csrf_state] = provider
+
     params = {
         "client_id": provider_config["client_id"],
         "redirect_uri": callback_url,
         "scope": " ".join(provider_config["scopes"]),
         "response_type": "code",
-        "state": f"vigilops-{provider}",  # 防CSRF
+        "state": csrf_state,
     }
     
     # Microsoft 需要特殊参数
@@ -150,8 +165,8 @@ async def oauth_callback(
     if provider not in OAUTH_PROVIDERS:
         raise HTTPException(status_code=400, detail=f"不支持的OAuth提供商: {provider}")
     
-    # 验证 state 参数防 CSRF
-    if state != f"vigilops-{provider}":
+    # 验证 state 参数防 CSRF（校验随机 token 并立即消费，防止重放）
+    if not state or _oauth_states.pop(state, None) != provider:
         raise HTTPException(status_code=400, detail="无效的状态参数")
     
     provider_config = OAUTH_PROVIDERS[provider]
@@ -170,9 +185,9 @@ async def oauth_callback(
         # 3. 查找或创建用户
         user = await _find_or_create_oauth_user(db, provider, user_info)
         
-        # 4. 生成JWT令牌
-        access_jwt = create_access_token(data={"sub": user.email})
-        refresh_jwt = create_refresh_token(data={"sub": user.email})
+        # 4. 生成JWT令牌（与 auth.py 保持一致，sub 使用用户 ID）
+        access_jwt = create_access_token(str(user.id))
+        refresh_jwt = create_refresh_token(str(user.id))
         
         # 记录审计日志
         await log_audit(
@@ -199,23 +214,25 @@ async def oauth_callback(
 
 @router.post("/ldap/login")
 async def ldap_login(
-    email: str,
-    password: str,
+    credentials: LDAPLoginRequest,
     request: Request,
     db: AsyncSession = Depends(get_db)
 ):
     """
     LDAP 认证登录
-    
+
+    凭据通过 JSON Body 传输，避免密码出现在 URL Query String 中。
+
     Args:
-        email: 用户邮箱或用户名
-        password: 密码
+        credentials: 包含 email 和 password 的请求体
         request: FastAPI 请求对象
         db: 数据库会话
-        
+
     Returns:
         JWT 令牌响应
     """
+    email = credentials.email
+    password = credentials.password
     if not LDAP_AVAILABLE:
         raise HTTPException(
             status_code=501,
@@ -235,9 +252,9 @@ async def ldap_login(
         # 2. 查找或创建用户
         user = await _find_or_create_ldap_user(db, user_info)
         
-        # 3. 生成JWT令牌
-        access_token = create_access_token(data={"sub": user.email})
-        refresh_token = create_refresh_token(data={"sub": user.email})
+        # 3. 生成JWT令牌（与 auth.py 保持一致，sub 使用用户 ID）
+        access_token = create_access_token(str(user.id))
+        refresh_token = create_refresh_token(str(user.id))
         
         # 记录审计日志
         await log_audit(

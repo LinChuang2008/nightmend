@@ -7,7 +7,7 @@
  * - 可关闭（localStorage 记录关闭状态）
  */
 import { useState, useEffect } from 'react';
-import { Alert, Button, Space, Typography, Spin, message } from 'antd';
+import { Alert, Button, Space, Typography, Spin, message, Radio } from 'antd';
 import { CopyOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -54,14 +54,34 @@ export default function AgentInstallBanner() {
     setDismissed(true);
   };
 
-  const serverUrl = `${window.location.protocol}//${window.location.hostname}:8001`;
+  const getServerUrl = () => {
+    const currentPort = window.location.port;
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    
+    // 如果当前端口是3001（前端开发），映射到8001
+    if (currentPort === '3001') {
+      return `${protocol}//${hostname}:8001`;
+    }
+    // 如果是80（Docker nginx），映射到8000
+    if (currentPort === '80' || currentPort === '') {
+      return `${protocol}//${hostname}:8000`;
+    }
+    // 否则用当前host
+    return `${protocol}//${hostname}${currentPort ? `:${currentPort}` : ''}`;
+  };
+  
+  const serverUrl = getServerUrl();
   const tokenDisplay = token || '<YOUR_TOKEN>';
-  const installCmd = `curl -fsSL ${serverUrl}/agent/install.sh | VIGILOPS_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`;
+  // 使用 GitHub raw URL 提供安装脚本，避免 404 错误
+  const installCmdGithub = `curl -fsSL https://raw.githubusercontent.com/LinChuang2008/vigilops/main/scripts/install-agent.sh | VIGILOPS_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`;
+  // 本地服务器备用选项
+  const installCmdLocal = `curl -fsSL ${serverUrl}/api/v1/agent/install.sh | VIGILOPS_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`;
+  const [selectedCmd, setSelectedCmd] = useState('github');
+  const installCmd = selectedCmd === 'github' ? installCmdGithub : installCmdLocal;
 
   const copyToClipboard = () => {
-    const text = token
-      ? `curl -fsSL ${serverUrl}/agent/install.sh | VIGILOPS_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`
-      : installCmd;
+    const text = installCmd;
     const succeed = () => {
       setCopied(true);
       messageApi.success(t('common.copied'));
@@ -108,6 +128,18 @@ export default function AgentInstallBanner() {
               <Spin size="small" />
             ) : (
               <Space direction="vertical" style={{ width: '100%' }}>
+                <Radio.Group 
+                  value={selectedCmd} 
+                  onChange={(e) => setSelectedCmd(e.target.value)}
+                  style={{ marginBottom: 8 }}
+                >
+                  <Radio.Button value="github">
+                    📦 GitHub (推荐)
+                  </Radio.Button>
+                  <Radio.Button value="local">
+                    🏠 本地服务器
+                  </Radio.Button>
+                </Radio.Group>
                 <div style={{
                   background: 'rgba(0,0,0,0.06)',
                   borderRadius: 6,
@@ -118,6 +150,11 @@ export default function AgentInstallBanner() {
                 }}>
                   {installCmd}
                 </div>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {selectedCmd === 'github' 
+                    ? '💡 从 GitHub 获取最新安装脚本（推荐）' 
+                    : '💡 从本地服务器获取安装脚本（无需外网访问）'}
+                </Typography.Text>
                 {!token && (
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     {t('agentBanner.tokenHint')}

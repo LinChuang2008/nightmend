@@ -263,6 +263,40 @@ async def trigger_remediation(
     await db.commit()
     await db.refresh(log)
 
-    # TODO: 异步启动实际修复流程（通过 remediation agent）
+    # 异步启动实际修复流程（通过 remediation agent），不阻塞当前请求
+    import asyncio
+    from app.remediation.agent import RemediationAgent
+    from app.remediation.ai_client import RemediationAIClient
+    from app.remediation.command_executor import CommandExecutor
+    from app.remediation.models import RemediationAlert
+    from app.core.config import settings
+    from app.core.database import async_session
+
+    async def _run_remediation(alert_id: int, log_id: int) -> None:
+        async with async_session() as bg_db:
+            try:
+                alert_res = await bg_db.execute(select(Alert).where(Alert.id == alert_id))
+                bg_alert = alert_res.scalar_one_or_none()
+                if not bg_alert:
+                    return
+                rem_alert = RemediationAlert(
+                    alert_id=bg_alert.id,
+                    alert_type=getattr(bg_alert, "metric", "unknown"),
+                    severity=bg_alert.severity,
+                    host=str(bg_alert.host_id or "unknown"),
+                    host_id=bg_alert.host_id,
+                    message=bg_alert.title or "",
+                )
+                ai_client = RemediationAIClient()
+                executor = CommandExecutor(dry_run=settings.agent_dry_run)
+                agent = RemediationAgent(ai_client=ai_client, executor=executor)
+                await agent.handle_alert(rem_alert, bg_db, triggered_by="manual")
+            except Exception:
+                import logging
+                logging.getLogger(__name__).exception(
+                    "Background remediation failed for alert %s", alert_id
+                )
+
+    asyncio.create_task(_run_remediation(alert_id, log.id))
 
     return log
