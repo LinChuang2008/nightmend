@@ -5,7 +5,7 @@ Dashboard 配置 Schema
 """
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ==================== 组件配置 ====================
@@ -22,6 +22,8 @@ class ComponentConfigBase(BaseModel):
 
 class DashboardComponentInfo(BaseModel):
     """仪表盘组件信息"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     description: Optional[str] = None
@@ -31,9 +33,6 @@ class DashboardComponentInfo(BaseModel):
     sort_order: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 
 # ==================== 布局配置 ====================
@@ -62,15 +61,14 @@ class DashboardLayoutUpdate(BaseModel):
 
 class DashboardLayoutResponse(DashboardLayoutBase):
     """仪表盘布局响应"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     user_id: int
     is_active: bool
     is_preset: bool
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 # ==================== 预设布局 ====================

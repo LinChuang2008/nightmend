@@ -42,7 +42,7 @@ class TestAnalyzeLogs:
 
     @pytest.mark.asyncio
     async def test_analyze_with_host_filter(self, client, auth_headers, db_session):
-        h = Host(hostname="filter-host", status="online")
+        h = Host(hostname="filter-host", status="online", agent_token_id=1)
         db_session.add(h)
         await db_session.commit()
         await db_session.refresh(h)
@@ -102,7 +102,7 @@ class TestChat:
 
     @pytest.mark.asyncio
     async def test_chat_with_context_data(self, client, auth_headers, db_session):
-        h = Host(hostname="ctx-host", status="online")
+        h = Host(hostname="ctx-host", status="online", agent_token_id=1)
         db_session.add(h)
         s = Service(name="ctx-svc", type="http", target="http://x", status="up", is_active=True)
         db_session.add(s)
@@ -129,7 +129,7 @@ class TestRootCause:
         await db_session.commit()
         await db_session.refresh(rule)
 
-        h = Host(hostname="rc-host", status="online")
+        h = Host(hostname="rc-host", status="online", agent_token_id=1)
         db_session.add(h)
         await db_session.commit()
         await db_session.refresh(h)
@@ -168,7 +168,7 @@ class TestSystemSummary:
 
     @pytest.mark.asyncio
     async def test_summary_with_data(self, client, auth_headers, db_session):
-        h = Host(hostname="sum-host", status="online")
+        h = Host(hostname="sum-host", status="online", agent_token_id=1)
         db_session.add(h)
         s = Service(name="sum-svc", type="http", target="http://s", status="up", is_active=True)
         db_session.add(s)

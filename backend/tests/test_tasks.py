@@ -34,7 +34,7 @@ class TestAlertEngine:
         from app.tasks.alert_engine import _evaluate_rule
         
 
-        host = Host(hostname="h1", status="online")
+        host = Host(hostname="h1", status="online", agent_token_id=1)
         db_session.add(host)
         await db_session.commit()
         await db_session.refresh(host)
@@ -66,7 +66,7 @@ class TestAlertEngine:
         from app.tasks.alert_engine import _evaluate_rule
         
 
-        host = Host(hostname="h2", status="online")
+        host = Host(hostname="h2", status="online", agent_token_id=1)
         db_session.add(host)
         await db_session.commit()
         await db_session.refresh(host)
@@ -101,7 +101,7 @@ class TestAlertEngine:
         from app.tasks.alert_engine import _evaluate_rule
         
 
-        host = Host(hostname="h3", status="online")
+        host = Host(hostname="h3", status="online", agent_token_id=1)
         db_session.add(host)
         await db_session.commit()
         await db_session.refresh(host)
@@ -132,7 +132,7 @@ class TestAlertEngine:
         from app.tasks.alert_engine import _evaluate_rule
         
 
-        host = Host(hostname="h-off", status="offline")
+        host = Host(hostname="h-off", status="offline", agent_token_id=1)
         db_session.add(host)
         await db_session.commit()
         await db_session.refresh(host)
@@ -159,7 +159,7 @@ class TestAlertEngine:
         from app.tasks.alert_engine import _evaluate_rule
         
 
-        host = Host(hostname="h-unk", status="online")
+        host = Host(hostname="h-unk", status="online", agent_token_id=1)
         db_session.add(host)
         rule = AlertRule(
             name="Unknown", metric="unknown_metric", operator=">",
@@ -185,7 +185,7 @@ class TestDbMetricCleanup:
         from sqlalchemy import delete, select
 
         # Create host and monitored db
-        h = Host(hostname="clean-h", status="online")
+        h = Host(hostname="clean-h", status="online", agent_token_id=1)
         db_session.add(h)
         await db_session.commit()
         await db_session.refresh(h)
@@ -235,7 +235,7 @@ class TestOfflineDetector:
         
 
         host = Host(
-            hostname="stale-host", status="online",
+            hostname="stale-host", status="online", agent_token_id=1,
             last_heartbeat=datetime.now(timezone.utc) - timedelta(seconds=600)
         )
         db_session.add(host)
@@ -256,7 +256,7 @@ class TestOfflineDetector:
         from app.tasks.offline_detector import check_offline_hosts
         
 
-        host = Host(hostname="alive-host", status="online", last_heartbeat=datetime.now(timezone.utc))
+        host = Host(hostname="alive-host", status="online", agent_token_id=1, last_heartbeat=datetime.now(timezone.utc))
         db_session.add(host)
         await db_session.commit()
         await db_session.refresh(host)

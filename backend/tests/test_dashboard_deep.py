@@ -19,7 +19,7 @@ class TestDashboardTrends:
 
     @pytest.mark.asyncio
     async def test_trends_with_data(self, client, auth_headers, db_session):
-        h = Host(hostname="dash-host", status="online")
+        h = Host(hostname="dash-host", status="online", agent_token_id=1)
         db_session.add(h)
         await db_session.commit()
         await db_session.refresh(h)

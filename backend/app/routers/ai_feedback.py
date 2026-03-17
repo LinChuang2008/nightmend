@@ -289,7 +289,7 @@ async def delete_feedback(
 
 @router.get("/report", response_model=AIPerformanceReport)
 async def get_performance_report(
-    period: str = Query("30d", regex="^(7d|30d|90d)$"),
+    period: str = Query("30d", pattern="^(7d|30d|90d)$"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):

@@ -139,7 +139,7 @@ async def get_host(
 async def get_host_metrics(
     host_id: int,
     hours: int = Query(1, ge=1, le=720),
-    interval: str = Query("raw", regex="^(raw|5min|1h|1d)$"),
+    interval: str = Query("raw", pattern="^(raw|5min|1h|1d)$"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

@@ -34,7 +34,7 @@ class TestCollectHostSummary:
 
     @pytest.mark.asyncio
     async def test_with_hosts_and_metrics(self, db_session, period):
-        h = Host(hostname="web-01", status="online")
+        h = Host(hostname="web-01", status="online", agent_token_id=1)
         db_session.add(h)
         await db_session.commit()
         await db_session.refresh(h)
@@ -53,7 +53,7 @@ class TestCollectHostSummary:
 
     @pytest.mark.asyncio
     async def test_no_metrics_in_range(self, db_session, period):
-        h = Host(hostname="web-02", status="offline")
+        h = Host(hostname="web-02", status="offline", agent_token_id=1)
         db_session.add(h)
         await db_session.commit()
 
@@ -128,7 +128,7 @@ class TestCollectDbSummary:
 
     @pytest.mark.asyncio
     async def test_with_dbs(self, db_session):
-        h = Host(hostname="db-host", status="online")
+        h = Host(hostname="db-host", status="online", agent_token_id=1)
         db_session.add(h)
         await db_session.commit()
         await db_session.refresh(h)
