@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +24,7 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio aiosqlite
+          pip install pytest pytest-asyncio aiosqlite pytest-timeout
 
       - name: Run tests
         env:
@@ -34,6 +35,7 @@ jobs:
           MEMORY_ENABLED: "false"
           SECRET_KEY: test-secret-key-for-ci
           ENVIRONMENT: test
+          AGENT_TOKEN_HMAC_KEY: test-hmac-key-for-ci
         run: |
           cd backend
-          python -m pytest tests/ -x --tb=short -q
+          python -m pytest tests/ -x --tb=short -q --timeout=60
