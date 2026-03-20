@@ -182,6 +182,7 @@ export default function AppLayout() {
   const { isDark, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
   const { isMobile } = useResponsive();
+  const isOpsPage = location.pathname === '/ops';
 
   /** 动态生成菜单 */
   const allMenuItems = buildMenuItems(t);
@@ -350,7 +351,13 @@ export default function AppLayout() {
   );
 
   return (
-    <Layout style={{ minHeight: '100vh', background: colorBgLayout, ...(location.pathname === '/ops' ? { height: '100vh', overflow: 'hidden' } : {}) }}>
+    <Layout
+      style={{
+        height: '100vh',
+        overflow: 'hidden',
+        background: colorBgLayout,
+      }}
+    >
       {/* 桌面端侧边栏 */}
       {!isMobile && (
         <Sider trigger={null} collapsible collapsed={collapsed} theme="dark">
@@ -372,13 +379,21 @@ export default function AppLayout() {
           {renderMenuContent(true)}
         </Drawer>
       )}
-      <Layout style={location.pathname === '/ops' ? { display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' } : {}}>
+      <Layout
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          overflow: 'hidden',
+        }}
+      >
         <Header style={{
           padding: isMobile ? '0 16px' : '0 24px',
           background: colorBgContainer,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flex: '0 0 auto',
         }}>
           {/* 侧边栏折叠切换按钮 */}
           <Button
@@ -462,7 +477,7 @@ export default function AppLayout() {
           </div>
         </Header>
         <Content style={
-          location.pathname === '/ops'
+          isOpsPage
             ? {
                 margin: 0,
                 padding: 0,
@@ -478,6 +493,8 @@ export default function AppLayout() {
                 background: colorBgContainer,
                 borderRadius: borderRadiusLG,
                 minHeight: 280,
+                flex: 1,
+                overflow: 'auto',
               }
         }>
           {/* 子路由内容渲染区 */}

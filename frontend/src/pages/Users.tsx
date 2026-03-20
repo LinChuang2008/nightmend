@@ -112,8 +112,8 @@ export default function Users() {
       await deleteUser(id);
       messageApi.success(t('users.deleted'));
       load();
-    } catch {
-      messageApi.error(t('users.deleteFailed'));
+    } catch (err: any) {
+      messageApi.error(err?.response?.data?.detail || t('users.deleteFailed'));
     }
   };
 
