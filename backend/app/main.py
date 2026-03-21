@@ -31,14 +31,17 @@ from app.core.config import settings as app_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.database import engine, Base
 from app.core.redis import get_redis, close_redis
-# 导入所有模型以确保 SQLAlchemy 表注册 (Import all models to ensure SQLAlchemy table registration)
-from app.models import User, AgentToken, Host, HostMetric, Service, ServiceCheck, Alert, AlertRule, NotificationChannel, NotificationLog, NotificationTemplate, LogEntry, MonitoredDatabase, DbMetric, AIInsight, AuditLog, Report, ServiceDependency, SLARule, SLAViolation  # noqa: F401
+# 导入 models 包，确保最新模型全部注册到 Base.metadata。
+# 新部署环境将由 create_all 直接按”当前最新模型”建表；
+# 已部署旧版本环境仍建议通过 Alembic 做增量迁移。
+import app.models  # noqa: F401
 from app.models.alert_group import AlertGroup, AlertDeduplication  # noqa: F401
 from app.models.custom_runbook import CustomRunbook  # noqa: F401
 # 导入所有路由模块 (Import all router modules)
 from app.routers import auth
 from app.routers import agent_tokens
 from app.routers import agent
+from app.routers import agent_updates
 from app.routers import hosts
 from app.routers import services
 from app.routers import alert_rules
@@ -48,7 +51,6 @@ from app.routers import settings
 from app.routers import logs
 from app.routers import log_admin
 from app.routers import databases
-from app.routers import ai_analysis
 from app.routers import users
 from app.routers import audit_logs
 from app.routers import reports
@@ -66,6 +68,11 @@ from app.routers import dashboard_config
 from app.routers import prometheus
 from app.routers import external_auth
 from app.routers import ai_feedback
+from app.routers import suppression_rules
+from app.routers import ops
+from app.routers import menu_settings
+from app.routers import ai_operation_logs
+from app.routers import ai_analysis
 from app.routers import custom_runbooks
 from app.routers import promql
 from app.api.v1 import data_retention
@@ -259,6 +266,7 @@ app.add_middleware(
 app.include_router(auth.router)  # 用户认证 (User authentication)
 app.include_router(agent_tokens.router)  # Agent 令牌管理 (Agent token management)
 app.include_router(agent.router)  # Agent 数据上报 (Agent data reporting)
+app.include_router(agent_updates.router)  # Agent 更新管理 (Agent update management)
 app.include_router(hosts.router)  # 主机管理 (Host management)
 app.include_router(services.router)  # 服务监控 (Service monitoring)
 app.include_router(alert_rules.router)  # 告警规则 (Alert rules)
@@ -269,7 +277,6 @@ app.include_router(logs.router)  # 日志管理 (Log management)
 app.include_router(logs.ws_router)  # WebSocket 日志流 (WebSocket log streaming)
 app.include_router(log_admin.router)  # 日志后端管理 (Log backend administration)
 app.include_router(databases.router)  # 数据库监控 (Database monitoring)
-app.include_router(ai_analysis.router)  # AI 分析 (AI analysis)
 app.include_router(ai_feedback.router)  # AI 反馈 (AI feedback)
 app.include_router(users.router)  # 用户管理 (User management)
 app.include_router(audit_logs.router)  # 审计日志 (Audit logs)
@@ -290,6 +297,11 @@ app.include_router(data_retention.router, prefix="/api/v1/data-retention", tags=
 app.include_router(alert_deduplication.router, prefix="/api/v1/alert-deduplication", tags=["告警去重"])  # 告警去重和聚合 (Alert deduplication and aggregation)
 app.include_router(prometheus.router)  # Prometheus 兼容性 (Prometheus compatibility)
 app.include_router(external_auth.router)  # 外部认证 (External Authentication)
+app.include_router(suppression_rules.router)  # 屏蔽规则管理 (Suppression rules management)
+app.include_router(ops.router)  # AI 运维助手 (AI Ops Assistant)
+app.include_router(menu_settings.router)  # 菜单可见性配置 (Menu visibility settings)
+app.include_router(ai_operation_logs.router)  # AI 操作日志 (AI operation logs)
+app.include_router(ai_analysis.router)  # AI 分析 (AI analysis: insights, root-cause, logs)
 app.include_router(custom_runbooks.router)  # 自定义 Runbook 管理 (Custom Runbook Management)
 app.include_router(promql.router)  # PromQL 查询 (PromQL Query Engine)
 

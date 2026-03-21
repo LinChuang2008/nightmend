@@ -25,7 +25,7 @@ VigilOps 路由模块包 (VigilOps Router Module Package)
 - logs.py: 日志管理（日志搜索、统计分析、实时流推送）
 
 === 分析和报告路由 (Analysis and Report Routes) ===
-- ai_analysis.py: AI智能分析（对话分析、根因分析、智能洞察）
+- ops.py: AI运维助手（多轮诊断、命令确认、会话管理）
 - reports.py: 运维报告（报告生成、查询、删除管理）
 - sla.py: SLA管理（规则管理、状态监控、违规检测、可用性报告）
 

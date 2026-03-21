@@ -83,11 +83,16 @@ async def list_services(
     host_map = {}
     if host_ids:
         host_result = await db.execute(
-            select(Host.id, Host.hostname, Host.ip_address, Host.status)
+            select(Host.id, Host.hostname, Host.display_name, Host.ip_address, Host.status)
             .where(Host.id.in_(host_ids))
         )
-        for hid, hname, hip, hstatus in host_result.all():
-            host_map[hid] = {"id": hid, "hostname": hname, "ip": hip, "status": hstatus}
+        for hid, hname, hdisplay, hip, hstatus in host_result.all():
+            host_map[hid] = {
+                "id": hid,
+                "hostname": hdisplay or hname,
+                "ip": hip,
+                "status": hstatus,
+            }
 
     items = []
     for s in services:

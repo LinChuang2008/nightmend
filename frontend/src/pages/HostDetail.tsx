@@ -3,15 +3,16 @@
  * 展示单台主机的基本信息和性能监控图表，包括 CPU、内存、磁盘使用率，
  * 网络流量、网络带宽和丢包率等指标，支持时间范围切换，每 30 秒自动刷新。
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import PageBreadcrumb from '../components/PageBreadcrumb';
-import { Card, Row, Col, Descriptions, Tag, Spin, Typography, Select, Space } from 'antd';
+import { Card, Row, Col, Descriptions, Tag, Spin, Typography, Select, Space, Button, message } from 'antd';
 import ReactECharts from '../components/ThemedECharts';
 import { useTranslation } from 'react-i18next';
 import { hostService } from '../services/hosts';
 import type { Host, HostMetrics } from '../services/hosts';
 import api from '../services/api';
+import agentUpdateService from '../services/agentUpdates';
 
 /**
  * 主机详情组件
@@ -24,6 +25,8 @@ export default function HostDetail() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('1h');
   const [alerts, setAlerts] = useState<{ id: string; title: string; severity: string; fired_at: string }[]>([]);
+  const [buildLoading, setBuildLoading] = useState(false);
+  const [triggerLoading, setTriggerLoading] = useState(false);
 
   const fetchData = async () => {
     if (!id) return;
@@ -49,6 +52,45 @@ export default function HostDetail() {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [id, timeRange]);
+
+  // 构建 wheel 包
+  const handleBuild = useCallback(async () => {
+    setBuildLoading(true);
+    try {
+      // 获取当前 agent 版本
+      const currentVersion = host?.agent_version || '0.1.0';
+      const res = await agentUpdateService.buildWheel(currentVersion);
+      if (res.data.success) {
+        message.success(t('hosts.buildSuccess', { version: res.data.version }));
+        // 刷新主机信息
+        fetchData();
+      } else {
+        message.error(res.data.message || t('hosts.buildFailed'));
+      }
+    } catch (err) {
+      message.error(t('hosts.buildFailed'));
+    } finally {
+      setBuildLoading(false);
+    }
+  }, [host?.agent_version, t, fetchData]);
+
+  // 触发更新
+  const handleTriggerUpdate = useCallback(async () => {
+    if (!id) return;
+    setTriggerLoading(true);
+    try {
+      const res = await agentUpdateService.triggerUpdate(id);
+      if (res.data.status === 'ok') {
+        message.success(t('hosts.triggerSuccess'));
+      } else {
+        message.error(res.data.message || t('hosts.triggerFailed'));
+      }
+    } catch (err) {
+      message.error(t('hosts.triggerFailed'));
+    } finally {
+      setTriggerLoading(false);
+    }
+  }, [id, t]);
 
   if (loading && !host) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
   if (!host) return <Typography.Text>{t('hosts.notFound')}</Typography.Text>;
@@ -162,6 +204,36 @@ export default function HostDetail() {
           <Tag color="success">{t('hosts.noActiveAlerts')}</Tag>
         </div>
       )}
+
+      {/* Agent 更新卡片 */}
+      <Card style={{ marginBottom: 16 }}>
+        <Row justify="space-between" align="middle">
+          <Col>
+            <Space>
+              <Typography.Text type="secondary">{t('hosts.agentVersion')}:</Typography.Text>
+              <Tag color={host.agent_version ? 'blue' : 'default'}>
+                {host.agent_version || t('common.unknown')}
+              </Tag>
+            </Space>
+          </Col>
+          <Col>
+            <Space>
+              <Button type="primary" loading={buildLoading} onClick={handleBuild}>
+                {t('hosts.buildWheel')}
+              </Button>
+              <Button
+                type="primary"
+                loading={triggerLoading}
+                onClick={handleTriggerUpdate}
+                disabled={host.status !== 'online'}
+                style={{ marginLeft: 8 }}
+              >
+                {t('hosts.triggerUpdate')}
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </Card>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12}>

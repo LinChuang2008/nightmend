@@ -45,6 +45,7 @@ services:
     ports:
       - "${BACKEND_PORT:-8001}:8000"
     env_file: .env
+    command: ["/bin/sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"]
     depends_on:
       postgres:
         condition: service_healthy

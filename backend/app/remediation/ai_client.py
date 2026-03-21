@@ -136,7 +136,7 @@ def _parse_diagnosis_response(text: str) -> Diagnosis:
     )
 
 
-class RemediationAIClient:
+class RemediationLLMClient:
     """修复诊断 AI 客户端 (Remediation Diagnosis AI Client)
     
     这是 VigilOps 自动修复系统与 AI 模型交互的核心组件，负责：

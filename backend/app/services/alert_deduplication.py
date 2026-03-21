@@ -22,6 +22,7 @@ from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.models.alert import Alert, AlertRule
 from app.models.alert_group import AlertDeduplication
@@ -88,9 +89,28 @@ class AlertDeduplicationService:
             recovery_start_time=None
         )
         self.db.add(new_record)
-        self.db.commit()
-        logger.info(f"Created new dedup record for rule {rule.id}")
-        return new_record, True
+
+        try:
+            self.db.commit()
+            logger.info(f"Created new dedup record for rule {rule.id}")
+            return new_record, True
+        except IntegrityError:
+            # 并发插入冲突：其他请求已创建记录，回滚并重新查询
+            self.db.rollback()
+            logger.warning(f"Concurrent insert conflict for fingerprint {fingerprint}, retrying...")
+
+            existing = self.db.query(AlertDeduplication).filter(
+                AlertDeduplication.fingerprint == fingerprint
+            ).first()
+
+            if existing:
+                return existing, False
+
+            # 如果仍然不存在（极罕见），再次尝试创建
+            self.db.add(new_record)
+            self.db.commit()
+            logger.info(f"Retry: Created new dedup record for rule {rule.id}")
+            return new_record, True
 
     def process_alert_evaluation(self, rule: AlertRule, host_id: Optional[int],
                                 service_id: Optional[int], metric_value: float,

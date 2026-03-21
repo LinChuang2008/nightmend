@@ -40,7 +40,7 @@ from app.models.alert import Alert
 from app.models.log_entry import LogEntry
 from app.models.db_metric import MonitoredDatabase, DbMetric
 from app.models.report import Report
-from app.services.ai_engine import ai_engine
+from app.services.llm_client import chat_completion
 
 logger = logging.getLogger(__name__)
 
@@ -380,7 +380,7 @@ async def generate_report(
         ]
 
         # 6. 调用AI引擎生成报告内容 (Call AI Engine to Generate Report Content)
-        result_text = await ai_engine._call_api(messages)
+        result_text = await chat_completion(messages, max_tokens=1800, temperature=0.3)
 
         # 7. AI响应内容解析 (AI Response Content Parsing)
         # 将AI生成的内容分离为正文和摘要两部分

@@ -35,7 +35,7 @@ from app.core.config import settings
 from app.models.remediation_log import RemediationLog
 from app.services.memory_client import memory_client
 from app.services.notifier import send_remediation_notification
-from .ai_client import RemediationAIClient
+from .ai_client import RemediationLLMClient
 from .command_executor import CommandExecutor
 from .models import (
     CommandResult,
@@ -79,7 +79,7 @@ class RemediationAgent:
 
     def __init__(
         self,
-        ai_client: RemediationAIClient,
+        ai_client: RemediationLLMClient,
         executor: Optional[CommandExecutor] = None,
         registry: Optional[RunbookRegistry] = None,
         rate_limiter: Optional[RateLimiter] = None,

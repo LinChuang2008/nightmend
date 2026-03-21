@@ -416,7 +416,7 @@ async def trigger_remediation(
     # 异步启动实际修复流程（通过 remediation agent），不阻塞当前请求
     import asyncio
     from app.remediation.agent import RemediationAgent
-    from app.remediation.ai_client import RemediationAIClient
+    from app.remediation.ai_client import RemediationLLMClient
     from app.remediation.command_executor import CommandExecutor
     from app.remediation.models import RemediationAlert
     from app.core.config import settings
@@ -457,7 +457,7 @@ async def trigger_remediation(
                     host_id=bg_alert.host_id,
                     message=bg_alert.title or "",
                 )
-                ai_client = RemediationAIClient()
+                ai_client = RemediationLLMClient()
                 executor = CommandExecutor(
                     dry_run=settings.agent_dry_run,
                     remote_host=host_name if host_name != "unknown" else "",

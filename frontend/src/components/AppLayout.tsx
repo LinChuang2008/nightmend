@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useResponsive } from '../hooks/useResponsive';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, theme, Avatar, Dropdown, Drawer } from 'antd';
+import { Layout, Menu, Button, theme, Avatar, Dropdown, Drawer, Popover, Checkbox, Space, Divider, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -41,15 +41,17 @@ import {
   GlobalOutlined,
   ClusterOutlined,
   AppstoreOutlined,
+  EyeInvisibleOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
 import QuickStartGuide from './QuickStartGuide';
 import GuidedTour, { useTourControl } from './GuidedTour';
+import { menuSettingsApi } from '../services/menuSettings';
 
 const { Header, Sider, Content } = Layout;
 
 /** viewer 可见的菜单 key */
-const viewerKeys = new Set(['/', '/hosts', '/servers', '/services', '/topology', '/topology/servers', '/topology/service-groups', '/logs', '/databases', '/alerts', '/ai-analysis', '/remediations', '/runbooks', '/multi-server', '/service-groups', '/on-call', '/sla']);
+const viewerKeys = new Set(['/', '/hosts', '/servers', '/services', '/topology', '/topology/servers', '/topology/service-groups', '/logs', '/databases', '/alerts', '/ops', '/remediations', '/runbooks', '/multi-server', '/service-groups', '/on-call', '/sla', '/ai-operation-logs']);
 /** member 隐藏的菜单 key */
 const memberHiddenKeys = new Set(['/users', '/settings']);
 
@@ -73,6 +75,42 @@ function filterMenuByRole(items: ReturnType<typeof buildMenuItems>, role: string
       return { ...group, children };
     })
     .filter((group) => ((group as any).children as any[]).length > 0);
+}
+
+/** 根据用户设置隐藏菜单（支持分组结构） */
+function filterMenuByHidden(items: ReturnType<typeof buildMenuItems>, hiddenKeys: Set<string>) {
+  return items
+    .map((group) => {
+      const children = ((group as any).children as any[])
+        .map((item: any) => {
+          if ('children' in item && Array.isArray(item.children)) {
+            const nestedChildren = item.children.filter((c: any) => !hiddenKeys.has(c.key));
+            if (nestedChildren.length === 0) return null;
+            return { ...item, children: nestedChildren };
+          }
+          return hiddenKeys.has(item.key) ? null : item;
+        })
+        .filter(Boolean);
+      return { ...group, children };
+    })
+    .filter((group) => ((group as any).children as any[]).length > 0);
+}
+
+/** 提取可配置隐藏的叶子菜单项 */
+function getConfigurableMenuItems(items: ReturnType<typeof buildMenuItems>) {
+  const result: Array<{ key: string; label: string }> = [];
+  for (const group of items as any[]) {
+    for (const item of group.children || []) {
+      if (item.children && Array.isArray(item.children)) {
+        for (const child of item.children) {
+          result.push({ key: child.key, label: child.label });
+        }
+      } else {
+        result.push({ key: item.key, label: item.label });
+      }
+    }
+  }
+  return result;
 }
 
 /** 生成侧边栏菜单项（分 4 个分组），使用 i18n 翻译 */
@@ -106,7 +144,8 @@ function buildMenuItems(t: (key: string) => string) {
       type: 'group' as const,
       label: t('menu.groupAnalysis'),
       children: [
-        { key: '/ai-analysis', icon: <RobotOutlined />, label: <span data-tour="ai-analysis">{t('menu.aiAnalysis')}</span> },
+        { key: '/ops', icon: <RobotOutlined />, label: <span data-tour="ai-analysis">AI 运维助手</span> },
+        { key: '/ai-operation-logs', icon: <AuditOutlined />, label: t('menu.aiOperationLogs') },
         { key: '/remediations', icon: <ThunderboltOutlined />, label: <span data-tour="remediation">{t('menu.remediation')}</span> },
         { key: '/runbooks', icon: <BookOutlined />, label: t('menu.runbooks') },
         { key: '/reports', icon: <FileSearchOutlined />, label: t('menu.reports') },
@@ -147,6 +186,7 @@ export default function AppLayout() {
   const { isDark, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
   const { isMobile } = useResponsive();
+  const isOpsPage = location.pathname === '/ops';
   const { tourOpen, closeTour, restartTour } = useTourControl();
 
   /** 动态生成菜单 */
@@ -166,7 +206,50 @@ export default function AppLayout() {
   /** 从 localStorage 读取用户名和角色 */
   const userName = localStorage.getItem('user_name') || 'Admin';
   const userRole = localStorage.getItem('user_role') || 'viewer';
-  const menuItems = filterMenuByRole(allMenuItems, userRole);
+  const [messageApi, messageContextHolder] = message.useMessage();
+  const [hiddenMenuKeys, setHiddenMenuKeys] = useState<string[]>([]);
+  const [menuSettingsOpen, setMenuSettingsOpen] = useState(false);
+  const [menuDraftKeys, setMenuDraftKeys] = useState<string[]>([]);
+  const [menuSaving, setMenuSaving] = useState(false);
+
+  useEffect(() => {
+    const loadMenuSettings = async () => {
+      try {
+        const data = await menuSettingsApi.get();
+        const keys = Array.isArray(data.hidden_keys)
+          ? data.hidden_keys.filter((k) => typeof k === 'string')
+          : [];
+        setHiddenMenuKeys(keys);
+        setMenuDraftKeys(keys);
+      } catch {
+        setHiddenMenuKeys([]);
+        setMenuDraftKeys([]);
+      }
+    };
+    loadMenuSettings();
+  }, []);
+
+  const handleSaveMenuSettings = async () => {
+    try {
+      setMenuSaving(true);
+      const data = await menuSettingsApi.update({ hidden_keys: menuDraftKeys });
+      const keys = Array.isArray(data.hidden_keys)
+        ? data.hidden_keys.filter((k) => typeof k === 'string')
+        : [];
+      setHiddenMenuKeys(keys);
+      setMenuDraftKeys(keys);
+      setMenuSettingsOpen(false);
+      messageApi.success(t('header.menuSettingsSaved'));
+    } catch {
+      messageApi.error(t('header.menuSettingsSaveFailed'));
+    } finally {
+      setMenuSaving(false);
+    }
+  };
+
+  const roleFilteredMenuItems = filterMenuByRole(allMenuItems, userRole);
+  const menuItems = filterMenuByHidden(roleFilteredMenuItems, new Set(hiddenMenuKeys));
+  const configurableMenuItems = getConfigurableMenuItems(roleFilteredMenuItems);
 
   /** 退出登录：清除本地存储的认证信息并跳转到登录页
    * P0-2 骨架：同步调用后端 /auth/logout 清除 httpOnly cookie
@@ -273,7 +356,13 @@ export default function AppLayout() {
   );
 
   return (
-    <Layout style={{ minHeight: '100vh', background: colorBgLayout }}>
+    <Layout
+      style={{
+        height: '100vh',
+        overflow: 'hidden',
+        background: colorBgLayout,
+      }}
+    >
       {/* 桌面端侧边栏 */}
       {!isMobile && (
         <Sider trigger={null} collapsible collapsed={collapsed} theme="dark">
@@ -296,13 +385,21 @@ export default function AppLayout() {
           {renderMenuContent(true)}
         </Drawer>
       )}
-      <Layout>
+      <Layout
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          overflow: 'hidden',
+        }}
+      >
         <Header style={{
           padding: isMobile ? '0 16px' : '0 24px',
           background: colorBgContainer,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flex: '0 0 auto',
         }}>
           {/* 侧边栏折叠切换按钮 */}
           <Button
@@ -313,6 +410,49 @@ export default function AppLayout() {
           />
           {/* 右侧操作区：主题切换 + 用户菜单 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {userRole === 'admin' && (
+              <Popover
+                trigger="click"
+                placement="bottomRight"
+                open={menuSettingsOpen}
+                onOpenChange={(open) => {
+                  setMenuSettingsOpen(open);
+                  if (open) setMenuDraftKeys(hiddenMenuKeys);
+                }}
+                content={(
+                  <div style={{ width: 280 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>{t('header.menuSettings')}</div>
+                    <Checkbox.Group
+                      style={{ width: '100%' }}
+                      value={menuDraftKeys}
+                      onChange={(checked) => setMenuDraftKeys(checked as string[])}
+                    >
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        {configurableMenuItems.map((item) => (
+                          <Checkbox key={item.key} value={item.key}>
+                            {item.label}
+                          </Checkbox>
+                        ))}
+                      </Space>
+                    </Checkbox.Group>
+                    <Divider style={{ margin: '12px 0' }} />
+                    <Space>
+                      <Button size="small" onClick={() => setMenuDraftKeys([])}>
+                        {t('header.resetMenuSettings')}
+                      </Button>
+                      <Button size="small" onClick={() => setMenuSettingsOpen(false)}>
+                        {t('common.cancel')}
+                      </Button>
+                      <Button size="small" type="primary" loading={menuSaving} onClick={handleSaveMenuSettings}>
+                        {t('common.save')}
+                      </Button>
+                    </Space>
+                  </div>
+                )}
+              >
+                <Button type="text" icon={<EyeInvisibleOutlined />} title={t('header.menuSettings')} />
+              </Popover>
+            )}
             <Dropdown menu={{
               items: [
                 { key: 'zh', label: '🇨🇳 中文', onClick: () => changeLanguage('zh') },
@@ -344,19 +484,34 @@ export default function AppLayout() {
             </Dropdown>
           </div>
         </Header>
-        <Content style={{
-          margin: isMobile ? 12 : 24,
-          padding: isMobile ? 16 : 24,
-          background: colorBgContainer,
-          borderRadius: borderRadiusLG,
-          minHeight: 280,
-        }}>
+        <Content style={
+          isOpsPage
+            ? {
+                margin: 0,
+                padding: 0,
+                background: 'transparent',
+                flex: 1,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }
+            : {
+                margin: isMobile ? 12 : 24,
+                padding: isMobile ? 16 : 24,
+                background: colorBgContainer,
+                borderRadius: borderRadiusLG,
+                minHeight: 280,
+                flex: 1,
+                overflow: 'auto',
+              }
+        }>
           {/* 子路由内容渲染区 */}
           <Outlet />
         </Content>
       </Layout>
       {/* 新手引导（首次登录时弹出） */}
       <QuickStartGuide />
+      {messageContextHolder}
       {/* 步骤式引导 Tour */}
       <GuidedTour open={tourOpen} onClose={closeTour} />
     </Layout>

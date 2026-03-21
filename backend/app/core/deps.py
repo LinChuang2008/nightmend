@@ -19,6 +19,7 @@ from app.core.database import get_db
 from app.core.security import decode_token
 from app.core.redis import is_token_blacklisted
 from app.models.user import User
+from app.services.auth_session import validate_active_session
 
 # Bearer Token 认证方案 (Bearer Token Authentication Scheme)
 # auto_error=False：让我们手动处理错误，以便支持 cookie 回退
@@ -69,11 +70,18 @@ async def get_current_user(
     user_id = payload.get("sub")
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    token_sid = payload.get("sid")
+    if not token_sid:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired, please login again")
 
     result = await db.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+
+    is_valid_sid = await validate_active_session(user.id, token_sid)
+    if not is_valid_sid:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Your account logged in elsewhere")
 
     return user
 

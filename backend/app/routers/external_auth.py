@@ -30,6 +30,7 @@ from app.core.config import settings
 from app.models.user import User
 from app.schemas.auth import TokenResponse, UserResponse
 from app.services.audit import log_audit
+from app.services.auth_session import generate_session_id, set_active_session
 
 # 导入可选依赖，如未安装则禁用相应功能
 try:
@@ -203,8 +204,10 @@ async def oauth_callback(
         user = await _find_or_create_oauth_user(db, provider, user_info)
         
         # 4. 生成JWT令牌（与 auth.py 保持一致，sub 使用用户 ID）
-        access_jwt = create_access_token(str(user.id))
-        refresh_jwt = create_refresh_token(str(user.id))
+        session_id = generate_session_id()
+        await set_active_session(user.id, session_id)
+        access_jwt = create_access_token(str(user.id), session_id=session_id)
+        refresh_jwt = create_refresh_token(str(user.id), session_id=session_id)
         
         # 记录审计日志
         await log_audit(
@@ -270,8 +273,10 @@ async def ldap_login(
         user = await _find_or_create_ldap_user(db, user_info)
         
         # 3. 生成JWT令牌（与 auth.py 保持一致，sub 使用用户 ID）
-        access_token = create_access_token(str(user.id))
-        refresh_token = create_refresh_token(str(user.id))
+        session_id = generate_session_id()
+        await set_active_session(user.id, session_id)
+        access_token = create_access_token(str(user.id), session_id=session_id)
+        refresh_token = create_refresh_token(str(user.id), session_id=session_id)
         
         # 记录审计日志
         await log_audit(

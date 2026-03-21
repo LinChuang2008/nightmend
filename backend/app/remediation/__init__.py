@@ -53,10 +53,10 @@ Runbook 智能匹配 (Smart Runbook Matching)
 
 ```python
 from app.remediation.agent import RemediationAgent
-from app.remediation.ai_client import RemediationAIClient
+from app.remediation.ai_client import RemediationLLMClient
 
 # 创建 AI 客户端
-ai_client = RemediationAIClient()
+ai_client = RemediationLLMClient()
 
 # 创建修复 Agent
 agent = RemediationAgent(ai_client=ai_client, dry_run=False)

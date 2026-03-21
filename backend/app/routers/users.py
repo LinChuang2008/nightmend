@@ -17,6 +17,7 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -314,7 +315,14 @@ async def delete_user(
     
     # 执行硬删除并提交事务
     await db.delete(user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="该用户存在关联数据（如审计日志或 AI 操作记录），无法删除。请先禁用该用户。"
+        ) from None
 
 
 @router.put("/{user_id}/password", status_code=status.HTTP_200_OK)

@@ -29,7 +29,8 @@ const NotificationTemplates = lazy(() => import('./pages/NotificationTemplates')
 const Logs = lazy(() => import('./pages/Logs'));
 const Databases = lazy(() => import('./pages/Databases'));
 const DatabaseDetail = lazy(() => import('./pages/DatabaseDetail'));
-const AIAnalysis = lazy(() => import('./pages/AIAnalysis'));
+const OpsAssistant = lazy(() => import('./pages/OpsAssistant'));
+const AIOperationLogs = lazy(() => import('./pages/AIOperationLogs'));
 const Users = lazy(() => import('./pages/Users'));
 const AuditLogs = lazy(() => import('./pages/AuditLogs'));
 const Reports = lazy(() => import('./pages/Reports'));
@@ -45,7 +46,7 @@ const AlertEscalation = lazy(() => import('./pages/AlertEscalation'));
 const OnCall = lazy(() => import('./pages/OnCall'));
 
 /** 路由权限守卫：根据角色限制可访问的页面 */
-const viewerAllowedPrefixes = ['/', '/dashboard', '/hosts', '/servers', '/services', '/topology', '/logs', '/databases', '/alerts', '/ai-analysis', '/remediations', '/runbooks', '/multi-server', '/service-groups', '/on-call', '/sla', '/landing'];
+const viewerAllowedPrefixes = ['/', '/dashboard', '/hosts', '/servers', '/services', '/topology', '/logs', '/databases', '/alerts', '/ops', '/remediations', '/runbooks', '/multi-server', '/service-groups', '/on-call', '/sla', '/ai-operation-logs', '/landing'];
 function RoleGuard({ children }: { children: React.ReactElement }) {
   const location = useLocation();
   const role = localStorage.getItem('user_role') || 'viewer';
@@ -121,13 +122,15 @@ function AppInner() {
               <Route path="/remediations/:id" element={<RemediationDetail />} />
               <Route path="/runbooks" element={<RunbookManagement />} />
               <Route path="/sla" element={<SLA />} />
-              <Route path="/ai-analysis" element={<AIAnalysis />} />
+              <Route path="/ai-analysis" element={<Navigate to="/ops" replace />} />
+              <Route path="/ops" element={<OpsAssistant />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/notification-channels" element={<NotificationChannels />} />
               <Route path="/notification-templates" element={<NotificationTemplates />} />
               <Route path="/notification-logs" element={<NotificationLogs />} />
               <Route path="/users" element={<Users />} />
               <Route path="/audit-logs" element={<AuditLogs />} />
+              <Route path="/ai-operation-logs" element={<AIOperationLogs />} />
               <Route path="/alert-escalation" element={<AlertEscalation />} />
               <Route path="/on-call" element={<OnCall />} />
               <Route path="/settings" element={<Settings />} />

@@ -56,6 +56,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-vigilops}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vigilops}
       REDIS_URL: redis://redis:6379/0
+    command: ["/bin/sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"]
     depends_on:
       postgres:
         condition: service_healthy

@@ -14,8 +14,11 @@ Features:
 
 Competitive advantage: Native AI integration with monitoring data.
 """
+import asyncio
 import json
 import logging
+import threading
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any, Union
 
@@ -24,12 +27,14 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.database import SessionLocal
-from app.services.ai_engine import AIEngine
 from app.models.host import Host
 from app.models.alert import Alert, AlertRule
 from app.models.log_entry import LogEntry  
 from app.models.service import Service
 from app.models.host_metric import HostMetric
+from app.models.user import User
+from app.models.ops_session import OpsSession
+from app.services.ops_agent_loop import get_or_create_loop, remove_loop
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +63,73 @@ class VigilOpsMCP:
 
 # Global instance
 vigilops_mcp = VigilOpsMCP()
+
+
+def _run_async_sync(coro):
+    """在同步上下文安全执行协程。"""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    result_box: dict[str, Any] = {}
+    error_box: dict[str, Exception] = {}
+
+    def _runner():
+        try:
+            result_box["value"] = asyncio.run(coro)
+        except Exception as e:
+            error_box["error"] = e
+
+    t = threading.Thread(target=_runner, daemon=True)
+    t.start()
+    t.join()
+    if "error" in error_box:
+        raise error_box["error"]
+    return result_box.get("value")
+
+
+async def _run_ops_loop_for_mcp(session_id: str, user_id: int, prompt: str) -> dict:
+    """
+    使用 OpsAgentLoop 执行 MCP 事件分析。
+    MCP 场景下自动拒绝 execute_command，自动回答 ask_user，避免阻塞。
+    """
+    loop = get_or_create_loop(session_id, user_id)
+    text_parts: list[str] = []
+    tool_trace: list[str] = []
+    error_msg: Optional[str] = None
+    try:
+        async for event in loop.run(prompt):
+            event_type = event.get("event")
+            if event_type == "text_delta":
+                text_parts.append(event.get("delta", ""))
+            elif event_type == "tool_start":
+                tool_trace.append(f"tool_start:{event.get('tool_name', '')}")
+            elif event_type == "tool_done":
+                tool_trace.append(f"tool_done:{event.get('tool_name', '')}")
+            elif event_type == "command_request":
+                message_id = event.get("message_id", "")
+                if message_id:
+                    await loop.handle_command_confirm(message_id, "reject")
+                tool_trace.append("command_request:auto_reject")
+            elif event_type == "ask_user":
+                message_id = event.get("message_id", "")
+                if message_id:
+                    await loop.handle_ask_user_answer(message_id, "")
+                tool_trace.append("ask_user:auto_answer")
+            elif event_type == "error":
+                error_msg = event.get("message", "unknown error")
+                break
+            elif event_type == "done":
+                break
+    finally:
+        remove_loop(session_id)
+
+    return {
+        "analysis_text": "".join(text_parts).strip(),
+        "tool_trace": tool_trace,
+        "error": error_msg,
+    }
 
 
 @mcp_server.tool()
@@ -329,7 +401,7 @@ def analyze_incident(
     include_context: bool = True
 ) -> Dict[str, Any]:
     """
-    AI-powered incident root cause analysis (VigilOps differentiator)
+    AI-powered incident root cause analysis via OpsAgentLoop
     
     Args:
         alert_id: Specific alert to analyze
@@ -341,8 +413,6 @@ def analyze_incident(
     """
     try:
         db = vigilops_mcp.get_db()
-        ai_engine = AIEngine()
-        
         context_data = {}
         
         if alert_id:
@@ -394,23 +464,42 @@ def analyze_incident(
                     } for log in related_logs
                 ]
         
-        # Prepare analysis input
-        analysis_input = {
-            "type": "incident_analysis",
-            "description": description or "Automated incident analysis",
-            "context": context_data,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-        
-        # Call AI engine for analysis
-        analysis_result = ai_engine.analyze_complex_incident(
-            json.dumps(context_data),
-            description or "Please analyze this incident"
+        # 选择一个可用用户作为会话归属（MCP 无显式用户上下文）
+        mcp_user = db.query(User).order_by(User.id.asc()).first()
+        if not mcp_user:
+            return {"error": "No available user for MCP analyze_incident"}
+
+        # 创建临时 OpsSession，复用新 AI Agent Loop 流程
+        session_id = str(uuid.uuid4())
+        temp_session = OpsSession(
+            id=session_id,
+            user_id=mcp_user.id,
+            title="MCP 事件分析",
         )
-        
+        db.add(temp_session)
+        db.commit()
+
+        prompt = (
+            "你是 VigilOps AI 运维助手。请基于以下告警上下文做根因分析与处置建议。\n"
+            "限制：本次仅做分析，不要调用 execute_command，不要 ask_user，不要等待人工确认。\n\n"
+            f"事件描述：{description or 'Automated incident analysis'}\n"
+            f"上下文JSON：{json.dumps(context_data, ensure_ascii=False)}"
+        )
+
+        loop_result = _run_async_sync(_run_ops_loop_for_mcp(session_id, mcp_user.id, prompt))
+        analysis_result = loop_result.get("analysis_text") or "未获得分析结论"
+
+        temp_session.status = "closed"
+        temp_session.updated_at = datetime.now(timezone.utc)
+        db.commit()
+
         return {
             "analysis": analysis_result,
             "context_used": bool(context_data),
+            "engine": "ops_agent_loop",
+            "session_id": session_id,
+            "tool_trace": loop_result.get("tool_trace", []),
+            "error": loop_result.get("error"),
             "recommendations": [
                 "Check system resource utilization",
                 "Review recent configuration changes", 

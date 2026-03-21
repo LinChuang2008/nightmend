@@ -1,0 +1,16 @@
+# VigilOps Agent 核心依赖
+psutil>=5.9
+httpx>=0.27
+pyyaml>=6.0
+click>=8.1
+netifaces>=0.11
+websocket-client>=1.0
+
+# Windows 服务支持（仅 Windows 需要）
+# pip install pywin32
+
+# 数据库监控（按需安装）
+# pip install psycopg2-binary>=2.9   # PostgreSQL
+# pip install pymysql>=1.1           # MySQL
+# pip install oracledb>=2.0          # Oracle
+# pip install redis>=4.0             # Redis

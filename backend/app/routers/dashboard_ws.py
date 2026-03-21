@@ -121,13 +121,19 @@ async def _collect_dashboard_data() -> dict:
         )).scalar() or 0
 
         # === 日志统计 (Log Statistics) ===
-        # 最近1小时的错误级别日志数（ERROR/CRITICAL/FATAL）
-        error_log_count = (await db.execute(
-            select(func.count(LogEntry.id)).where(and_(
-                LogEntry.timestamp >= since,
-                LogEntry.level.in_(["ERROR", "CRITICAL", "FATAL"]),
-            ))
-        )).scalar() or 0
+        # 最近1小时的错误级别日志数（ERROR/CRITICAL/FATAL），排除被屏蔽主机
+        from app.services.suppression_service import SuppressionService
+        suppressed_host_ids = await SuppressionService.get_suppressed_host_ids_for_logs(db)
+
+        log_count_query = select(func.count(LogEntry.id)).where(and_(
+            LogEntry.timestamp >= since,
+            LogEntry.level.in_(["ERROR", "CRITICAL", "FATAL"]),
+        ))
+        if suppressed_host_ids:
+            log_count_query = log_count_query.where(
+                LogEntry.host_id.not_in(suppressed_host_ids)
+            )
+        error_log_count = (await db.execute(log_count_query)).scalar() or 0
 
         # === 资源使用率统计 (Resource Usage Statistics) ===
         # 构建子查询：获取每台主机在时间范围内的最新指标记录时间

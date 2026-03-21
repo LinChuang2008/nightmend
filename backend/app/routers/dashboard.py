@@ -100,17 +100,29 @@ async def get_trends(
     alert_result = await db.execute(alert_sql, {"since": since})
     alert_rows = alert_result.mappings().all()
 
-    # 查询每小时错误级别日志数量（ERROR/CRITICAL/FATAL） (Query hourly error-level log count)
-    log_sql = text("""
+    # 查询每小时错误级别日志数量（ERROR/CRITICAL/FATAL），排除被屏蔽主机
+    from app.services.suppression_service import SuppressionService
+    suppressed_host_ids = await SuppressionService.get_suppressed_host_ids_for_logs(db)
+
+    exclude_clause = ""
+    log_params: dict = {"since": since}
+    if suppressed_host_ids:
+        placeholders = ", ".join(f":hid{i}" for i, _ in enumerate(suppressed_host_ids))
+        exclude_clause = f"AND host_id NOT IN ({placeholders})"
+        for i, hid in enumerate(suppressed_host_ids):
+            log_params[f"hid{i}"] = hid
+
+    log_sql = text(f"""
         SELECT
             date_trunc('hour', timestamp) AS hour,
             count(*) AS cnt
         FROM log_entries
         WHERE timestamp >= :since AND level IN ('ERROR', 'CRITICAL', 'FATAL')
+        {exclude_clause}
         GROUP BY date_trunc('hour', timestamp)
         ORDER BY hour ASC
     """)
-    log_result = await db.execute(log_sql, {"since": since})
+    log_result = await db.execute(log_sql, log_params)
     log_rows = log_result.mappings().all()
 
     # 构建完整的24小时时间轴，确保图表显示连续性 (Build complete 24-hour timeline for chart continuity)

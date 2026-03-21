@@ -10,17 +10,21 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table, Card, Tag, Typography, Progress, Button,
-  Row, Col, Select, Space, Statistic, Collapse, Badge, Empty,
+  Row, Col, Select, Space, Statistic, Collapse, Badge, Empty, Tooltip, Tabs, Popconfirm, message,
 } from 'antd';
 import {
   CloudServerOutlined, DatabaseOutlined, AppstoreOutlined,
   ApiOutlined, DesktopOutlined, ReloadOutlined,
+  StopOutlined, CheckCircleOutlined, UnlockOutlined,
 } from '@ant-design/icons';
+import type { SuppressionRule } from '../services/suppressionRules';
 import { useTranslation } from 'react-i18next';
 import { serviceService } from '../services/services';
 import type { Service } from '../services/services';
 import api from '../services/api';
+import { suppressionRuleService } from '../services/suppressionRules';
 import PageHeader from '../components/PageHeader';
+import QuickSuppressModal from '../components/QuickSuppressModal';
 
 const { Text } = Typography;
 
@@ -96,6 +100,25 @@ export default function ServiceList() {
   const [globalStats, setGlobalStats] = useState({ total: 0, middleware: 0, business: 0, infrastructure: 0, healthy: 0, unhealthy: 0 });
   const navigate = useNavigate();
 
+  // 屏蔽规则状态映射：service_id -> suppression_info
+  const [suppressionMap, setSuppressionMap] = useState<Record<string, { suppressed: boolean; endTime?: string; ruleId?: number }>>({});
+
+  // 快速屏蔽模态框状态
+  const [quickSuppressModal, setQuickSuppressModal] = useState({
+    visible: false,
+    serviceId: '' as string | number,
+    serviceName: '',
+  });
+
+  // 已屏蔽服务列表（Tab 用）
+  const [suppressedRules, setSuppressedRules] = useState<SuppressionRule[]>([]);
+  const [suppressedLoading, setSuppressedLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('all');
+  // 服务 id -> 名称映射（用于已屏蔽列表显示）
+  const [serviceNameMap, setServiceNameMap] = useState<Record<string, string>>({});
+  // 服务 id -> 主机名映射
+  const [serviceHostMap, setServiceHostMap] = useState<Record<string, string>>({});
+
   /** 获取按主机分组的服务数据 (Fetch services grouped by host)
    * 使用 group_by_host=true 参数获取主机分组数据结构
    * 支持按状态和分类筛选，同时获取不受筛选影响的全局统计信息
@@ -113,6 +136,7 @@ export default function ServiceList() {
       setServices(data.items || []);
       setHostGroups(data.host_groups || []);
       if (data.stats) setGlobalStats(data.stats);
+
       // 构建 slaMap: service_id -> sla_status
       const map: Record<string, string> = {};
       const slaList = Array.isArray(slaRes.data) ? slaRes.data : (slaRes.data?.items || []);
@@ -120,14 +144,76 @@ export default function ServiceList() {
         if (item.service_id != null) map[String(item.service_id)] = item.status || item.sla_status || 'no_data';
       }
       setSlaMap(map);
+
+      // 获取所有服务的屏蔽状态
+      const allServices = data.host_groups?.flatMap((g: HostGroup) => g.services) || [];
+      const suppressionPromises = allServices.map(async (service: ServiceItem) => {
+        try {
+          const result = await suppressionRuleService.check({
+            resource_type: 'service',
+            resource_id: typeof service.id === 'number' ? service.id : parseInt(service.id, 10),
+          });
+          return [String(service.id), { suppressed: result.data.suppressed, endTime: result.data.rules?.[0]?.end_time, ruleId: result.data.rules?.[0]?.id }];
+        } catch {
+          return [String(service.id), { suppressed: false }];
+        }
+      });
+
+      const suppressionResults = await Promise.allSettled(suppressionPromises);
+      const newSuppressionMap: Record<string, { suppressed: boolean; endTime?: string; ruleId?: number }> = {};
+      for (const result of suppressionResults) {
+        if (result.status === 'fulfilled') {
+          const [serviceId, info] = result.value as [string, { suppressed: boolean; endTime?: string; ruleId?: number }];
+          newSuppressionMap[serviceId] = info;
+        }
+      }
+      setSuppressionMap(newSuppressionMap);
+
+      // 构建服务名映射 & 服务->主机映射
+      const nameMap: Record<string, string> = {};
+      const hostMap: Record<string, string> = {};
+      for (const group of (data.host_groups || []) as HostGroup[]) {
+        for (const s of group.services) {
+          nameMap[String(s.id)] = s.name;
+          hostMap[String(s.id)] = group.hostname;
+        }
+      }
+      setServiceNameMap((prev: Record<string, string>) => ({ ...prev, ...nameMap }));
+      setServiceHostMap((prev: Record<string, string>) => ({ ...prev, ...hostMap }));
     } catch { /* ignore */ } finally { setLoading(false); }
   };
 
-  /** 响应筛选条件变化 (React to filter changes)
-   * 监听状态和分类筛选器变化，自动重新获取匹配的服务数据
-   * 保持界面与筛选条件同步
-   */
+  /** 响应筛选条件变化 (React to filter changes) */
   useEffect(() => { fetchData(); }, [statusFilter, categoryFilter]); // eslint-disable-line
+
+  /** 获取已屏蔽服务规则列表 */
+  const fetchSuppressedRules = async () => {
+    setSuppressedLoading(true);
+    try {
+      const res = await suppressionRuleService.list({ resource_type: 'service', page: 1, page_size: 100 });
+      setSuppressedRules(res.data.items || []);
+    } catch { /* ignore */ } finally { setSuppressedLoading(false); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'suppressed') {
+      fetchSuppressedRules();
+      // 确保主机映射数据已加载
+      if (Object.keys(serviceHostMap).length === 0) fetchData();
+    }
+  }, [activeTab]); // eslint-disable-line
+
+  /** 解除屏蔽 */
+  const handleUnsuppress = async (ruleId: number) => {
+    try {
+      await suppressionRuleService.delete(ruleId);
+      message.success(t('suppressionRules.unsuppressSuccess') || '已解除屏蔽');
+      fetchSuppressedRules();
+      fetchData();
+    } catch {
+      message.error(t('suppressionRules.unsuppressFailed') || '解除屏蔽失败');
+    }
+  };
 
   /** 主机数量从全局统计独立（hostGroups 可能因筛选变少） */
   const hostCount = useMemo(() => hostGroups.length, [hostGroups]);
@@ -192,13 +278,17 @@ export default function ServiceList() {
       key: 'uptime',
       width: 150,
       // 可用率进度条：99%以上=绿色，95%以上=正常，以下=异常红色
-      render: (v: number) => (
-        <Progress
-          percent={v != null ? Math.round(v * 100) / 100 : 0}
-          size="small"
-          status={v >= 99 ? 'success' : v >= 95 ? 'normal' : 'exception'}
-        />
-      ),
+      render: (v: number, record: ServiceItem) => {
+        // DEBUG: 打印 uptime_percent 值
+        console.log(`Service ${record.name}: uptime_percent = ${v} (type: ${typeof v})`);
+        return (
+          <Progress
+            percent={v != null ? Math.round(v * 100) / 100 : 0}
+            size="small"
+            status={v >= 99 ? 'success' : v >= 95 ? 'normal' : 'exception'}
+          />
+        );
+      },
     },
     {
       title: t('services.lastCheck'),
@@ -219,6 +309,41 @@ export default function ServiceList() {
         if (status === 'non_compliant' || status === 'violated' || status === 'breached') return <Tag color="red">{t('services.slaNotMet')}</Tag>;
         if (status === 'no_data') return <Tag>-</Tag>;
         return <Tag color="default">{t('services.slaNotConfigured')}</Tag>;
+      },
+    },
+    {
+      title: t('common.actions'),
+      key: 'actions',
+      width: 120,
+      render: (_: unknown, r: ServiceItem) => {
+        const suppression = suppressionMap[String(r.id)];
+        if (suppression?.suppressed) {
+          // 服务已被屏蔽
+          const endTime = suppression.endTime ? new Date(suppression.endTime) : null;
+          const isPermanent = !endTime;
+          return (
+            <Tooltip title={isPermanent ? t('suppressionRules.permanent') : `${t('suppressionRules.suppressedUntil')}: ${endTime?.toLocaleString()}`}>
+              <Tag icon={<CheckCircleOutlined />} color="orange">
+                {t('suppressionRules.suppressed')}
+              </Tag>
+            </Tooltip>
+          );
+        }
+        // 服务未被屏蔽，显示忽略按钮
+        return (
+          <Button
+            type="text"
+            size="small"
+            icon={<StopOutlined />}
+            onClick={() => setQuickSuppressModal({
+              visible: true,
+              serviceId: r.id,
+              serviceName: r.name,
+            })}
+          >
+            {t('suppressionRules.ignoreService')}
+          </Button>
+        );
       },
     },
   ];
@@ -308,59 +433,175 @@ export default function ServiceList() {
         }
       />
 
-      {/* 筛选器 */}
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Space>
-            <Select
-              placeholder={t('services.serviceCategoryFilter')}
-              allowClear
-              style={{ width: 130 }}
-              value={categoryFilter}
-              onChange={(v) => setCategoryFilter(v || undefined)}
-              options={[
-                { label: `🗄️ ${t('services.middleware')}`, value: 'middleware' },
-                { label: `📦 ${t('services.business')}`, value: 'business' },
-                { label: `☁️ ${t('services.infrastructure')}`, value: 'infrastructure' },
-              ]}
-            />
-            <Select
-              placeholder={t('services.runningStatusFilter')}
-              allowClear
-              style={{ width: 120 }}
-              value={statusFilter}
-              onChange={(v) => setStatusFilter(v || undefined)}
-              options={[
-                { label: `✅ ${t('services.healthy')}`, value: 'up' },
-                { label: `❌ ${t('common.unhealthy')}`, value: 'down' },
-              ]}
-            />
-          </Space>
-        </Col>
-        <Col>
-          <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
-            {t('common.refresh')}
-          </Button>
-        </Col>
-      </Row>
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        tabBarExtraContent={
+          activeTab === 'all' ? (
+            <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
+              {t('common.refresh')}
+            </Button>
+          ) : (
+            <Button icon={<ReloadOutlined />} onClick={fetchSuppressedRules} loading={suppressedLoading}>
+              {t('common.refresh')}
+            </Button>
+          )
+        }
+        items={[
+          {
+            key: 'all',
+            label: t('services.allServices') || '全部服务',
+            children: (
+              <>
+                {/* 筛选器 */}
+                <Row justify="start" align="middle" style={{ marginBottom: 16 }}>
+                  <Col>
+                    <Space>
+                      <Select
+                        placeholder={t('services.serviceCategoryFilter')}
+                        allowClear
+                        style={{ width: 130 }}
+                        value={categoryFilter}
+                        onChange={(v) => setCategoryFilter(v || undefined)}
+                        options={[
+                          { label: `🗄️ ${t('services.middleware')}`, value: 'middleware' },
+                          { label: `📦 ${t('services.business')}`, value: 'business' },
+                          { label: `☁️ ${t('services.infrastructure')}`, value: 'infrastructure' },
+                        ]}
+                      />
+                      <Select
+                        placeholder={t('services.runningStatusFilter')}
+                        allowClear
+                        style={{ width: 120 }}
+                        value={statusFilter}
+                        onChange={(v) => setStatusFilter(v || undefined)}
+                        options={[
+                          { label: `✅ ${t('services.healthy')}`, value: 'up' },
+                          { label: `❌ ${t('common.unhealthy')}`, value: 'down' },
+                        ]}
+                      />
+                    </Space>
+                  </Col>
+                </Row>
 
-      {/* 服务列表：统一折叠面板，点击展开 */}
-      {loading ? (
-        <Card loading />
-      ) : hostGroups.length === 0 ? (
-        <Card><Empty description={t('services.noServices')} /></Card>
-      ) : (
-        <Collapse
-          defaultActiveKey={[]}
-          items={hostGroups.map(group => ({
-            key: String(group.host_id),
-            label: renderHostHeader(group),
-            children: renderServiceTable(group.services),
-            style: { marginBottom: 12, borderRadius: 8, overflow: 'hidden' },
-          }))}
-          style={{ background: 'transparent' }}
-        />
-      )}
+                {/* 服务列表 */}
+                {loading ? (
+                  <Card loading />
+                ) : hostGroups.length === 0 ? (
+                  <Card><Empty description={t('services.noServices')} /></Card>
+                ) : (
+                  <Collapse
+                    defaultActiveKey={[]}
+                    items={hostGroups.map(group => ({
+                      key: String(group.host_id),
+                      label: renderHostHeader(group),
+                      children: renderServiceTable(group.services),
+                      style: { marginBottom: 12, borderRadius: 8, overflow: 'hidden' },
+                    }))}
+                    style={{ background: 'transparent' }}
+                  />
+                )}
+              </>
+            ),
+          },
+          {
+            key: 'suppressed',
+            label: (
+              <span>
+                <StopOutlined style={{ marginRight: 4 }} />
+                {t('suppressionRules.suppressedServices') || '已屏蔽服务'}
+                {suppressedRules.length > 0 && (
+                  <Badge count={suppressedRules.length} style={{ marginLeft: 6, backgroundColor: '#faad14' }} />
+                )}
+              </span>
+            ),
+            children: (
+              <Table
+                dataSource={suppressedRules}
+                rowKey="id"
+                loading={suppressedLoading}
+                pagination={{ pageSize: 20 }}
+                columns={[
+                  {
+                    title: t('services.serviceName'),
+                    key: 'service_name',
+                    render: (_: unknown, r: SuppressionRule) => {
+                      const name = serviceNameMap[String(r.resource_id)] || `Service #${r.resource_id}`;
+                      return (
+                        <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/services/${r.resource_id}`)}>
+                          {name}
+                        </Button>
+                      );
+                    },
+                  },
+                  {
+                    title: t('hosts.hostname') || '所属主机',
+                    key: 'host',
+                    render: (_: unknown, r: SuppressionRule) => {
+                      const hostname = serviceHostMap[String(r.resource_id)];
+                      return hostname
+                        ? <Tag icon={<DesktopOutlined />}>{hostname}</Tag>
+                        : <span style={{ color: '#999' }}>-</span>;
+                    },
+                  },
+                  {
+                    title: t('suppressionRules.reason'),
+                    dataIndex: 'reason',
+                    key: 'reason',
+                    render: (v: string) => v || <span style={{ color: '#999' }}>-</span>,
+                  },
+                  {
+                    title: t('suppressionRules.suppressedUntil') || '屏蔽到期',
+                    dataIndex: 'end_time',
+                    key: 'end_time',
+                    render: (v: string) => v
+                      ? <Tag color="orange">{new Date(v).toLocaleString()}</Tag>
+                      : <Tag color="red">{t('suppressionRules.permanent') || '永久'}</Tag>,
+                  },
+                  {
+                    title: t('common.createdAt') || '创建时间',
+                    dataIndex: 'created_at',
+                    key: 'created_at',
+                    render: (v: string) => v ? new Date(v).toLocaleString() : '-',
+                  },
+                  {
+                    title: t('common.actions'),
+                    key: 'actions',
+                    width: 120,
+                    render: (_: unknown, r: SuppressionRule) => (
+                      <Popconfirm
+                        title={t('suppressionRules.confirmUnsuppress') || '确认解除屏蔽？'}
+                        onConfirm={() => handleUnsuppress(r.id)}
+                        okText={t('common.confirm') || '确认'}
+                        cancelText={t('common.cancel') || '取消'}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<UnlockOutlined />}
+                          danger
+                        >
+                          {t('suppressionRules.unsuppress') || '解除屏蔽'}
+                        </Button>
+                      </Popconfirm>
+                    ),
+                  },
+                ]}
+              />
+            ),
+          },
+        ]}
+      />
+
+      {/* 快速屏蔽模态框 */}
+      <QuickSuppressModal
+        visible={quickSuppressModal.visible}
+        onClose={() => setQuickSuppressModal({ ...quickSuppressModal, visible: false })}
+        onSuccess={fetchData}
+        resourceType="service"
+        resourceId={quickSuppressModal.serviceId}
+        resourceName={quickSuppressModal.serviceName}
+      />
     </div>
   );
 }

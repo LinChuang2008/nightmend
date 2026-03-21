@@ -26,9 +26,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import re
 from app.core.agent_auth import verify_agent_token
+from app.core.deps import get_current_user
 from app.core.database import get_db
 from app.core.redis import get_redis
 from app.models.agent_token import AgentToken
+from app.models.user import User
 from app.models.host import Host
 from app.models.host_metric import HostMetric
 from app.models.service import Service, ServiceCheck
@@ -42,6 +44,7 @@ from app.schemas.agent import (
 )
 from app.models.log_entry import LogEntry
 from app.models.db_metric import MonitoredDatabase, DbMetric
+from app.models.alert import AlertRule
 from app.schemas.log_entry import LogBatchRequest, LogBatchResponse
 
 router = APIRouter(prefix="/api/v1/agent", tags=["agent"])
@@ -180,9 +183,22 @@ async def heartbeat(
         host.status = "online"  # 确保主机标记为在线
         await db.commit()
 
-    # 写入Redis缓存，设置300秒过期用于快速离线检测 (Write to Redis cache with 300s expiry for fast offline detection)
+    # 心跳 TTL 优先使用用户配置的 host_offline 规则 cooldown_seconds，fallback 到 300 秒
+    # 但 TTL 必须至少是 Agent 心跳间隔（60s）的 2 倍，避免心跳还没来得及续期就被判定离线
+    AGENT_HEARTBEAT_INTERVAL = 60
+    rule_result = await db.execute(
+        select(AlertRule).where(
+            AlertRule.metric == "host_offline",
+            AlertRule.is_enabled == True,  # noqa: E712
+        ).limit(1)
+    )
+    offline_rule = rule_result.scalar_one_or_none()
+    rule_cooldown = offline_rule.cooldown_seconds if (offline_rule and offline_rule.cooldown_seconds > 0) else 300
+    heartbeat_ttl = max(rule_cooldown, AGENT_HEARTBEAT_INTERVAL * 2)
+
+    # 写入Redis缓存，TTL 跟随 host_offline 规则配置
     redis = await get_redis()
-    await redis.set(f"heartbeat:{body.host_id}", now.isoformat(), ex=300)
+    await redis.set(f"heartbeat:{body.host_id}", now.isoformat(), ex=heartbeat_ttl)
 
     return AgentHeartbeatResponse(status="ok", server_time=now)
 
@@ -309,12 +325,17 @@ async def register_service(
     check_interval = body.get("check_interval", 60)
     timeout = body.get("timeout", 10)
 
-    # 查找已有服务
+    # 查找已有服务（按 host_id + name 唯一确定，target 可能因发现机制变化）
     result = await db.execute(
-        select(Service).where(Service.name == name, Service.target == target)
+        select(Service).where(Service.host_id == host_id, Service.name == name)
     )
     existing = result.scalar_one_or_none()
     if existing:
+        # target 有变化时同步更新，避免旧 target 残留
+        if existing.target != target:
+            existing.target = target
+            existing.type = svc_type
+            await db.commit()
         return {"service_id": existing.id, "created": False}
 
     # 自动分类
@@ -585,6 +606,7 @@ async def _check_log_keyword_alerts(logs: list, db: AsyncSession):
     """
     from app.models.alert import AlertRule, Alert
     from datetime import timedelta
+    from app.services.suppression_service import SuppressionService
 
     result = await db.execute(
         select(AlertRule).where(
@@ -595,6 +617,9 @@ async def _check_log_keyword_alerts(logs: list, db: AsyncSession):
     rules = result.scalars().all()
     if not rules:
         return
+
+    # 获取被屏蔽的 host_id，跳过这些主机的日志告警
+    suppressed_host_ids = await SuppressionService.get_suppressed_host_ids_for_logs(db)
 
     now = datetime.now(timezone.utc)
     dedup_window = now - timedelta(seconds=60)
@@ -611,6 +636,10 @@ async def _check_log_keyword_alerts(logs: list, db: AsyncSession):
     existing_alerts = {(row.rule_id, row.host_id) for row in existing_result}
 
     for log_item in logs:
+        # 跳过被屏蔽主机的日志
+        if log_item.host_id and log_item.host_id in suppressed_host_ids:
+            continue
+
         msg = (log_item.message or "").lower()
         level = (log_item.level or "").upper()
         svc = log_item.service or ""
@@ -644,6 +673,254 @@ async def _check_log_keyword_alerts(logs: list, db: AsyncSession):
     await db.commit()
 
 
+# =============================================================================
+# Agent WebSocket 更新通知
+# =============================================================================
+
+from fastapi import WebSocket, WebSocketDisconnect
+from datetime import datetime
+import asyncio
+import hashlib
+import logging
+import json
+
+logger = logging.getLogger(__name__)
+
+# 本进程内持有的 WebSocket 连接（每个 worker 各自维护）
+agent_ws_clients: dict = {}  # host_id -> WebSocket
+
+# Redis Pub/Sub channel 前缀，用于跨 worker 广播更新指令
+AGENT_UPDATE_CHANNEL = "agent_update:"
+# Redis key 前缀，记录哪些 host 当前有 WS 连接（跨 worker 可见）
+AGENT_WS_ONLINE_KEY = "agent_ws_online"
+
+
+async def _redis_pubsub_listener(host_id: int, websocket: WebSocket):
+    """
+    订阅 Redis channel，将收到的更新指令转发给本进程持有的 WebSocket。
+    同时监听 cmd_to_agent channel，将命令下发到 Agent。
+    每个 WebSocket 连接对应一个独立的订阅协程。
+    """
+    redis = await get_redis()
+    update_channel = f"{AGENT_UPDATE_CHANNEL}{host_id}"
+    cmd_channel = f"cmd_to_agent:{host_id}"
+    pubsub = redis.pubsub()
+    await pubsub.subscribe(update_channel, cmd_channel)
+    logger.info(f"Subscribed to Redis channels: {update_channel}, {cmd_channel}")
+    try:
+        async for message in pubsub.listen():
+            if message["type"] != "message":
+                continue
+            if host_id not in agent_ws_clients:
+                break
+            try:
+                payload = json.loads(message["data"])
+                await websocket.send_json(payload)
+                logger.info(f"Forwarded message type={payload.get('type')} to host_id={host_id}")
+            except Exception as e:
+                logger.warning(f"Failed to forward message to host_id={host_id}: {e}")
+                break
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await pubsub.unsubscribe(update_channel, cmd_channel)
+        await pubsub.close()
+
+
+# ====== WebSocket 连接端点 ======
+@router.websocket("/ws/{host_id}")
+async def agent_websocket(
+    websocket: WebSocket,
+    host_id: int,
+    token: str | None = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Agent WebSocket 连接端点
+
+    用于实时通信，包括：
+    - 更新通知推送（通过 Redis Pub/Sub 跨 worker 广播）
+    - 心跳检测
+
+    认证方式：
+    1. Authorization header (推荐)
+    2. 查询参数 ?token=xxx (备用)
+    """
+    # 先接受连接
+    await websocket.accept()
+
+    # 获取 token - 优先从 header，其次从查询参数
+    auth_header = websocket.headers.get("authorization", "")
+    raw_token = None
+
+    if auth_header.startswith("Bearer "):
+        raw_token = auth_header[7:]
+    elif token:
+        raw_token = token
+
+    if not raw_token:
+        logger.warning(f"WebSocket rejected: missing token for host_id={host_id}")
+        await websocket.close(code=1008, reason="Missing token")
+        return
+
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+
+    result = await db.execute(
+        select(AgentToken).where(
+            AgentToken.token_hash == token_hash,
+            AgentToken.is_active == True,
+        )
+    )
+    agent_token = result.scalar_one_or_none()
+    if agent_token is None:
+        logger.warning(f"WebSocket rejected: invalid token for host_id={host_id}")
+        await websocket.close(code=1008, reason="Invalid token")
+        return
+
+    # 认证成功，存储本进程内的连接，并在 Redis 中标记在线
+    agent_ws_clients[host_id] = websocket
+    redis = await get_redis()
+    await redis.sadd(AGENT_WS_ONLINE_KEY, host_id)
+    logger.info(f"Agent WebSocket connected: host_id={host_id}")
+
+    # 启动 Redis Pub/Sub 监听协程（跨 worker 接收更新指令）
+    pubsub_task = asyncio.create_task(_redis_pubsub_listener(host_id, websocket))
+
+    try:
+        while True:
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30)
+            except asyncio.TimeoutError:
+                continue
+            try:
+                msg = json.loads(data)
+                if msg.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+                elif msg.get("type") in ("command_output", "command_result"):
+                    # 将命令执行结果路由到对应的 OpsAgentLoop（通过 Redis Pub/Sub）
+                    await _route_command_result(host_id, msg)
+            except json.JSONDecodeError:
+                pass
+    except WebSocketDisconnect:
+        logger.info(f"Agent WebSocket disconnected: host_id={host_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error for host_id={host_id}: {e}", exc_info=True)
+    finally:
+        pubsub_task.cancel()
+        if host_id in agent_ws_clients:
+            del agent_ws_clients[host_id]
+        # 从 Redis 在线集合中移除
+        try:
+            await redis.srem(AGENT_WS_ONLINE_KEY, host_id)
+        except Exception:
+            pass
+
+
+# ====== 触发更新 API ======
+@router.get("/ws-status")
+async def get_ws_status(
+    current_user: User = Depends(get_current_user)
+):
+    """获取当前 WebSocket 连接状态（跨所有 worker）"""
+    redis = await get_redis()
+    online_ids = await redis.smembers(AGENT_WS_ONLINE_KEY)
+    connected_hosts = [int(h) for h in online_ids]
+    return {
+        "status": "ok",
+        "connected_hosts": connected_hosts,
+        "total_connections": len(connected_hosts)
+    }
+
+
+@router.post("/trigger-update/{host_id}")
+async def trigger_agent_update(
+    host_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    触发 Agent 更新。
+
+    通过 Redis Pub/Sub 广播更新指令，持有该 Agent WebSocket 连接的
+    worker 会收到并转发，解决多 worker 下连接不在同一进程的问题。
+    """
+    redis = await get_redis()
+
+    # 检查 Agent 是否在线（跨 worker 可见）
+    is_online = await redis.sismember(AGENT_WS_ONLINE_KEY, host_id)
+    if not is_online:
+        return {"status": "error", "message": "Agent not connected via WebSocket"}
+
+    try:
+        payload = json.dumps({
+            "type": "update",
+            "action": "upgrade",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        # 发布到对应 channel，持有连接的 worker 会收到并转发
+        receivers = await redis.publish(f"{AGENT_UPDATE_CHANNEL}{host_id}", payload)
+        logger.info(f"Update triggered for host_id={host_id}, receivers={receivers}")
+        return {"status": "ok", "message": "Update triggered successfully"}
+    except Exception as e:
+        logger.error(f"Failed to trigger update for host_id={host_id}: {e}")
+        return {"status": "error", "message": str(e)}
+
 # 添加安装脚本端点
 from .agent_install_endpoint import add_install_endpoint
 add_install_endpoint(router)
+
+
+async def _route_command_result(host_id: int, msg: dict):
+    """
+    将 Agent 回传的命令输出/结果通过 Redis Pub/Sub 路由到对应的 OpsAgentLoop。
+    同时通过 ops_ws channel 推送到前端 WebSocket。
+    """
+    request_id = msg.get("request_id")
+    if not request_id:
+        return
+
+    redis = await get_redis()
+    msg_type = msg.get("type")
+
+    if msg_type == "command_output":
+        # 推送流式输出到前端（通过 ops_ws channel，需要 session_id）
+        # 通过 request_id 查找 session_id（存储在 Redis 中）
+        session_id = await redis.get(f"cmd_req_session:{request_id}")
+        if session_id:
+            if isinstance(session_id, bytes):
+                session_id = session_id.decode()
+            from app.services.ops_agent_loop import OPS_WS_CHANNEL
+            await redis.publish(
+                f"{OPS_WS_CHANNEL}{session_id}",
+                json.dumps({
+                    "event": "command_output",
+                    "message_id": request_id,
+                    "stdout": msg.get("stdout", ""),
+                    "stderr": msg.get("stderr", ""),
+                }),
+            )
+
+    elif msg_type == "command_result":
+        # 查找 session_id
+        session_id = await redis.get(f"cmd_req_session:{request_id}")
+        if session_id:
+            if isinstance(session_id, bytes):
+                session_id = session_id.decode()
+            from app.services.ops_agent_loop import CMD_RESULT_CHANNEL, OPS_WS_CHANNEL
+            # 通知 OpsAgentLoop（_wait_command_result 正在监听此 channel）
+            await redis.publish(
+                f"{CMD_RESULT_CHANNEL}{session_id}",
+                json.dumps(msg),
+            )
+            # 同时推送到前端
+            await redis.publish(
+                f"{OPS_WS_CHANNEL}{session_id}",
+                json.dumps({
+                    "event": "command_result",
+                    "message_id": request_id,
+                    "exit_code": msg.get("exit_code", -1),
+                    "duration_ms": msg.get("duration_ms", 0),
+                }),
+            )
+            # 清理 Redis 中的映射
+            await redis.delete(f"cmd_req_session:{request_id}")

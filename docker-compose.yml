@@ -82,6 +82,7 @@ services:
       REDIS_PORT: 6379
       POSTGRES_PORT: 5432
       TZ: Asia/Shanghai
+    command: ["/bin/sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,7 +90,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-      - ./scripts:/scripts
+      - ./agent:/app/agent
     restart: unless-stopped
 
   # MCP Server - 独立运行的 Model Context Protocol 服务 (MCP Server - Standalone service)
