@@ -19,7 +19,6 @@ from app.models.alert import Alert
 from app.models.host import Host
 from app.models.user import User
 from app.services.llm_client import chat_completion, LLMClientError
-from app.services.ai_engine import ai_engine
 from app.schemas.ai_insight import (
     AIInsightResponse,
     AnalyzeLogsRequest,
@@ -381,8 +380,13 @@ async def generate_runbook(
     ]
 
     try:
-        result_text = await ai_engine._call_api(messages)
-        runbook_data = ai_engine._parse_json_response(result_text)
+        result_text = await chat_completion(messages, max_tokens=2000)
+        # Parse JSON from LLM response (strip markdown fences if present)
+        text = result_text.strip()
+        if text.startswith("```"):
+            lines = text.splitlines()
+            text = "\n".join(l for l in lines if not l.strip().startswith("```")).strip()
+        runbook_data = json.loads(text)
 
         # 覆盖风险级别（如果用户指定）
         if req.risk_level:
