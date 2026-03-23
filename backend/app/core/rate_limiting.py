@@ -87,23 +87,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/login": RateLimitRule(5, 300, description="登录接口：5次/5分钟"),
             "/api/v1/auth/register": RateLimitRule(3, 600, description="注册接口：3次/10分钟"),
             "/api/v1/auth/refresh": RateLimitRule(10, 300, per_user=True, description="刷新Token：10次/5分钟/用户"),
-            
+
             # 普通限制：业务 API (Normal: Business API)
             "/api/v1/alerts": RateLimitRule(100, 60, per_user=True, description="告警管理：100次/分钟/用户"),
             "/api/v1/hosts": RateLimitRule(200, 60, per_user=True, description="主机管理：200次/分钟/用户"),
             "/api/v1/services": RateLimitRule(200, 60, per_user=True, description="服务监控：200次/分钟/用户"),
             "/api/v1/logs": RateLimitRule(50, 60, per_user=True, description="日志查询：50次/分钟/用户"),
             "/api/v1/ai": RateLimitRule(20, 60, per_user=True, description="AI 分析：20次/分钟/用户"),
-            
-            # 严格限制：写操作 (Strict: Write operations)
+
+            # 严格限制：写操作和敏感操作 (Strict: Write and sensitive operations)
             "/api/v1/settings": RateLimitRule(30, 60, per_user=True, description="设置修改：30次/分钟/用户"),
             "/api/v1/users": RateLimitRule(50, 60, per_user=True, description="用户管理：50次/分钟/用户"),
-            
-            # Agent 数据上报：较宽松但有限制 (Agent reporting: relaxed but limited)
-            "/api/v1/agent/report": RateLimitRule(1000, 60, description="Agent上报：1000次/分钟"),
-            
+            "/api/v1/remediations": RateLimitRule(20, 60, per_user=True, description="修复操作：20次/分钟/用户"),
+
+            # Agent 数据上报：收紧限制 (Agent reporting: tightened)
+            "/api/v1/agent/report": RateLimitRule(200, 60, description="Agent上报：200次/分钟"),
+
             # 全局默认限制 (Global default limit)
-            "*": RateLimitRule(500, 60, description="默认限制：500次/分钟"),
+            "*": RateLimitRule(300, 60, description="默认限制：300次/分钟"),
         }
     
     async def dispatch(self, request: Request, call_next) -> Response:
@@ -297,18 +298,29 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         Returns:
             str: 客户端 IP 地址 (Client IP address)
         """
-        # 优先使用代理头 (Prioritize proxy headers)
-        forwarded_for = request.headers.get("X-Forwarded-For")
-        if forwarded_for:
-            # X-Forwarded-For 可能包含多个 IP，取第一个 (May contain multiple IPs, take first)
-            return forwarded_for.split(",")[0].strip()
-        
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            return real_ip.strip()
-        
-        # 回退到直连 IP (Fallback to direct connection IP)
-        return request.client.host if request.client else "unknown"
+        # 安全: 只有来自可信代理时才信任 X-Forwarded-For
+        # 在 Docker 环境中，可信代理是 nginx (通常是 172.x 或 10.x 网段)
+        import ipaddress
+        client_ip = request.client.host if request.client else "unknown"
+        _TRUSTED_PROXIES = {"127.0.0.1", "::1"}
+        try:
+            addr = ipaddress.ip_address(client_ip)
+            is_trusted = (
+                client_ip in _TRUSTED_PROXIES
+                or addr.is_private
+            )
+        except ValueError:
+            is_trusted = False
+
+        if is_trusted:
+            forwarded_for = request.headers.get("X-Forwarded-For")
+            if forwarded_for:
+                return forwarded_for.split(",")[0].strip()
+            real_ip = request.headers.get("X-Real-IP")
+            if real_ip:
+                return real_ip.strip()
+
+        return client_ip
     
     async def _get_user_id_from_request(self, request: Request) -> Optional[str]:
         """

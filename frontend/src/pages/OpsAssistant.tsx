@@ -1,5 +1,6 @@
 /**
  * AI 运维助手主页面 - Claude Code 终端风格
+ * @version 2026.03.23 - fix isProcessing reset on session switch
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { message } from 'antd';
@@ -50,6 +51,7 @@ export default function OpsAssistant() {
     if (!currentSessionId) return;
     setMessages([]);
     setTodos([]);
+    setIsProcessing(false);
     streamingMsgIdRef.current = null;
     opsApi.getSession(currentSessionId).then((detail: any) => {
       let latestTodos: Todo[] = [];

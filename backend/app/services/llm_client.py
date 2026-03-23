@@ -4,9 +4,15 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import logging
+
 import httpx
 
 from app.core.config import settings
+
+# 防止 httpx 调试日志泄露 Authorization header 中的 API Key
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 class LLMClientError(RuntimeError):
@@ -35,7 +41,8 @@ async def chat_completion(
         "temperature": temperature,
     }
 
-    async with httpx.AsyncClient(timeout=45.0, verify=False) as client:
+    _verify_ssl = settings.environment != "development"
+    async with httpx.AsyncClient(timeout=45.0, verify=_verify_ssl) as client:
         resp = await client.post(url, json=payload, headers=headers)
         resp.raise_for_status()
         data = resp.json()

@@ -18,7 +18,7 @@ import secrets
 from typing import Dict, Any, Optional
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -160,7 +160,7 @@ async def oauth_login(provider: str, request: Request):
 async def oauth_callback(
     provider: str,
     code: str,
-    state: Optional[str] = None,
+    state: str = Query(..., description="CSRF state parameter"),
     request: Request = None,
     db: AsyncSession = Depends(get_db)
 ):
@@ -183,9 +183,9 @@ async def oauth_callback(
         raise HTTPException(status_code=400, detail=f"不支持的OAuth提供商: {provider}")
     
     # 验证 state 参数防 CSRF（从 Redis 获取并删除，一次性使用防重放）
-    stored_provider = await _get_oauth_state(state) if state else None
+    stored_provider = await _get_oauth_state(state)
     if not stored_provider or stored_provider != provider:
-        raise HTTPException(status_code=400, detail="无效的状态参数")
+        raise HTTPException(status_code=400, detail="无效或已过期的状态参数")
     
     provider_config = OAUTH_PROVIDERS[provider]
     
@@ -425,18 +425,20 @@ async def _find_or_create_oauth_user(db: AsyncSession, provider: str, user_info:
         return user
     else:
         # 创建新用户
-        # 检查是否是第一个用户（自动设为管理员）
-        count_result = await db.execute(select(func.count(User.id)))
+        # 检查是否是第一个用户（自动设为管理员），使用 with_for_update 防止竞态条件
+        count_result = await db.execute(
+            select(func.count(User.id)).with_for_update()
+        )
         user_count = count_result.scalar()
-        
+
         new_user = User(
             email=email,
             name=user_info.get("name") or email.split("@")[0],
-            hashed_password="oauth",  # OAuth用户不使用本地密码
+            hashed_password="!" + __import__('secrets').token_urlsafe(64),  # OAuth用户不使用本地密码，设为不可匹配值
             role="admin" if user_count == 0 else "viewer",
             is_active=True
         )
-        
+
         db.add(new_user)
         await db.commit()
         await db.refresh(new_user)
@@ -531,14 +533,16 @@ async def _find_or_create_ldap_user(db: AsyncSession, user_info: Dict[str, Any])
         return user
     else:
         # 创建新用户
-        # 检查是否是第一个用户（自动设为管理员）
-        count_result = await db.execute(select(func.count(User.id)))
+        # 检查是否是第一个用户（自动设为管理员），使用 with_for_update 防止竞态条件
+        count_result = await db.execute(
+            select(func.count(User.id)).with_for_update()
+        )
         user_count = count_result.scalar()
-        
+
         new_user = User(
             email=email,
             name=user_info.get("name") or email.split("@")[0],
-            hashed_password="ldap",  # LDAP用户不使用本地密码
+            hashed_password="!" + __import__('secrets').token_urlsafe(64),  # LDAP用户不使用本地密码，设为不可匹配值
             role="admin" if user_count == 0 else "viewer",
             is_active=True
         )

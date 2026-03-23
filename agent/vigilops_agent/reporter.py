@@ -67,7 +67,7 @@ class AgentReporter:
         无论是服务端重启、网络抖动还是容器重建，都能自动恢复。
         """
         ws_url = self.config.server.url.replace("http://", "ws://").replace("https://", "wss://")
-        ws_url = ws_url.rstrip("/") + f"/api/v1/agent/ws/{self.host_id}?token={self.config.server.token}"
+        ws_url = ws_url.rstrip("/") + f"/api/v1/agent/ws/{self.host_id}"
         retry_delay = 5
         max_delay = 60
         ping_interval = 15
@@ -75,7 +75,13 @@ class AgentReporter:
         while True:  # 永久重连循环
             try:
                 logger.info(f"Attempting to connect WebSocket: {ws_url}")
-                ws = websocket.create_connection(ws_url, timeout=10)
+                sslopt = {"cert_reqs": __import__('ssl').CERT_REQUIRED} if ws_url.startswith("wss://") else {}
+                ws = websocket.create_connection(
+                    ws_url,
+                    timeout=10,
+                    header={"Authorization": f"Bearer {self.config.server.token}"},
+                    sslopt=sslopt,
+                )
                 self._ws = ws
                 self._ws_connected = True
                 retry_delay = 5  # 连接成功后重置退避时间
@@ -252,19 +258,53 @@ class AgentReporter:
         command = msg.get("command", "")
         timeout = msg.get("timeout", 120)
 
+        # 安全: 命令白名单验证，只允许诊断类命令
+        ALLOWED_COMMAND_PREFIXES = [
+            "df ", "free ", "top ", "ps ", "uptime", "cat /proc/", "cat /etc/os-release",
+            "systemctl status ", "systemctl is-active ", "journalctl ",
+            "docker ps", "docker stats", "docker logs ", "docker inspect ",
+            "netstat ", "ss ", "ip ", "ping ", "traceroute ", "dig ", "nslookup ",
+            "du ", "ls ", "find ", "head ", "tail ", "wc ", "grep ",
+            "mysql --version", "redis-cli info", "redis-cli ping",
+            "nginx -t", "nginx -T", "curl ", "wget ",
+            "vmstat", "iostat", "sar ", "lsof ", "who", "w ", "last ",
+            "uname ", "hostname", "date", "timedatectl",
+        ]
+
         def _send(payload: dict):
             try:
                 ws.send(json.dumps(payload))
             except Exception as e:
                 logger.warning(f"Failed to send command output: {e}")
 
+        # 安全检查: 验证命令是否在白名单中
+        cmd_stripped = command.strip()
+        is_allowed = any(cmd_stripped.startswith(prefix) for prefix in ALLOWED_COMMAND_PREFIXES)
+        if not is_allowed:
+            logger.warning(f"Command rejected (not in whitelist) [request_id={request_id}]: {command[:100]}")
+            _send({"type": "command_done", "request_id": request_id,
+                   "exit_code": -1, "stdout": "", "stderr": f"Command rejected: not in allowed command whitelist",
+                   "timed_out": False})
+            return
+
+        # 安全: 检查命令注入特殊字符
+        DANGEROUS_CHARS = [';', '&&', '||', '|', '`', '$(', '${', '\n', '\r']
+        for char in DANGEROUS_CHARS:
+            if char in command:
+                logger.warning(f"Command rejected (dangerous chars) [request_id={request_id}]: {command[:100]}")
+                _send({"type": "command_done", "request_id": request_id,
+                       "exit_code": -1, "stdout": "", "stderr": f"Command rejected: contains dangerous characters",
+                       "timed_out": False})
+                return
+
         logger.info(f"Executing command [request_id={request_id}]: {command[:100]}")
         start_time = _time.time()
 
         try:
+            import shlex
             proc = subprocess.Popen(
-                command,
-                shell=True,
+                shlex.split(command),
+                shell=False,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,

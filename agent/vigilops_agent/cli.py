@@ -79,6 +79,8 @@ discovery:
 
     USER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     USER_CONFIG_FILE.write_text(config_content, encoding="utf-8")
+    import os as _os
+    _os.chmod(USER_CONFIG_FILE, 0o600)  # 安全: 限制配置文件权限，防止 token 泄露
     click.echo(f"\n配置已保存到 {USER_CONFIG_FILE}")
     return str(USER_CONFIG_FILE)
 

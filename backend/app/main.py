@@ -136,62 +136,67 @@ async def lifespan(app: FastAPI):
         finally:
             sync_db.close()
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"Failed to initialize data retention settings: {e}")
+        _init_logger = logging.getLogger(__name__)
+        _init_logger.warning(f"Failed to initialize data retention settings: {e}")
 
     # 启动后台定时任务 (Start background scheduled tasks)
-    
-    # 主机离线检测任务 (Host offline detection task)
-    task = asyncio.create_task(offline_detector_loop())
-    
-    # 告警引擎任务 (Alert engine task)
-    alert_task = asyncio.create_task(alert_engine_loop())
-    
-    # 日志清理任务 (Log cleanup task)
+    logger = logging.getLogger("vigilops.tasks")
+
     retention_days = int(os.environ.get("LOG_RETENTION_DAYS", "7"))
-    log_cleanup_task = asyncio.create_task(log_cleanup_loop(retention_days))
-    
-    # 数据库指标清理任务 (Database metric cleanup task)
     db_retention = int(os.environ.get("DB_METRIC_RETENTION_DAYS", "30"))
-    db_cleanup_task = asyncio.create_task(db_metric_cleanup_loop(db_retention))
-    
-    # 新的统一数据保留策略任务 (New unified data retention policy task)
-    data_retention_task_instance = asyncio.create_task(data_retention_task())
-    
-    # 告警去重和聚合清理任务 (Alert deduplication and aggregation cleanup task)
-    alert_dedup_cleanup_task = asyncio.create_task(alert_deduplication_cleanup_loop())
 
-    # 启动 AI 异常扫描后台任务 (Start AI anomaly scanning background task)
     from app.services.anomaly_scanner import anomaly_scanner_loop
-    anomaly_task = asyncio.create_task(anomaly_scanner_loop())
-
-    # 启动报告定时生成任务 (Start scheduled report generation task)
     from app.tasks.report_scheduler import report_scheduler_loop
-    report_task = asyncio.create_task(report_scheduler_loop())
 
-    # 启动自动修复监听任务（仅在配置启用时） (Start auto-remediation listener task if enabled)
-    remediation_task = None
+    # 注册所有后台任务及其工厂函数 (Register all background tasks with factory functions)
+    background_tasks: dict[str, asyncio.Task] = {}
+    task_factories: dict[str, callable] = {
+        "offline_detector": lambda: offline_detector_loop(),
+        "alert_engine": lambda: alert_engine_loop(),
+        "log_cleanup": lambda: log_cleanup_loop(retention_days),
+        "db_metric_cleanup": lambda: db_metric_cleanup_loop(db_retention),
+        "data_retention": lambda: data_retention_task(),
+        "alert_dedup_cleanup": lambda: alert_deduplication_cleanup_loop(),
+        "anomaly_scanner": lambda: anomaly_scanner_loop(),
+        "report_scheduler": lambda: report_scheduler_loop(),
+    }
+
+    # 自动修复监听任务（仅在配置启用时）
     if app_settings.agent_enabled:
         from app.tasks.remediation_listener import remediation_listener_loop
-        remediation_task = asyncio.create_task(remediation_listener_loop())
+        task_factories["remediation_listener"] = lambda: remediation_listener_loop()
+
+    # 启动所有任务
+    for name, factory in task_factories.items():
+        background_tasks[name] = asyncio.create_task(factory(), name=name)
+
+    # 后台任务监控：检测崩溃并自动重启 (Background task monitor: detect crashes and auto-restart)
+    async def _monitor_tasks():
+        while True:
+            await asyncio.sleep(30)
+            for name, task in list(background_tasks.items()):
+                if task.done():
+                    exc = task.exception() if not task.cancelled() else None
+                    if exc:
+                        logger.error("后台任务 [%s] 崩溃: %s，30s 后自动重启", name, exc)
+                    else:
+                        logger.warning("后台任务 [%s] 意外退出，30s 后自动重启", name)
+                    # 使用工厂函数重启任务
+                    if name in task_factories:
+                        background_tasks[name] = asyncio.create_task(
+                            task_factories[name](), name=name
+                        )
+                        logger.info("后台任务 [%s] 已重启", name)
+
+    monitor_task = asyncio.create_task(_monitor_tasks(), name="task_monitor")
 
     # 应用运行阶段 (Application running phase)
     yield
 
     # 关闭阶段：清理资源和取消任务 (Shutdown Phase: Cleanup resources and cancel tasks)
-    
-    # 取消所有后台任务 (Cancel all background tasks)
-    task.cancel()
-    alert_task.cancel()
-    log_cleanup_task.cancel()
-    db_cleanup_task.cancel()
-    data_retention_task_instance.cancel()
-    alert_dedup_cleanup_task.cancel()
-    anomaly_task.cancel()
-    report_task.cancel()
-    if remediation_task is not None:
-        remediation_task.cancel()
+    monitor_task.cancel()
+    for name, task in background_tasks.items():
+        task.cancel()
 
     # 关闭连接池和资源 (Close connection pools and resources)
     await close_redis()
@@ -244,8 +249,6 @@ if is_development:
 else:
     _frontend_url = os.getenv("FRONTEND_URL", "").strip()
     allowed_origins = [
-        "http://localhost:3001",
-        "https://localhost:3001",
         "https://demo.lchuangnet.com",
         "https://lchuangnet.com",
         "https://www.lchuangnet.com",

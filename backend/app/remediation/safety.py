@@ -52,44 +52,59 @@ from .models import Diagnosis, RiskLevel, RunbookDefinition
 # Important: These rules are hard-coded and cannot be modified via config files or environment variables
 FORBIDDEN_PATTERNS: list[str] = [
     # 破坏性文件系统操作 (Destructive Filesystem Operations)
-    r"rm\s+-rf\s+/(?!\S)",          # rm -rf / (删除根目录 - Delete root directory)
-    r"rm\s+-rf\s+/\*",             # rm -rf /* (删除根目录所有内容 - Delete all root contents)  
-    r"rm\s+-rf\s+~",               # rm -rf ~ (删除用户主目录 - Delete user home directory)
-    r"mkfs\.",                     # mkfs.* (格式化文件系统 - Format filesystem)
-    r"dd\s+.*of=/dev/[sh]d",       # dd 写入硬盘设备 (dd write to disk device)
-    r">\s*/dev/[sh]d",             # 重定向到硬盘设备 (Redirect to disk device)
-    
+    r"rm\s+(-[a-zA-Z]*r[a-zA-Z]*\s+|-[a-zA-Z]*f[a-zA-Z]*\s+)*-[a-zA-Z]*r[a-zA-Z]*\s+/",  # rm -rf / 及变体
+    r"rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+|-[a-zA-Z]*r[a-zA-Z]*\s+)*-[a-zA-Z]*f[a-zA-Z]*\s+/",  # rm -fr / 及变体
+    r"rm\s+-rf\s+/\*",             # rm -rf /* (删除根目录所有内容)
+    r"rm\s+-rf\s+~",               # rm -rf ~ (删除用户主目录)
+    r"mkfs\.",                     # mkfs.* (格式化文件系统)
+    r"dd\s+.*of=/dev/[sh]d",       # dd 写入硬盘设备
+    r">\s*/dev/[sh]d",             # 重定向到硬盘设备
+
+    # sudo 包装的破坏性命令 (sudo-wrapped destructive commands)
+    r"sudo\s+rm\s",                # sudo rm (任何 sudo rm 操作)
+    r"sudo\s+shutdown",            # sudo shutdown
+    r"sudo\s+reboot",              # sudo reboot
+    r"sudo\s+mkfs",                # sudo mkfs
+    r"sudo\s+dd\s",                # sudo dd
+
     # 权限提升操作 (Privilege Escalation Operations)
-    r"chmod\s+.*777\s+/",          # chmod 777 根目录权限 (chmod 777 root directory permissions)
-    r"chown\s+.*root\s+/",         # chown 修改根目录所有者 (chown change root directory owner)
-    r"passwd\s",                   # 修改密码 (Change password)
-    r"useradd\s",                  # 添加用户 (Add user)
-    r"userdel\s",                  # 删除用户 (Delete user) 
-    r"visudo",                     # 编辑 sudo 配置 (Edit sudo configuration)
-    
+    r"chmod\s+.*777\s+/",          # chmod 777 根目录权限
+    r"chown\s+.*root\s+/",         # chown 修改根目录所有者
+    r"passwd\s",                   # 修改密码
+    r"useradd\s",                  # 添加用户
+    r"userdel\s",                  # 删除用户
+    r"visudo",                     # 编辑 sudo 配置
+
     # 网络渗透行为 (Network Penetration Behaviors)
-    r"curl\s+.*\|\s*sh",           # curl 下载并执行脚本 (curl download and execute script)
-    r"wget\s+.*\|\s*sh",           # wget 下载并执行脚本 (wget download and execute script)
-    r"curl\s+.*\|\s*bash",         # curl 通过 bash 执行 (curl execute via bash)
-    r"wget\s+.*\|\s*bash",         # wget 通过 bash 执行 (wget execute via bash)
-    
+    r"curl\s+.*\|\s*(sh|bash|zsh|python|perl)",   # curl 下载并执行脚本
+    r"wget\s+.*\|\s*(sh|bash|zsh|python|perl)",   # wget 下载并执行脚本
+    r"\beval\s*\(",                # eval() 注入
+    r"\$\(curl\s",                 # 命令替换中的 curl
+    r"\$\(wget\s",                 # 命令替换中的 wget
+
     # 危险系统命令 (Dangerous System Commands)
-    r"shutdown\s",                 # 关机命令 (Shutdown command)
-    r"reboot\b",                   # 重启命令 (Reboot command)
-    r"init\s+[06]",                # init 0/6 关机重启 (init 0/6 shutdown/reboot)
-    r"systemctl\s+(disable|mask)\s", # 禁用系统服务 (Disable system services)
-    r"iptables\s+-F",              # 清空防火墙规则 (Flush firewall rules)
-    r"iptables\s+-X",              # 删除防火墙链 (Delete firewall chains)
-    
+    r"shutdown\s",                 # 关机命令
+    r"reboot\b",                   # 重启命令
+    r"init\s+[06]",                # init 0/6 关机重启
+    r"systemctl\s+(disable|mask)\s", # 禁用系统服务
+    r"iptables\s+-F",              # 清空防火墙规则
+    r"iptables\s+-X",              # 删除防火墙链
+
     # 数据销毁操作 (Data Destruction Operations)
-    r"DROP\s+DATABASE",            # 删除数据库 (Drop database)
-    r"DROP\s+TABLE",               # 删除数据表 (Drop table)
-    r"TRUNCATE\s+TABLE",           # 清空数据表 (Truncate table)
-    
+    r"DROP\s+DATABASE",            # 删除数据库
+    r"DROP\s+TABLE",               # 删除数据表
+    r"TRUNCATE\s+TABLE",           # 清空数据表
+    r"DELETE\s+FROM\s+\S+\s*;?\s*$",  # 无条件 DELETE
+
     # 挖矿和恶意软件 (Mining and Malware)
-    r"xmrig",                      # XMRig 挖矿软件 (XMRig mining software)
-    r"minerd",                     # minerd 挖矿程序 (minerd mining program)
-    r"cryptonight",                # CryptoNight 挖矿算法 (CryptoNight mining algorithm)
+    r"xmrig",                      # XMRig 挖矿软件
+    r"minerd",                     # minerd 挖矿程序
+    r"cryptonight",                # CryptoNight 挖矿算法
+
+    # 反弹 Shell (Reverse Shell)
+    r"bash\s+-i\s+>&\s*/dev/tcp",  # bash 反弹 shell
+    r"nc\s+.*-e\s+(sh|bash)",      # netcat 反弹 shell
+    r"python.*socket.*connect",     # python 反弹 shell
 ]
 
 # 预编译正则表达式以提高匹配性能，大小写不敏感 (Pre-compile regex for performance, case-insensitive)
@@ -149,10 +164,11 @@ ALLOWED_COMMAND_PREFIXES: list[str] = [
 
     # 容器管理 (Container Management)
     "docker restart", "docker stop", "docker start", "docker ps", "docker logs",
-    "docker inspect", "docker stats", "docker top", "docker exec",
-    "docker compose", "docker-compose",
+    "docker inspect", "docker stats", "docker top",
+    "docker exec ", "docker compose", "docker-compose",
     "docker images", "docker pull", "docker info", "docker version",
-    "crictl ", "kubectl ",
+    "crictl ps", "crictl logs", "crictl inspect",
+    "kubectl get ", "kubectl describe ", "kubectl logs ", "kubectl top ",
 
     # 数据库客户端 (Database Clients) - 只读查询和状态检查
     "mysql", "mysqladmin", "mysqldump",

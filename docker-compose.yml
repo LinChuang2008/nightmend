@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vigilops_dev_password}
       TZ: Asia/Shanghai
     ports:
-      - "${POSTGRES_PORT:-5433}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
@@ -24,7 +24,7 @@ services:
       TZ: Asia/Shanghai
     command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
-      - "${REDIS_PORT:-6380}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -43,7 +43,7 @@ services:
     environment:
       CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE:-vigilops}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-vigilops_ch_dev}
       TZ: Asia/Shanghai
     volumes:
       - clickhousedata:/var/lib/clickhouse
@@ -63,7 +63,7 @@ services:
     environment:
       TZ: Asia/Shanghai
     ports:
-      - "${LOKI_PORT:-3100}:3100"
+      - "127.0.0.1:${LOKI_PORT:-3100}:3100"
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - lokidata:/loki
@@ -82,7 +82,7 @@ services:
       REDIS_PORT: 6379
       POSTGRES_PORT: 5432
       TZ: Asia/Shanghai
-    command: ["/bin/sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"]
+    command: ["/bin/sh", "-c", "python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,7 +97,7 @@ services:
   mcp:
     build: ./backend
     ports:
-      - "${MCP_PORT:-8003}:8003"
+      - "127.0.0.1:${MCP_PORT:-8003}:8003"
     env_file: .env
     environment:
       # MCP 环境变量

@@ -103,18 +103,22 @@ async def remediation_stats(
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=today_start.weekday())
 
-    total = (await db.execute(select(func.count(RemediationLog.id)))).scalar() or 0
-    success = (await db.execute(
-        select(func.count(RemediationLog.id)).where(RemediationLog.status == "success")
-    )).scalar() or 0
-    failed = (await db.execute(
-        select(func.count(RemediationLog.id)).where(RemediationLog.status == "failed")
-    )).scalar() or 0
-    pending = (await db.execute(
-        select(func.count(RemediationLog.id)).where(
-            RemediationLog.status.in_(["pending", "pending_approval", "diagnosing", "executing", "verifying"])
+    from sqlalchemy import case
+    stats_result = await db.execute(
+        select(
+            func.count(RemediationLog.id).label("total"),
+            func.count(case((RemediationLog.status == "success", RemediationLog.id))).label("success"),
+            func.count(case((RemediationLog.status == "failed", RemediationLog.id))).label("failed"),
+            func.count(case((RemediationLog.status.in_(
+                ["pending", "pending_approval", "diagnosing", "executing", "verifying"]
+            ), RemediationLog.id))).label("pending"),
         )
-    )).scalar() or 0
+    )
+    stats_row = stats_result.one()
+    total = stats_row.total or 0
+    success = stats_row.success or 0
+    failed = stats_row.failed or 0
+    pending = stats_row.pending or 0
 
     success_rate = round(success / total * 100, 1) if total > 0 else 0.0
 
@@ -174,9 +178,9 @@ async def approve_remediation(
     body: RemediationApproveRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_operator_user),
 ):
-    """审批修复操作，将状态从 pending_approval 改为 approved。"""
+    """审批修复操作，将状态从 pending_approval 改为 approved。仅管理员和操作员可审批。"""
     result = await db.execute(select(RemediationLog).where(RemediationLog.id == remediation_id))
     log = result.scalar_one_or_none()
     if not log:
@@ -206,9 +210,9 @@ async def reject_remediation(
     body: RemediationApproveRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_operator_user),
 ):
-    """拒绝修复操作，将状态从 pending_approval 改为 rejected。"""
+    """拒绝修复操作，将状态从 pending_approval 改为 rejected。仅管理员和操作员可拒绝。"""
     result = await db.execute(select(RemediationLog).where(RemediationLog.id == remediation_id))
     log = result.scalar_one_or_none()
     if not log:
