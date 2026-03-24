@@ -233,25 +233,12 @@ async def ws_logs(
     WebSocket 实时日志流 (WebSocket Real-time Log Stream)
     需要通过 query 参数 token 或 cookie 传递 JWT 进行认证。
     """
-    # 安全: WebSocket 连接认证（优先 cookie，兼容 query 参数）
-    from app.core.security import decode_token
-    from app.services.auth_session import validate_active_session
-    token_str = websocket.cookies.get("access_token") or websocket.query_params.get("token")
-    if not token_str:
+    # 安全: WebSocket 连接认证
+    from app.core.ws_auth import validate_ws_token
+    payload = await validate_ws_token(websocket)
+    if payload is None:
         await websocket.close(code=4401, reason="Authentication required")
         return
-    payload = decode_token(token_str)
-    if payload is None or payload.get("type") != "access":
-        await websocket.close(code=4401, reason="Invalid token")
-        return
-    # 校验 session 防止令牌复用
-    user_id = payload.get("sub")
-    token_sid = payload.get("sid")
-    if user_id and token_sid:
-        is_valid = await validate_active_session(int(user_id), token_sid)
-        if not is_valid:
-            await websocket.close(code=4401, reason="Session expired")
-            return
 
     await websocket.accept()  # 认证通过，接受 WebSocket 连接请求
     queue = log_broadcaster.subscribe()  # 订阅日志广播队列

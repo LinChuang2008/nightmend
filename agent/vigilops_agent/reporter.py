@@ -290,7 +290,7 @@ class AgentReporter:
             return
 
         # 安全: 检查命令注入特殊字符
-        DANGEROUS_CHARS = [';', '&&', '||', '|', '`', '$(', '${', '\n', '\r']
+        DANGEROUS_CHARS = [';', '&&', '||', '|', '`', '$(', '${', '\n', '\r', '>', '<', '(', ')']
         for char in DANGEROUS_CHARS:
             if char in command:
                 logger.warning(f"Command rejected (dangerous chars) [request_id={request_id}]: {command[:100]}")

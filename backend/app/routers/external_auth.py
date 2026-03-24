@@ -425,10 +425,10 @@ async def _find_or_create_oauth_user(db: AsyncSession, provider: str, user_info:
         return user
     else:
         # 创建新用户
-        # 检查是否是第一个用户（自动设为管理员），使用 with_for_update 防止竞态条件
-        count_result = await db.execute(
-            select(func.count(User.id)).with_for_update()
-        )
+        # 检查是否是第一个用户（自动设为管理员），使用 advisory lock 防止竞态条件
+        from sqlalchemy import text
+        await db.execute(text("SELECT pg_advisory_xact_lock(8007)"))  # 全局用户创建锁
+        count_result = await db.execute(select(func.count(User.id)))
         user_count = count_result.scalar()
 
         new_user = User(
@@ -533,10 +533,10 @@ async def _find_or_create_ldap_user(db: AsyncSession, user_info: Dict[str, Any])
         return user
     else:
         # 创建新用户
-        # 检查是否是第一个用户（自动设为管理员），使用 with_for_update 防止竞态条件
-        count_result = await db.execute(
-            select(func.count(User.id)).with_for_update()
-        )
+        # 检查是否是第一个用户（自动设为管理员），使用 advisory lock 防止竞态条件
+        from sqlalchemy import text
+        await db.execute(text("SELECT pg_advisory_xact_lock(8007)"))  # 全局用户创建锁
+        count_result = await db.execute(select(func.count(User.id)))
         user_count = count_result.scalar()
 
         new_user = User(
