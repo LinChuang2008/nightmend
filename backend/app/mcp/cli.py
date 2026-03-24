@@ -63,9 +63,10 @@ def main():
     
     try:
         # Check database connection
+        from sqlalchemy import text
         from app.core.database import SessionLocal
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         logger.info("Database connection verified")
         
