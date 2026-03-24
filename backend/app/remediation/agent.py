@@ -422,13 +422,14 @@ class RemediationAgent:
             模板: "systemctl restart {service} on {host}"  
             解析后: "systemctl restart nginx on web01.example.com"
         """
-        # 首先替换标准的主机名变量 (First replace standard hostname variable)
-        resolved = command.replace("{host}", alert.host)
-        
-        # 然后替换告警标签中的所有自定义变量 (Then replace all custom variables from alert labels)
+        import shlex
+        # 首先替换标准的主机名变量，使用 shlex.quote 防止命令注入
+        resolved = command.replace("{host}", shlex.quote(alert.host))
+
+        # 然后替换告警标签中的所有自定义变量，同样进行安全转义
         for key, value in alert.labels.items():
-            resolved = resolved.replace(f"{{{key}}}", value)
-            
+            resolved = resolved.replace(f"{{{key}}}", shlex.quote(value))
+
         return resolved
 
     async def _update_log(

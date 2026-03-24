@@ -136,7 +136,7 @@ class Settings(BaseSettings):
     # SSRF 防护：允许的 Webhook 域名白名单（逗号分隔），留空则不限制（仅开发环境）
     # SSRF Protection: Allowed webhook domain whitelist (comma-separated), empty = no restriction (dev only)
     webhook_allowed_domains: str = ""  # 例如: "api.example.com,webhook.example.com"
-    webhook_enable_ssl_verification: bool = False  # 是否启用 SSL 证书验证 (Enable SSL Certificate Verification)
+    webhook_enable_ssl_verification: bool = True  # 是否启用 SSL 证书验证 (Enable SSL Certificate Verification)
 
     # 环境变量别名（Environment Variable Aliases）
     # Pydantic Settings 需要明确指定环境变量名称
