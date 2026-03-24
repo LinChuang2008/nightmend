@@ -33,6 +33,54 @@ export interface SkillInfo {
   triggers: string[];
 }
 
+export interface OpsAIConfig {
+  id: string;
+  feature_key: string;
+  name: string;
+  base_url: string;
+  model: string;
+  max_output_tokens: number;
+  model_context_tokens: number;
+  allowed_context_tokens: number;
+  extra_context: string;
+  has_api_key: boolean;
+  api_key_mask?: string | null;
+  is_default: boolean;
+  enabled: boolean;
+}
+
+export interface OpsAIConfigUpdate {
+  feature_key?: string;
+  name?: string;
+  base_url?: string;
+  model?: string;
+  api_key?: string;
+  max_output_tokens?: number;
+  model_context_tokens?: number;
+  allowed_context_tokens?: number;
+  extra_context?: string;
+  enabled?: boolean;
+}
+
+export interface OpsAIConfigCreate {
+  feature_key: string;
+  name: string;
+  base_url: string;
+  model: string;
+  api_key?: string;
+  max_output_tokens: number;
+  model_context_tokens: number;
+  allowed_context_tokens: number;
+  extra_context?: string;
+  enabled?: boolean;
+}
+
+export interface OpsAIFeaturePolicy {
+  feature_key: string;
+  label: string;
+  max_models: number;
+}
+
 export const opsApi = {
   createSession: (title?: string) =>
     api.post<OpsSession>('/ops/sessions', { title }).then((r) => r.data),
@@ -48,4 +96,28 @@ export const opsApi = {
 
   listSkills: () =>
     api.get<SkillInfo[]>('/ops/skills').then((r) => r.data),
+
+  listAIConfigs: () =>
+    api.get<OpsAIConfig[]>('/ops/ai-configs').then((r) => r.data),
+
+  listAIConfigFeatures: () =>
+    api.get<OpsAIFeaturePolicy[]>('/ops/ai-config-features').then((r) => r.data),
+
+  listAIConfigsAdmin: () =>
+    api.get<OpsAIConfig[]>('/ops/ai-configs/admin').then((r) => r.data),
+
+  createAIConfig: (payload: OpsAIConfigCreate) =>
+    api.post<OpsAIConfig>('/ops/ai-configs', payload).then((r) => r.data),
+
+  updateAIConfig: (configId: string, payload: OpsAIConfigUpdate) =>
+    api.put<OpsAIConfig>(`/ops/ai-configs/${configId}`, payload).then((r) => r.data),
+
+  deleteAIConfig: (configId: string) =>
+    api.delete(`/ops/ai-configs/${configId}`),
+
+  setDefaultAIConfig: (configId: string) =>
+    api.post<OpsAIConfig>(`/ops/ai-configs/${configId}/default`).then((r) => r.data),
+
+  importAIConfig: (config: Record<string, unknown>, feature_key?: string, name?: string) =>
+    api.post<OpsAIConfig>('/ops/ai-configs/import', { config, feature_key, name }).then((r) => r.data),
 };

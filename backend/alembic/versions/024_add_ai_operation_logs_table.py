@@ -15,27 +15,30 @@ depends_on = None
 
 
 def upgrade():
-    op.create_table(
-        "ai_operation_logs",
-        sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("session_id", sa.String(length=36), nullable=True),
-        sa.Column("request_id", sa.String(length=64), nullable=True),
-        sa.Column("host_id", sa.Integer(), nullable=True),
-        sa.Column("host_name", sa.String(length=255), nullable=True),
-        sa.Column("command", sa.Text(), nullable=False),
-        sa.Column("reason", sa.Text(), nullable=True),
-        sa.Column("exit_code", sa.Integer(), nullable=True),
-        sa.Column("duration_ms", sa.Integer(), nullable=True),
-        sa.Column("status", sa.String(length=20), nullable=False, server_default="unknown"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+    op.execute(
+        """
+        CREATE TABLE IF NOT EXISTS ai_operation_logs (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            session_id VARCHAR(36) NULL,
+            request_id VARCHAR(64) NULL,
+            host_id INTEGER NULL,
+            host_name VARCHAR(255) NULL,
+            command TEXT NOT NULL,
+            reason TEXT NULL,
+            exit_code INTEGER NULL,
+            duration_ms INTEGER NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'unknown',
+            created_at TIMESTAMPTZ DEFAULT now()
+        )
+        """
     )
-    op.create_index("ix_ai_operation_logs_user_id", "ai_operation_logs", ["user_id"])
-    op.create_index("ix_ai_operation_logs_session_id", "ai_operation_logs", ["session_id"])
-    op.create_index("ix_ai_operation_logs_request_id", "ai_operation_logs", ["request_id"])
-    op.create_index("ix_ai_operation_logs_host_id", "ai_operation_logs", ["host_id"])
-    op.create_index("ix_ai_operation_logs_status", "ai_operation_logs", ["status"])
-    op.create_index("ix_ai_operation_logs_created_at", "ai_operation_logs", ["created_at"])
+    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_operation_logs_user_id ON ai_operation_logs (user_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_operation_logs_session_id ON ai_operation_logs (session_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_operation_logs_request_id ON ai_operation_logs (request_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_operation_logs_host_id ON ai_operation_logs (host_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_operation_logs_status ON ai_operation_logs (status)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_ai_operation_logs_created_at ON ai_operation_logs (created_at)")
 
 
 def downgrade():

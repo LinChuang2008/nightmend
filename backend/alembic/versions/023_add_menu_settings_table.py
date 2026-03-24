@@ -16,13 +16,16 @@ depends_on = None
 
 
 def upgrade():
-    op.create_table(
-        "menu_settings",
-        sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("hidden_keys", JSONB, nullable=False, server_default=sa.text("'[]'::jsonb")),
-        sa.Column("updated_by", sa.Integer(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+    op.execute(
+        """
+        CREATE TABLE IF NOT EXISTS menu_settings (
+            id SERIAL PRIMARY KEY,
+            hidden_keys JSONB NOT NULL DEFAULT '[]'::jsonb,
+            updated_by INTEGER NULL,
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+        )
+        """
     )
 
 

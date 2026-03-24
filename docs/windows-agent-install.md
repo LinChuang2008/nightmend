@@ -51,6 +51,15 @@ pip install pywin32
 pip install -e .
 ```
 
+> **注意：** `netifaces` 是一个需要 C 编译器的包，在 Windows 上 `pip install` 可能失败。
+> 推荐使用 conda 预先安装编译好的版本：
+>
+> ```powershell
+> conda install -c conda-forge netifaces -y
+> ```
+>
+> 安装完成后再执行上方的 `pip install` 步骤。
+
 安装完成后验证：
 
 ```powershell

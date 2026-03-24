@@ -54,7 +54,7 @@ const { Header, Sider, Content } = Layout;
 /** viewer 可见的菜单 key */
 const viewerKeys = new Set(['/', '/hosts', '/servers', '/services', '/topology', '/topology/servers', '/topology/service-groups', '/logs', '/databases', '/alerts', '/ops', '/remediations', '/runbooks', '/multi-server', '/service-groups', '/on-call', '/sla', '/ai-operation-logs']);
 /** member 隐藏的菜单 key */
-const memberHiddenKeys = new Set(['/users', '/settings']);
+const memberHiddenKeys = new Set(['/users', '/settings', '/ai-configs']);
 
 /** 根据角色过滤菜单（支持分组结构） */
 function filterMenuByRole(items: ReturnType<typeof buildMenuItems>, role: string) {
@@ -171,6 +171,7 @@ function buildMenuItems(t: (key: string) => string) {
         { key: '/notification-logs', icon: <UnorderedListOutlined />, label: t('menu.notificationLogs') },
         { key: '/users', icon: <TeamOutlined />, label: t('menu.users') },
         { key: '/audit-logs', icon: <AuditOutlined />, label: t('menu.auditLogs') },
+        { key: '/ai-configs', icon: <RobotOutlined />, label: t('menu.aiConfigs') },
         { key: '/settings', icon: <SettingOutlined />, label: t('menu.settings') },
       ],
     },

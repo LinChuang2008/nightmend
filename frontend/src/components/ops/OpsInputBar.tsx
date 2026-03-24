@@ -3,6 +3,8 @@
  */
 import React, { useMemo, useState, useRef } from 'react';
 
+const DEFAULT_AI_CONFIG_ID = '__default__';
+
 interface Host {
   id: number;
   hostname: string;
@@ -13,14 +15,16 @@ interface Host {
 }
 
 interface OpsInputBarProps {
-  onSend: (content: string, hostId?: number) => void;
+  onSend: (content: string, hostId?: number, aiConfigId?: string) => void;
   disabled?: boolean;
   hosts?: Host[];
+  aiConfigs?: Array<{ id: string; name: string; feature_key: string; model: string; is_default?: boolean }>;
 }
 
-export default function OpsInputBar({ onSend, disabled, hosts = [] }: OpsInputBarProps) {
+export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = [] }: OpsInputBarProps) {
   const [value, setValue] = useState('');
   const [selectedHostId, setSelectedHostId] = useState<number | undefined>();
+  const [selectedAiConfigId, setSelectedAiConfigId] = useState<string>(DEFAULT_AI_CONFIG_ID);
   const [showHostPicker, setShowHostPicker] = useState(false);
   const [searchText, setSearchText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -48,10 +52,19 @@ export default function OpsInputBar({ onSend, disabled, hosts = [] }: OpsInputBa
     });
   }, [hosts, searchText]);
 
+  React.useEffect(() => {
+    if (selectedAiConfigId === DEFAULT_AI_CONFIG_ID) return;
+    const exists = aiConfigs.some((c) => c.id === selectedAiConfigId);
+    if (!exists) setSelectedAiConfigId(DEFAULT_AI_CONFIG_ID);
+  }, [aiConfigs, selectedAiConfigId]);
+
+  const selectedAiConfig = aiConfigs.find((c) => c.id === selectedAiConfigId);
+
   const handleSend = () => {
     const trimmed = value.trim();
     if (!trimmed || disabled || !selectedHostId) return;
-    onSend(trimmed, selectedHostId);
+    const aiConfigId = selectedAiConfigId === DEFAULT_AI_CONFIG_ID ? undefined : selectedAiConfigId;
+    onSend(trimmed, selectedHostId, aiConfigId);
     setValue('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
@@ -72,6 +85,27 @@ export default function OpsInputBar({ onSend, disabled, hosts = [] }: OpsInputBa
 
   return (
     <div className="cc-input-wrap">
+      <div className="cc-host-row">
+        <span className="cc-host-label">ai:</span>
+        <select
+          className="cc-ai-select"
+          value={selectedAiConfigId}
+          onChange={(e) => setSelectedAiConfigId(e.target.value)}
+        >
+          <option value={DEFAULT_AI_CONFIG_ID}>默认模型配置（自动回退）</option>
+          {aiConfigs.map((cfg) => (
+            <option key={cfg.id} value={cfg.id}>
+              {cfg.name} ({cfg.feature_key}) · {cfg.model}
+            </option>
+          ))}
+        </select>
+        {selectedAiConfig ? (
+          <span className="cc-ai-hint">feature={selectedAiConfig.feature_key}</span>
+        ) : (
+          <span className="cc-ai-hint">feature=default</span>
+        )}
+      </div>
+
       {/* 主机选择器行 */}
       {hosts.length > 0 && (
         <div className="cc-host-row">
@@ -186,6 +220,18 @@ export default function OpsInputBar({ onSend, disabled, hosts = [] }: OpsInputBa
           transition: color 0.1s;
         }
         .cc-host-btn:hover { color: #ddd; }
+        .cc-ai-select {
+          background: #111;
+          color: #ddd;
+          border: 1px solid #2a2a2a;
+          height: 24px;
+          font-size: 12px;
+          font-family: inherit;
+        }
+        .cc-ai-hint {
+          color: #666;
+          font-size: 11px;
+        }
         .cc-host-clear { color: #f85149; }
         .cc-host-picker {
           position: absolute;

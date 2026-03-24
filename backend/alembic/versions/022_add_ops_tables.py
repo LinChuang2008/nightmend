@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 revision = '022_add_ops_tables'
-down_revision = '021_add_suppression_rules'
+down_revision = '021_add_custom_runbooks_table'
 branch_labels = None
 depends_on = None
 

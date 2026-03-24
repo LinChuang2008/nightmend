@@ -163,7 +163,7 @@ async def scan_recent_logs(hours: int = 1) -> None:
 
             # 5. AI异常分析 (AI Anomaly Analysis)
             logger.info("Anomaly scan: analyzing %d log entries", len(logs_data))
-            analysis = await analyze_logs_brief(logs_data)  # 调用 LLM 分析
+            analysis = await analyze_logs_brief(logs_data, feature_key="ai_insight")  # 调用 LLM 分析
 
             # 6. 分析结果处理 (Analysis Result Processing)
             if not analysis.get("error"):

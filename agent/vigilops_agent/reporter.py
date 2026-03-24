@@ -42,6 +42,8 @@ class AgentReporter:
         self._client: Optional[httpx.AsyncClient] = None
         self._service_ids: Dict[str, int] = {}  # 服务名 -> 服务端分配的 service_id
         self._manual_service_names: set = set()  # 手动配置的服务名（不参与自动移除检测）
+        self._remote_db_tasks: Dict[int, asyncio.Task] = {}
+        self._remote_db_signatures: Dict[int, str] = {}
         # WebSocket 相关字段
         self._ws: Optional[websocket.WebSocket] = None
         self._ws_thread: Optional[threading.Thread] = None
@@ -695,6 +697,93 @@ class AgentReporter:
         resp.raise_for_status()
         logger.debug("DB metrics reported: %s", metrics.get("db_name"))
 
+    @staticmethod
+    def _build_db_target_signature(target: dict) -> str:
+        return json.dumps(
+            {
+                "name": target.get("name", ""),
+                "db_type": target.get("db_type", ""),
+                "db_host": target.get("db_host", ""),
+                "db_port": target.get("db_port", 0),
+                "db_name": target.get("db_name", ""),
+                "username": target.get("username", ""),
+                "password": target.get("password", ""),
+                "interval_sec": target.get("interval_sec", 60),
+                "connect_timeout_sec": target.get("connect_timeout_sec", 10),
+                "extra_config": target.get("extra_config", {}) or {},
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+
+    @staticmethod
+    def _build_db_config_from_target(target: dict) -> DatabaseMonitorConfig:
+        extra = target.get("extra_config", {}) or {}
+        return DatabaseMonitorConfig(
+            name=target.get("name", ""),
+            type=target.get("db_type", "postgres"),
+            host=target.get("db_host", "localhost"),
+            port=int(target.get("db_port", 5432)),
+            database=target.get("db_name", ""),
+            username=target.get("username", ""),
+            password=target.get("password", ""),
+            interval=int(target.get("interval_sec", 60)),
+            connect_timeout=int(target.get("connect_timeout_sec", 10)),
+            connection_mode=extra.get("connection_mode", "auto"),
+            container_name=extra.get("container_name", ""),
+            oracle_sid=extra.get("oracle_sid", ""),
+            oracle_home=extra.get("oracle_home", ""),
+            service_name=extra.get("service_name", ""),
+            redis_mode=extra.get("redis_mode", "single"),
+            sentinel_master=extra.get("sentinel_master", ""),
+            connection_threshold=float(extra.get("connection_threshold", 0.8)),
+        )
+
+    async def _sync_remote_db_targets(self):
+        """从服务端同步数据库监控目标，并动态启动/更新采集任务。"""
+        if not self.host_id:
+            return
+        try:
+            client = await self._get_client()
+            resp = await client.get("/api/v1/agent/db-targets", params={"host_id": self.host_id})
+            resp.raise_for_status()
+            payload = resp.json() or {}
+            items = payload.get("items", []) or []
+        except Exception as e:
+            logger.warning("Failed to sync remote DB targets: %s", e)
+            return
+
+        active_ids = set()
+        for target in items:
+            if not target.get("is_active", True):
+                continue
+            target_id = int(target.get("id"))
+            active_ids.add(target_id)
+            signature = self._build_db_target_signature(target)
+
+            # 配置未变化，保持当前任务
+            if self._remote_db_signatures.get(target_id) == signature and target_id in self._remote_db_tasks:
+                continue
+
+            # 配置变更时，先停掉旧任务再重启
+            old_task = self._remote_db_tasks.get(target_id)
+            if old_task:
+                old_task.cancel()
+
+            db_cfg = self._build_db_config_from_target(target)
+            new_task = asyncio.create_task(self._db_monitor_loop(db_cfg))
+            self._remote_db_tasks[target_id] = new_task
+            self._remote_db_signatures[target_id] = signature
+            logger.info("Remote DB target synced: id=%s name=%s", target_id, db_cfg.name)
+
+        # 清理已删除或停用的目标任务
+        for target_id in list(self._remote_db_tasks.keys()):
+            if target_id not in active_ids:
+                self._remote_db_tasks[target_id].cancel()
+                self._remote_db_tasks.pop(target_id, None)
+                self._remote_db_signatures.pop(target_id, None)
+                logger.info("Remote DB target removed: id=%s", target_id)
+
     async def _db_monitor_loop(self, db_config: DatabaseMonitorConfig):
         """数据库指标周期性采集循环。"""
         from vigilops_agent.db_collector import collect_db_metrics
@@ -703,6 +792,8 @@ class AgentReporter:
                 metrics = collect_db_metrics(db_config)
                 if metrics:
                     await self.report_db_metrics(metrics)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logger.warning("DB monitor failed for %s: %s", db_config.name, e)
             await asyncio.sleep(db_config.interval)
@@ -789,6 +880,7 @@ class AgentReporter:
         while True:
             await asyncio.sleep(60)
             try:
+                await self._sync_remote_db_targets()
                 newly_discovered = []
 
                 if self.config.discovery.docker:
@@ -963,6 +1055,9 @@ class AgentReporter:
                 logger.info(f"Auto-discovered {len(db_discovered)} Docker database(s), "
                             f"total after merge: {len(self.config.databases)}")
 
+        # 首次同步平台下发的数据库监控目标（无需改本地配置文件）
+        await self._sync_remote_db_targets()
+
         # 注册所有服务到服务端
         if self.config.services:
             await self.register_services()
@@ -986,9 +1081,6 @@ class AgentReporter:
             asyncio.create_task(self._discovery_loop()),
         ]
 
-        # 启动周期性服务重新发现（动态感知新服务）
-        if self.config.discovery.docker or self.config.discovery.host_services:
-            tasks.append(asyncio.create_task(self._discovery_loop()))
         for svc in self.config.services:
             if svc.name in self._service_ids:
                 tasks.append(asyncio.create_task(self._service_check_loop(svc)))

@@ -47,3 +47,51 @@ class OpsApprovalReply(BaseModel):
     request_type: Optional[Literal["command_request", "ask_user"]] = None
     action: Literal["confirm", "reject", "answer", "expired", "answered"]
     answer: Optional[str] = None
+
+
+class OpsAIConfigResponse(BaseModel):
+    id: str
+    feature_key: str
+    name: str
+    base_url: str
+    model: str
+    max_output_tokens: int
+    model_context_tokens: int
+    allowed_context_tokens: int
+    extra_context: str
+    has_api_key: bool
+    api_key_mask: Optional[str] = None
+    is_default: bool = False
+    enabled: bool = True
+
+
+class OpsAIConfigUpdate(BaseModel):
+    feature_key: Optional[str] = None
+    name: Optional[str] = None
+    base_url: Optional[str] = None
+    model: Optional[str] = None
+    api_key: Optional[str] = None
+    max_output_tokens: Optional[int] = None
+    model_context_tokens: Optional[int] = None
+    allowed_context_tokens: Optional[int] = None
+    extra_context: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+class OpsAIConfigImport(BaseModel):
+    feature_key: Optional[str] = None
+    name: Optional[str] = None
+    config: dict[str, Any]
+
+
+class OpsAIConfigCreate(BaseModel):
+    feature_key: str
+    name: str
+    base_url: str
+    model: str
+    api_key: Optional[str] = None
+    max_output_tokens: int = 4000
+    model_context_tokens: int = 200000
+    allowed_context_tokens: int = 120000
+    extra_context: str = ""
+    enabled: bool = True

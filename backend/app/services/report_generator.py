@@ -380,7 +380,7 @@ async def generate_report(
         ]
 
         # 6. 调用AI引擎生成报告内容 (Call AI Engine to Generate Report Content)
-        result_text = await chat_completion(messages, max_tokens=1800, temperature=0.3)
+        result_text = await chat_completion(messages, max_tokens=1800, temperature=0.3, feature_key="ops_report")
 
         # 7. AI响应内容解析 (AI Response Content Parsing)
         # 将AI生成的内容分离为正文和摘要两部分

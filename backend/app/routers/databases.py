@@ -14,13 +14,17 @@ Author: VigilOps Team
 """
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_admin_user, get_current_user
+from app.models.host import Host
 from app.models.db_metric import MonitoredDatabase, DbMetric
+from app.models.database_target import DatabaseMonitorTarget
+from app.models.user import User
+from app.schemas.database_target import DatabaseTargetCreate, DatabaseTargetOut, DatabaseTargetUpdate
 
 router = APIRouter(prefix="/api/v1/databases", tags=["databases"])
 
@@ -57,6 +61,148 @@ def _parse_period(period: str) -> timedelta:
         status_code=400,
         detail=f"无效的时间周期参数 '{period}'，支持格式示例：1h、7d、30m"
     )
+
+
+def _normalize_db_type(db_type: str) -> str:
+    t = (db_type or "").strip().lower()
+    alias = {
+        "postgresql": "postgres",
+        "pg": "postgres",
+        "mariadb": "mysql",
+    }
+    normalized = alias.get(t, t)
+    allowed = {"postgres", "mysql", "oracle", "redis"}
+    if normalized not in allowed:
+        raise HTTPException(status_code=400, detail="不支持的数据库类型，仅支持 postgres/mysql/oracle/redis")
+    return normalized
+
+
+@router.get("/targets")
+async def list_database_targets(
+    host_id: int | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_admin_user),
+):
+    """
+    获取数据库监控目标配置列表（管理端）。
+    """
+    query = select(DatabaseMonitorTarget).order_by(desc(DatabaseMonitorTarget.updated_at))
+    if host_id is not None:
+        query = query.where(DatabaseMonitorTarget.host_id == host_id)
+    result = await db.execute(query)
+    targets = result.scalars().all()
+
+    host_ids = {t.host_id for t in targets}
+    host_map = {}
+    if host_ids:
+        hosts = await db.execute(select(Host).where(Host.id.in_(host_ids)))
+        host_map = {h.id: (h.display_name or h.hostname) for h in hosts.scalars().all()}
+
+    items = []
+    for t in targets:
+        items.append(
+            DatabaseTargetOut(
+                id=t.id,
+                host_id=t.host_id,
+                host_name=host_map.get(t.host_id, f"host-{t.host_id}"),
+                name=t.name,
+                db_type=t.db_type,
+                db_host=t.db_host,
+                db_port=t.db_port,
+                db_name=t.db_name,
+                username=t.username,
+                has_password=bool(t.password),
+                interval_sec=t.interval_sec,
+                connect_timeout_sec=t.connect_timeout_sec,
+                is_active=t.is_active,
+                extra_config=t.extra_config,
+                created_at=t.created_at.isoformat() if t.created_at else None,
+                updated_at=t.updated_at.isoformat() if t.updated_at else None,
+            ).model_dump()
+        )
+
+    return {"items": items, "total": len(items)}
+
+
+@router.post("/targets", status_code=status.HTTP_201_CREATED)
+async def create_database_target(
+    data: DatabaseTargetCreate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_admin_user),
+):
+    """
+    新增数据库监控目标配置（管理端手动添加）。
+    """
+    host = await db.execute(select(Host).where(Host.id == data.host_id))
+    if not host.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Host not found")
+
+    target = DatabaseMonitorTarget(
+        host_id=data.host_id,
+        name=data.name.strip(),
+        db_type=_normalize_db_type(data.db_type),
+        db_host=data.db_host.strip(),
+        db_port=data.db_port,
+        db_name=data.db_name.strip(),
+        username=data.username.strip(),
+        password=data.password,
+        interval_sec=data.interval_sec,
+        connect_timeout_sec=data.connect_timeout_sec,
+        is_active=data.is_active,
+        extra_config=data.extra_config,
+    )
+    db.add(target)
+    await db.commit()
+    await db.refresh(target)
+    return {"id": target.id}
+
+
+@router.put("/targets/{target_id}")
+async def update_database_target(
+    target_id: int,
+    data: DatabaseTargetUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_admin_user),
+):
+    """
+    更新数据库监控目标配置。
+    """
+    result = await db.execute(select(DatabaseMonitorTarget).where(DatabaseMonitorTarget.id == target_id))
+    target = result.scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    updates = data.model_dump(exclude_unset=True)
+    if updates.get("password", None) == "":
+        updates.pop("password", None)
+    if "db_type" in updates:
+        updates["db_type"] = _normalize_db_type(updates["db_type"])
+    for key, value in updates.items():
+        if key in {"name", "db_host", "db_name", "username"} and isinstance(value, str):
+            value = value.strip()
+        setattr(target, key, value)
+
+    await db.commit()
+    return {"status": "ok"}
+
+
+@router.delete("/targets/{target_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_database_target(
+    target_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_admin_user),
+):
+    """
+    删除（停用）数据库监控目标配置。
+    """
+    result = await db.execute(select(DatabaseMonitorTarget).where(DatabaseMonitorTarget.id == target_id))
+    target = result.scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    target.is_active = False
+    await db.commit()
+    return None
 
 
 @router.get("")

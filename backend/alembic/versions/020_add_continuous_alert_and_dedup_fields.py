@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '020_add_continuous_alert_and_dedup_fields'
-down_revision = None
+down_revision = '005_add_network_fields'
 branch_labels = None
 depends_on = None
 
