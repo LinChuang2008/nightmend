@@ -40,6 +40,8 @@ export interface OpsAIConfig {
   base_url: string;
   model: string;
   max_output_tokens: number;
+  supports_deep_thinking: boolean;
+  deep_thinking_max_tokens: number;
   model_context_tokens: number;
   allowed_context_tokens: number;
   extra_context: string;
@@ -56,6 +58,8 @@ export interface OpsAIConfigUpdate {
   model?: string;
   api_key?: string;
   max_output_tokens?: number;
+  supports_deep_thinking?: boolean;
+  deep_thinking_max_tokens?: number;
   model_context_tokens?: number;
   allowed_context_tokens?: number;
   extra_context?: string;
@@ -69,6 +73,8 @@ export interface OpsAIConfigCreate {
   model: string;
   api_key?: string;
   max_output_tokens: number;
+  supports_deep_thinking: boolean;
+  deep_thinking_max_tokens: number;
   model_context_tokens: number;
   allowed_context_tokens: number;
   extra_context?: string;

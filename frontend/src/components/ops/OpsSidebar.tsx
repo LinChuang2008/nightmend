@@ -1,7 +1,7 @@
 /**
  * 会话列表侧边栏 - 铺满左侧，终端风格
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { OpsSession } from '../../services/opsApi';
 
 interface OpsSidebarProps {
@@ -24,6 +24,14 @@ function timeAgo(dateStr: string): string {
 
 export default function OpsSidebar({ sessions, currentSessionId, onSelect, onCreate, onDelete }: OpsSidebarProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const titleCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const session of sessions) {
+      const key = (session.title || 'new session').trim() || 'new session';
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return counts;
+  }, [sessions]);
 
   return (
     <div className="ops-sb">
@@ -46,6 +54,16 @@ export default function OpsSidebar({ sessions, currentSessionId, onSelect, onCre
           const isHovered = hoveredId === session.id;
           const title = session.title || 'new session';
           const time = session.updated_at ? timeAgo(session.updated_at) : '';
+          const showTitleSuffix = (titleCounts.get(title) || 0) > 1;
+          const titleSuffix = showTitleSuffix && session.updated_at
+            ? new Date(session.updated_at).toLocaleString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              })
+            : '';
 
           return (
             <div
@@ -57,7 +75,10 @@ export default function OpsSidebar({ sessions, currentSessionId, onSelect, onCre
             >
               <div className="ops-sb-item-top">
                 <span className="ops-sb-item-indicator">{isActive ? '▶' : '·'}</span>
-                <span className="ops-sb-item-title">{title}</span>
+                <span className="ops-sb-item-title">
+                  {title}
+                  {titleSuffix && <span className="ops-sb-item-title-suffix"> · {titleSuffix}</span>}
+                </span>
                 {isHovered && (
                   <button
                     className="ops-sb-del"
@@ -183,6 +204,10 @@ export default function OpsSidebar({ sessions, currentSessionId, onSelect, onCre
           color: #444;
           padding-left: 19px;
           margin-top: 3px;
+        }
+        .ops-sb-item-title-suffix {
+          color: #555;
+          font-size: 12px;
         }
         .ops-sb-item:hover .ops-sb-item-time { color: #555; }
         .ops-sb-item.active .ops-sb-item-time { color: #555; }

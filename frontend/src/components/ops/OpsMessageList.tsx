@@ -16,6 +16,7 @@ export interface UiMessage {
   id: string;
   type: 'user' | 'assistant' | 'tool_call' | 'command_request' | 'command_output' | 'ask_user' | 'compaction' | 'thinking';
   text?: string;
+  reasoningText?: string;
   toolName?: string;
   toolArgs?: Record<string, any>;
   toolResult?: any;
@@ -63,7 +64,7 @@ export default function OpsMessageList({ messages, isProcessing, onConfirmComman
       {messages.map((msg) => (
         <div key={msg.id}>
           {msg.type === 'user' && <UserMessage content={msg.text || ''} />}
-          {msg.type === 'assistant' && <AssistantMessage content={msg.text || ''} />}
+          {msg.type === 'assistant' && <AssistantMessage content={msg.text || ''} reasoningContent={msg.reasoningText || ''} />}
           {msg.type === 'tool_call' && (
             <ToolCallRow
               toolName={msg.toolName || ''}

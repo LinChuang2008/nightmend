@@ -246,10 +246,17 @@ class OpsAgentLoop:
         user_message: str,
         host_id: Optional[int] = None,
         ai_config_id: Optional[str] = None,
+        use_deep_thinking: bool = False,
     ) -> AsyncIterator[dict]:
         """主推理循环，yield 推送事件给前端。"""
         async with self._run_lock:
-            runtime_cfg = await self._load_ai_runtime_config(ai_config_id=ai_config_id, feature_key="ops_assistant")
+            runtime_cfg = await self._load_ai_runtime_config(
+                ai_config_id=ai_config_id,
+                feature_key="ops_assistant",
+            )
+            runtime_cfg["use_deep_thinking"] = bool(
+                use_deep_thinking and runtime_cfg.get("supports_deep_thinking")
+            )
             await self._ensure_context_loaded()
             if host_id:
                 await self._attach_target_host_context(host_id)
@@ -312,23 +319,34 @@ class OpsAgentLoop:
         for _ in range(max_rounds):
             # 调用 AI API
             response_text = ""
+            reasoning_text = ""
             tool_calls = []
 
             async for chunk in self._call_api_stream(runtime_cfg):
                 if chunk.get("type") == "text_delta":
                     response_text += chunk["delta"]
                     yield {"event": "text_delta", "delta": chunk["delta"]}
+                elif chunk.get("type") == "reasoning_delta":
+                    reasoning_text += chunk["delta"]
+                    yield {"event": "reasoning_delta", "delta": chunk["delta"]}
                 elif chunk.get("type") == "tool_calls":
                     tool_calls = chunk["tool_calls"]
 
             # 保存 AI 文本响应
-            if response_text:
-                await self._save_message("assistant", "text", {"text": response_text})
+            if response_text or reasoning_text:
+                await self._save_message("assistant", "text", {
+                    "text": response_text,
+                    "reasoning": reasoning_text,
+                })
 
             # 没有工具调用，推理结束
             if not tool_calls:
-                if response_text:
-                    self._context.append({"role": "assistant", "content": response_text})
+                if response_text or reasoning_text:
+                    self._context.append({
+                        "role": "assistant",
+                        "content": response_text,
+                        "reasoning": reasoning_text or None,
+                    })
                 yield {"event": "done"}
                 return
 
@@ -814,10 +832,16 @@ class OpsAgentLoop:
             "temperature": 0.3,
             "max_tokens": runtime_cfg["max_tokens"],
         }
+        if runtime_cfg.get("use_deep_thinking"):
+            payload["reasoning"] = {
+                "enabled": True,
+                "max_tokens": int(runtime_cfg.get("deep_thinking_max_tokens") or 0),
+            }
 
         logger.info(f"Calling AI API for session {self.session_id}, context_len={len(self._context)}")
 
         text_buffer = ""
+        reasoning_buffer = ""
         tool_calls_buffer: dict[int, dict] = {}
 
         try:
@@ -840,7 +864,18 @@ class OpsAgentLoop:
                         except json.JSONDecodeError:
                             continue
 
-                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        choices = chunk.get("choices")
+                        if not isinstance(choices, list) or not choices:
+                            if chunk.get("error"):
+                                logger.error(f"AI API stream chunk error: {chunk.get('error')}")
+                            continue
+                        first_choice = choices[0] if isinstance(choices[0], dict) else {}
+                        delta = first_choice.get("delta", {})
+
+                        reasoning_delta = self._extract_reasoning_delta(delta)
+                        if reasoning_delta:
+                            reasoning_buffer += reasoning_delta
+                            yield {"type": "reasoning_delta", "delta": reasoning_delta}
 
                         # 文本内容
                         if delta.get("content"):
@@ -870,6 +905,48 @@ class OpsAgentLoop:
 
         if tool_calls_buffer:
             yield {"type": "tool_calls", "tool_calls": list(tool_calls_buffer.values())}
+
+    @staticmethod
+    def _extract_reasoning_delta(delta: dict) -> str:
+        """兼容多种 OpenAI 兼容接口返回的 reasoning 增量字段。"""
+        candidates = [
+            delta.get("reasoning_content"),
+            delta.get("reasoning"),
+            delta.get("reasoning_text"),
+        ]
+        for value in candidates:
+            text = OpsAgentLoop._normalize_reasoning_text(value)
+            if text:
+                return text
+        return ""
+
+    @staticmethod
+    def _normalize_reasoning_text(value: object) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            parts: list[str] = []
+            for item in value:
+                if isinstance(item, str):
+                    parts.append(item)
+                    continue
+                if isinstance(item, dict):
+                    text = item.get("text")
+                    if isinstance(text, str):
+                        parts.append(text)
+                        continue
+                    content = item.get("content")
+                    if isinstance(content, str):
+                        parts.append(content)
+            return "".join(parts)
+        if isinstance(value, dict):
+            for key in ("text", "content"):
+                text = value.get(key)
+                if isinstance(text, str):
+                    return text
+        return ""
 
     @staticmethod
     def _normalized_messages_for_tool_protocol(messages: list[dict], extra_context: str = "") -> list[dict]:
@@ -931,10 +1008,21 @@ class OpsAgentLoop:
             "max_tokens": max_tokens,
             "temperature": 0.3,
         }
+        if runtime_cfg.get("use_deep_thinking"):
+            payload["reasoning"] = {
+                "enabled": True,
+                "max_tokens": int(runtime_cfg.get("deep_thinking_max_tokens") or 0),
+            }
         async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
-            return resp.json()["choices"][0]["message"]["content"]
+            data = resp.json()
+            choices = data.get("choices")
+            if not isinstance(choices, list) or not choices:
+                raise RuntimeError(f"AI API returned no choices: {json.dumps(data, ensure_ascii=False)[:500]}")
+            first_choice = choices[0] if isinstance(choices[0], dict) else {}
+            message = first_choice.get("message", {}) if isinstance(first_choice.get("message", {}), dict) else {}
+            return str(message.get("content") or "")
 
     async def _load_ai_runtime_config(
         self,
@@ -947,6 +1035,8 @@ class OpsAgentLoop:
             "model": settings.ai_model,
             "api_key": settings.ai_api_key,
             "max_tokens": settings.ai_max_tokens,
+            "supports_deep_thinking": False,
+            "deep_thinking_max_tokens": 0,
             "extra_context": "",
             "model_context_tokens": 200000,
             "allowed_context_tokens": 120000,
@@ -1001,6 +1091,8 @@ class OpsAgentLoop:
                     cfg["model"] = str(target.get("model") or cfg["model"])
                     cfg["api_key"] = str(target.get("api_key") or cfg["api_key"])
                     cfg["max_tokens"] = int(target.get("max_output_tokens") or cfg["max_tokens"])
+                    cfg["supports_deep_thinking"] = bool(target.get("supports_deep_thinking", False))
+                    cfg["deep_thinking_max_tokens"] = int(target.get("deep_thinking_max_tokens") or 0)
                     cfg["extra_context"] = str(target.get("extra_context") or "")
                     cfg["model_context_tokens"] = int(target.get("model_context_tokens") or 200000)
                     cfg["allowed_context_tokens"] = int(target.get("allowed_context_tokens") or 120000)

@@ -6,6 +6,7 @@ import { useEffect, useRef, useCallback } from 'react';
 
 export type OpsEvent =
   | { event: 'text_delta'; delta: string }
+  | { event: 'reasoning_delta'; delta: string }
   | { event: 'tool_start'; message_id: string; tool_name: string; arguments: Record<string, any> }
   | { event: 'tool_done'; message_id: string; tool_name: string; result: any }
   | { event: 'tool_error'; message_id: string; tool_name: string; error: string }
@@ -30,6 +31,7 @@ export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) 
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
   const shouldReconnectRef = useRef(true);
+  const connectionSeqRef = useRef(0);
   // 始终保存最新的 onEvent，不触发重连
   const onEventRef = useRef(onEvent);
   useEffect(() => { onEventRef.current = onEvent; }, [onEvent]);
@@ -41,12 +43,19 @@ export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) 
     const connect = () => {
       if (!sessionId || !mountedRef.current) return;
 
+      const connectionSeq = ++connectionSeqRef.current;
+      const activeSessionId = sessionId;
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const url = `${protocol}//${window.location.host}/api/v1/ops/ws/${sessionId}`;
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
       ws.onmessage = (e) => {
+        const isStaleConnection =
+          connectionSeq !== connectionSeqRef.current ||
+          wsRef.current !== ws ||
+          activeSessionId !== sessionId;
+        if (isStaleConnection) return;
         console.log('[WS] raw message:', e.data);
         try {
           const event = JSON.parse(e.data) as OpsEvent;
@@ -73,6 +82,7 @@ export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) 
 
       ws.onclose = (evt) => {
         clearInterval(heartbeatTimer);
+        if (connectionSeq !== connectionSeqRef.current || wsRef.current !== ws) return;
         // 1008: token/session 校验失败，不继续重连，避免无限刷连接日志
         const shouldRetry =
           mountedRef.current &&
@@ -93,8 +103,10 @@ export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) 
     return () => {
       mountedRef.current = false;
       shouldReconnectRef.current = false;
+      connectionSeqRef.current += 1;
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       wsRef.current?.close();
+      wsRef.current = null;
     };
   // 只在 sessionId 变化时重建连接
   }, [sessionId]);
@@ -105,8 +117,14 @@ export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) 
     }
   }, []);
 
-  const sendMessage = useCallback((content: string, hostId?: number, aiConfigId?: string) => {
-    send({ type: 'user_message', content, host_id: hostId ?? null, ai_config_id: aiConfigId ?? null });
+  const sendMessage = useCallback((content: string, hostId?: number, aiConfigId?: string, useDeepThinking?: boolean) => {
+    send({
+      type: 'user_message',
+      content,
+      host_id: hostId ?? null,
+      ai_config_id: aiConfigId ?? null,
+      use_deep_thinking: Boolean(useDeepThinking),
+    });
   }, [send]);
 
   const confirmCommand = useCallback((messageId: string, action: 'confirm' | 'reject') => {

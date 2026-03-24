@@ -5,6 +5,7 @@ import { type ReactNode } from 'react';
 
 interface AssistantMessageProps {
   content: string;
+  reasoningContent?: string;
 }
 
 function renderInline(text: string): ReactNode[] {
@@ -86,15 +87,56 @@ function renderMarkdown(text: string): ReactNode[] {
   return elements;
 }
 
-export default function AssistantMessage({ content }: AssistantMessageProps) {
-  if (!content) return null;
+export default function AssistantMessage({ content, reasoningContent = '' }: AssistantMessageProps) {
+  if (!content && !reasoningContent) return null;
   return (
     <div className="cc-assistant-block">
+      {reasoningContent && (
+        <details className="cc-reasoning-panel">
+          <summary>深度思考内容</summary>
+          <pre>{reasoningContent}</pre>
+        </details>
+      )}
       {renderMarkdown(content)}
       <style>{`
         .cc-assistant-block {
           padding: 6px 0 4px;
           font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+        }
+        .cc-reasoning-panel {
+          margin: 6px 16px 10px;
+          border: 1px solid #2a2a2a;
+          background: #0d1117;
+          border-radius: 4px;
+        }
+        .cc-reasoning-panel summary {
+          cursor: pointer;
+          list-style: none;
+          padding: 8px 12px;
+          color: #f0a500;
+          font-size: 13px;
+          user-select: none;
+        }
+        .cc-reasoning-panel summary::-webkit-details-marker {
+          display: none;
+        }
+        .cc-reasoning-panel summary::before {
+          content: '▸';
+          display: inline-block;
+          margin-right: 8px;
+          transition: transform 0.15s ease;
+        }
+        .cc-reasoning-panel[open] summary::before {
+          transform: rotate(90deg);
+        }
+        .cc-reasoning-panel pre {
+          margin: 0;
+          padding: 0 12px 12px;
+          color: #b9c0c8;
+          font-size: 13px;
+          line-height: 1.7;
+          white-space: pre-wrap;
+          word-break: break-word;
         }
         .cc-ai-line {
           display: flex;

@@ -402,6 +402,15 @@ const zh = {
     availableVersions: '可用版本',
     noVersions: '暂无可用版本',
     wheelFiles: '安装包文件',
+    agentResourceUsage: 'Agent 资源占用',
+    agentCpuPercent: 'Agent CPU',
+    agentMemoryRss: 'Agent 内存',
+    agentThreads: 'Agent 线程数',
+    agentOpenFiles: 'Agent 打开文件数',
+    agentProcessUptime: 'Agent 运行时长',
+    agentCpuTrend: 'Agent CPU 趋势',
+    agentMemoryTrend: 'Agent 内存趋势',
+    agentMetricsPending: 'Agent 新指标尚未上报，等待客户端升级并完成下一次指标采集。',
   },
 
   // ========== 服务监控 ==========

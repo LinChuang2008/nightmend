@@ -56,6 +56,8 @@ class OpsAIConfigResponse(BaseModel):
     base_url: str
     model: str
     max_output_tokens: int
+    supports_deep_thinking: bool = False
+    deep_thinking_max_tokens: int = 0
     model_context_tokens: int
     allowed_context_tokens: int
     extra_context: str
@@ -72,6 +74,8 @@ class OpsAIConfigUpdate(BaseModel):
     model: Optional[str] = None
     api_key: Optional[str] = None
     max_output_tokens: Optional[int] = None
+    supports_deep_thinking: Optional[bool] = None
+    deep_thinking_max_tokens: Optional[int] = None
     model_context_tokens: Optional[int] = None
     allowed_context_tokens: Optional[int] = None
     extra_context: Optional[str] = None
@@ -91,6 +95,8 @@ class OpsAIConfigCreate(BaseModel):
     model: str
     api_key: Optional[str] = None
     max_output_tokens: int = 4000
+    supports_deep_thinking: bool = False
+    deep_thinking_max_tokens: int = 0
     model_context_tokens: int = 200000
     allowed_context_tokens: int = 120000
     extra_context: str = ""

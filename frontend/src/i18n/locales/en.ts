@@ -402,6 +402,15 @@ const en = {
     availableVersions: 'Available Versions',
     noVersions: 'No versions available',
     wheelFiles: 'Package Files',
+    agentResourceUsage: 'Agent Resource Usage',
+    agentCpuPercent: 'Agent CPU',
+    agentMemoryRss: 'Agent Memory',
+    agentThreads: 'Agent Threads',
+    agentOpenFiles: 'Agent Open Files',
+    agentProcessUptime: 'Agent Uptime',
+    agentCpuTrend: 'Agent CPU Trend',
+    agentMemoryTrend: 'Agent Memory Trend',
+    agentMetricsPending: 'Agent metrics are not reported yet. Wait for the client upgrade and the next metrics collection cycle.',
   },
 
   // ========== Services ==========

@@ -19,7 +19,15 @@ export default function OpsAssistant() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hosts, setHosts] = useState<any[]>([]);
-  const [aiConfigs, setAiConfigs] = useState<Array<{ id: string; name: string; feature_key: string; model: string; is_default?: boolean }>>([]);
+  const [aiConfigs, setAiConfigs] = useState<Array<{
+    id: string;
+    name: string;
+    feature_key: string;
+    model: string;
+    is_default?: boolean;
+    supports_deep_thinking?: boolean;
+    deep_thinking_max_tokens?: number;
+  }>>([]);
   const streamingMsgIdRef = useRef<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
   useEffect(() => { currentSessionIdRef.current = currentSessionId; }, [currentSessionId]);
@@ -33,7 +41,7 @@ export default function OpsAssistant() {
 
   useEffect(() => {
     opsApi.listAIConfigs()
-      .then((list) => setAiConfigs(list.filter((c) => c.feature_key === 'ops_assistant')))
+      .then((list) => setAiConfigs(list.filter((c) => c.feature_key === 'ops_assistant' || c.feature_key === 'default')))
       .catch(() => setAiConfigs([]));
   }, []);
 
@@ -55,16 +63,25 @@ export default function OpsAssistant() {
 
   useEffect(() => {
     if (!currentSessionId) return;
+    let cancelled = false;
+    const sessionId = currentSessionId;
     setMessages([]);
     setTodos([]);
+    setIsProcessing(false);
     streamingMsgIdRef.current = null;
-    opsApi.getSession(currentSessionId).then((detail: any) => {
+    opsApi.getSession(sessionId).then((detail: any) => {
+      if (cancelled || currentSessionIdRef.current !== sessionId) return;
       let latestTodos: Todo[] = [];
       const uiMsgs: UiMessage[] = detail.messages
         .filter((m: any) => m.role !== 'system')
         .map((m: any): UiMessage | null => {
           if (m.role === 'user') return { id: m.id, type: 'user', text: m.content.text || '' };
-          if (m.msg_type === 'text') return { id: m.id, type: 'assistant', text: m.content.text || '' };
+          if (m.msg_type === 'text') return {
+            id: m.id,
+            type: 'assistant',
+            text: m.content.text || '',
+            reasoningText: m.content.reasoning || '',
+          };
           if (m.msg_type === 'tool_call') return { id: m.id, type: 'tool_call', toolName: m.content.tool_name, toolArgs: m.content.arguments, toolStatus: 'done' };
           if (m.msg_type === 'command_request') {
             const persistedStatus = m.content.status as ('pending' | 'confirmed' | 'rejected' | 'expired' | undefined);
@@ -89,6 +106,9 @@ export default function OpsAssistant() {
       setMessages(uiMsgs);
       setTodos(latestTodos);
     }).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [currentSessionId]);
 
   // handleEvent 不依赖任何外部变量（setMessages/setSessions 是稳定引用）
@@ -110,6 +130,23 @@ export default function OpsAssistant() {
           const newId = `stream-${Date.now()}`;
           streamingMsgIdRef.current = newId;
           return [...prev, { id: newId, type: 'assistant', text: event.delta }];
+        });
+        break;
+      }
+      case 'reasoning_delta': {
+        setMessages((prev: UiMessage[]) => {
+          const streamId = streamingMsgIdRef.current;
+          if (streamId) {
+            const idx = prev.findIndex((m: UiMessage) => m.id === streamId);
+            if (idx !== -1) {
+              const updated = [...prev];
+              updated[idx] = { ...updated[idx], reasoningText: (updated[idx].reasoningText || '') + event.delta };
+              return updated;
+            }
+          }
+          const newId = `stream-${Date.now()}`;
+          streamingMsgIdRef.current = newId;
+          return [...prev, { id: newId, type: 'assistant', text: '', reasoningText: event.delta }];
         });
         break;
       }
@@ -170,13 +207,13 @@ export default function OpsAssistant() {
 
   const { sendMessage, confirmCommand, answerQuestion } = useOpsWebSocket({ sessionId: currentSessionId, onEvent: handleEvent });
 
-  const handleSend = useCallback((content: string, hostId?: number, aiConfigId?: string) => {
+  const handleSend = useCallback((content: string, hostId?: number, aiConfigId?: string, useDeepThinking?: boolean) => {
     if (!currentSessionId || isProcessing) return;
     setIsProcessing(true);
     streamingMsgIdRef.current = null;
     setMessages((prev: UiMessage[]) => [...prev, { id: `user-${Date.now()}`, type: 'user', text: content }]);
     resetScroll();
-    sendMessage(content, hostId, aiConfigId);
+    sendMessage(content, hostId, aiConfigId, useDeepThinking);
   }, [currentSessionId, isProcessing, sendMessage, resetScroll]);
 
   const handleConfirmCommand = useCallback((messageId: string, action: 'confirm' | 'reject') => {
@@ -192,7 +229,10 @@ export default function OpsAssistant() {
   const handleNewSession = async () => {
     try {
       const session = await opsApi.createSession();
-      setSessions((prev: OpsSession[]) => [session, ...prev]);
+      setSessions((prev: OpsSession[]) => {
+        const next = [session, ...prev.filter((s: OpsSession) => s.id !== session.id)];
+        return next;
+      });
       setCurrentSessionId(session.id);
       setMessages([]);
     } catch { message.error('创建会话失败'); }
@@ -209,7 +249,7 @@ export default function OpsAssistant() {
           } else {
             // 删完了自动新建
             opsApi.createSession().then((s) => {
-              setSessions([s]);
+              setSessions((prev: OpsSession[]) => [s, ...prev.filter((item: OpsSession) => item.id !== s.id)]);
               setCurrentSessionId(s.id);
             }).catch(() => {});
           }

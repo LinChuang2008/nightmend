@@ -15,16 +15,25 @@ interface Host {
 }
 
 interface OpsInputBarProps {
-  onSend: (content: string, hostId?: number, aiConfigId?: string) => void;
+  onSend: (content: string, hostId?: number, aiConfigId?: string, useDeepThinking?: boolean) => void;
   disabled?: boolean;
   hosts?: Host[];
-  aiConfigs?: Array<{ id: string; name: string; feature_key: string; model: string; is_default?: boolean }>;
+  aiConfigs?: Array<{
+    id: string;
+    name: string;
+    feature_key: string;
+    model: string;
+    is_default?: boolean;
+    supports_deep_thinking?: boolean;
+    deep_thinking_max_tokens?: number;
+  }>;
 }
 
 export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = [] }: OpsInputBarProps) {
   const [value, setValue] = useState('');
   const [selectedHostId, setSelectedHostId] = useState<number | undefined>();
   const [selectedAiConfigId, setSelectedAiConfigId] = useState<string>(DEFAULT_AI_CONFIG_ID);
+  const [useDeepThinking, setUseDeepThinking] = useState(false);
   const [showHostPicker, setShowHostPicker] = useState(false);
   const [searchText, setSearchText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -58,13 +67,23 @@ export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = 
     if (!exists) setSelectedAiConfigId(DEFAULT_AI_CONFIG_ID);
   }, [aiConfigs, selectedAiConfigId]);
 
-  const selectedAiConfig = aiConfigs.find((c) => c.id === selectedAiConfigId);
+  const resolvedAiConfig = selectedAiConfigId === DEFAULT_AI_CONFIG_ID
+    ? (aiConfigs.find((c) => c.is_default) || aiConfigs[0])
+    : aiConfigs.find((c) => c.id === selectedAiConfigId);
+  const selectedAiConfig = resolvedAiConfig;
+  const deepThinkingSupported = Boolean(selectedAiConfig?.supports_deep_thinking);
+
+  React.useEffect(() => {
+    if (!deepThinkingSupported && useDeepThinking) {
+      setUseDeepThinking(false);
+    }
+  }, [deepThinkingSupported, useDeepThinking]);
 
   const handleSend = () => {
     const trimmed = value.trim();
     if (!trimmed || disabled || !selectedHostId) return;
     const aiConfigId = selectedAiConfigId === DEFAULT_AI_CONFIG_ID ? undefined : selectedAiConfigId;
-    onSend(trimmed, selectedHostId, aiConfigId);
+    onSend(trimmed, selectedHostId, aiConfigId, deepThinkingSupported && useDeepThinking);
     setValue('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
@@ -99,8 +118,20 @@ export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = 
             </option>
           ))}
         </select>
+        <label className={`cc-think-toggle ${deepThinkingSupported ? '' : 'disabled'}`}>
+          <input
+            type="checkbox"
+            checked={deepThinkingSupported && useDeepThinking}
+            disabled={!deepThinkingSupported}
+            onChange={(e) => setUseDeepThinking(e.target.checked)}
+          />
+          <span>深度思考</span>
+        </label>
         {selectedAiConfig ? (
-          <span className="cc-ai-hint">feature={selectedAiConfig.feature_key}</span>
+          <span className="cc-ai-hint">
+            feature={selectedAiConfig.feature_key}
+            {selectedAiConfig.supports_deep_thinking ? ` · deep=${selectedAiConfig.deep_thinking_max_tokens || 0}` : ''}
+          </span>
         ) : (
           <span className="cc-ai-hint">feature=default</span>
         )}
@@ -231,6 +262,21 @@ export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = 
         .cc-ai-hint {
           color: #666;
           font-size: 11px;
+        }
+        .cc-think-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          color: #bbb;
+          font-size: 12px;
+          user-select: none;
+          white-space: nowrap;
+        }
+        .cc-think-toggle.disabled {
+          color: #555;
+        }
+        .cc-think-toggle input {
+          accent-color: #f0a500;
         }
         .cc-host-clear { color: #f85149; }
         .cc-host-picker {

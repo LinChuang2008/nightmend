@@ -60,6 +60,8 @@ export default function AIConfigs() {
       model_context_tokens: 200000,
       allowed_context_tokens: 120000,
       max_output_tokens: 4000,
+      supports_deep_thinking: false,
+      deep_thinking_max_tokens: 0,
       enabled: true,
     });
     setOpen(true);
@@ -76,6 +78,8 @@ export default function AIConfigs() {
       model_context_tokens: row.model_context_tokens,
       allowed_context_tokens: row.allowed_context_tokens,
       max_output_tokens: row.max_output_tokens,
+      supports_deep_thinking: row.supports_deep_thinking,
+      deep_thinking_max_tokens: row.deep_thinking_max_tokens,
       extra_context: row.extra_context,
       enabled: row.enabled,
     });
@@ -157,6 +161,12 @@ export default function AIConfigs() {
             { title: '配置名称', dataIndex: 'name' },
             { title: '模型', dataIndex: 'model' },
             {
+              title: '深度思考',
+              render: (_, row: OpsAIConfig) => row.supports_deep_thinking
+                ? <Tag color="gold">支持 · {row.deep_thinking_max_tokens}</Tag>
+                : <Tag>不支持</Tag>,
+            },
+            {
               title: 'API Key',
               render: (_, row: OpsAIConfig) => row.has_api_key
                 ? <Tag color="green">{row.api_key_mask || '已配置'}</Tag>
@@ -225,6 +235,16 @@ export default function AIConfigs() {
           <Form.Item label="Max Output Tokens" name="max_output_tokens" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} min={128} max={64000} />
           </Form.Item>
+          <Form.Item label="支持深度思考" name="supports_deep_thinking" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            label="深度思考 Max Tokens"
+            name="deep_thinking_max_tokens"
+            rules={[{ required: true }]}
+          >
+            <InputNumber style={{ width: '100%' }} min={0} max={64000} />
+          </Form.Item>
           {isAssistant && (
             <Form.Item label="额外上下文（仅助手预留）" name="extra_context">
               <Input.TextArea rows={4} />
@@ -255,7 +275,7 @@ export default function AIConfigs() {
             <Input />
           </Form.Item>
           <Form.Item label="OpenAI JSON" name="raw_json" rules={[{ required: true }]}>
-            <Input.TextArea rows={8} placeholder='{"base_url":"https://api.openai.com/v1","api_key":"sk-...","model":"gpt-4.1","max_output_tokens":4000,"model_context_tokens":200000,"allowed_context_tokens":120000,"context":"..." }' />
+            <Input.TextArea rows={8} placeholder='{"base_url":"https://api.openai.com/v1","api_key":"sk-...","model":"gpt-4.1","max_output_tokens":4000,"supports_deep_thinking":true,"deep_thinking_max_tokens":8000,"model_context_tokens":200000,"allowed_context_tokens":120000,"context":"..." }' />
           </Form.Item>
         </Form>
       </Modal>

@@ -13,7 +13,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
-from sqlalchemy import select
+from sqlalchemy import select, exists, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -116,6 +116,8 @@ async def _load_ai_configs(db: AsyncSession) -> tuple[list[dict], str]:
         "model": legacy_model,
         "api_key": legacy_api_key,
         "max_output_tokens": max_output_tokens,
+        "supports_deep_thinking": False,
+        "deep_thinking_max_tokens": 0,
         "model_context_tokens": 200000,
         "allowed_context_tokens": 120000,
         "extra_context": legacy_extra_context,
@@ -140,6 +142,8 @@ def _sanitize_ai_config(cfg: dict, default_id: str) -> OpsAIConfigResponse:
         base_url=str(cfg.get("base_url") or settings.ai_api_base),
         model=str(cfg.get("model") or settings.ai_model),
         max_output_tokens=int(cfg.get("max_output_tokens") or settings.ai_max_tokens),
+        supports_deep_thinking=bool(cfg.get("supports_deep_thinking", False)),
+        deep_thinking_max_tokens=int(cfg.get("deep_thinking_max_tokens") or 0),
         model_context_tokens=int(cfg.get("model_context_tokens") or 200000),
         allowed_context_tokens=int(cfg.get("allowed_context_tokens") or 120000),
         extra_context=str(cfg.get("extra_context") or ""),
@@ -199,6 +203,48 @@ async def _close_inactive_sessions(db: AsyncSession, user_id: int):
     await db.commit()
 
 
+async def _cleanup_empty_sessions(
+    db: AsyncSession,
+    user_id: int,
+    keep_session_id: str | None = None,
+) -> OpsSession | None:
+    """清理多余空白会话，仅保留一个最近的空白草稿。"""
+    empty_message_exists = exists(
+        select(1).where(OpsMessage.session_id == OpsSession.id)
+    )
+    result = await db.execute(
+        select(OpsSession)
+        .where(
+            OpsSession.user_id == user_id,
+            OpsSession.status == "active",
+            or_(OpsSession.title.is_(None), OpsSession.title == ""),
+            ~empty_message_exists,
+        )
+        .order_by(OpsSession.updated_at.desc(), OpsSession.created_at.desc())
+    )
+    empty_sessions = result.scalars().all()
+    if not empty_sessions:
+        return None
+
+    preserved: OpsSession | None = None
+    for session in empty_sessions:
+        if keep_session_id and session.id == keep_session_id:
+            preserved = session
+            break
+    if preserved is None:
+        preserved = empty_sessions[0]
+
+    for session in empty_sessions:
+        if session.id == preserved.id:
+            continue
+        await db.delete(session)
+        remove_loop(session.id)
+
+    await db.commit()
+    await db.refresh(preserved)
+    return preserved
+
+
 # ─── REST API ──────────────────────────────────────────────────────────────────
 
 @router.post("/sessions", response_model=OpsSessionResponse)
@@ -207,6 +253,10 @@ async def create_session(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    reusable = await _cleanup_empty_sessions(db, current_user.id)
+    if reusable:
+        return reusable
+
     session = OpsSession(
         id=str(uuid.uuid4()),
         user_id=current_user.id,
@@ -224,9 +274,22 @@ async def list_sessions(
     db: AsyncSession = Depends(get_db),
 ):
     await _close_inactive_sessions(db, current_user.id)
+    await _cleanup_empty_sessions(db, current_user.id)
+    visible_message_exists = exists(
+        select(1).where(
+            OpsMessage.session_id == OpsSession.id,
+            OpsMessage.compacted == False,  # noqa: E712
+        )
+    )
     result = await db.execute(
         select(OpsSession)
-        .where(OpsSession.user_id == current_user.id)
+        .where(
+            OpsSession.user_id == current_user.id,
+            or_(
+                OpsSession.status == "active",
+                visible_message_exists,
+            ),
+        )
         .order_by(OpsSession.updated_at.desc())
         .limit(50)
     )
@@ -332,6 +395,8 @@ async def create_ai_config(
         "model": body.model.strip(),
         "api_key": (body.api_key or "").strip(),
         "max_output_tokens": int(body.max_output_tokens),
+        "supports_deep_thinking": bool(body.supports_deep_thinking),
+        "deep_thinking_max_tokens": int(body.deep_thinking_max_tokens),
         "model_context_tokens": int(body.model_context_tokens),
         "allowed_context_tokens": int(body.allowed_context_tokens),
         "extra_context": body.extra_context or "",
@@ -379,6 +444,10 @@ async def update_ai_config(
             target["api_key"] = api_key
     if "max_output_tokens" in updates and updates["max_output_tokens"] is not None:
         target["max_output_tokens"] = int(updates["max_output_tokens"])
+    if "supports_deep_thinking" in updates and updates["supports_deep_thinking"] is not None:
+        target["supports_deep_thinking"] = bool(updates["supports_deep_thinking"])
+    if "deep_thinking_max_tokens" in updates and updates["deep_thinking_max_tokens"] is not None:
+        target["deep_thinking_max_tokens"] = int(updates["deep_thinking_max_tokens"])
     if "model_context_tokens" in updates and updates["model_context_tokens"] is not None:
         target["model_context_tokens"] = int(updates["model_context_tokens"])
     if "allowed_context_tokens" in updates and updates["allowed_context_tokens"] is not None:
@@ -442,6 +511,8 @@ async def import_ai_config(
         "api_key": raw.get("api_key") or raw.get("apiKey"),
         "model": raw.get("model"),
         "max_output_tokens": raw.get("max_output_tokens") or raw.get("max_tokens") or raw.get("maxTokens"),
+        "supports_deep_thinking": raw.get("supports_deep_thinking") or raw.get("supportsDeepThinking"),
+        "deep_thinking_max_tokens": raw.get("deep_thinking_max_tokens") or raw.get("deepThinkingMaxTokens"),
         "model_context_tokens": raw.get("model_context_tokens") or raw.get("modelContextTokens"),
         "allowed_context_tokens": raw.get("allowed_context_tokens") or raw.get("allowedContextTokens"),
         "extra_context": raw.get("context") or raw.get("extra_context") or "",
@@ -454,6 +525,8 @@ async def import_ai_config(
         model=str(mapped["model"] or settings.ai_model).strip(),
         api_key=str(mapped["api_key"] or "").strip(),
         max_output_tokens=int(mapped["max_output_tokens"] or settings.ai_max_tokens),
+        supports_deep_thinking=bool(mapped["supports_deep_thinking"] or False),
+        deep_thinking_max_tokens=int(mapped["deep_thinking_max_tokens"] or 0),
         model_context_tokens=int(mapped["model_context_tokens"] or 200000),
         allowed_context_tokens=int(mapped["allowed_context_tokens"] or 120000),
         extra_context=str(mapped["extra_context"] or ""),
@@ -559,6 +632,7 @@ async def ops_websocket(
                         event_queue,
                         msg.get("host_id"),
                         msg.get("ai_config_id"),
+                        bool(msg.get("use_deep_thinking", False)),
                     )
                 )
 
@@ -599,12 +673,18 @@ async def _run_agent_loop(
     queue: asyncio.Queue,
     host_id: int | None = None,
     ai_config_id: str | None = None,
+    use_deep_thinking: bool = False,
 ):
     """在后台运行 AI 推理循环，将事件直接放入 asyncio.Queue。"""
     session_id = loop.session_id
     logger.info(f"Starting agent loop for session {session_id}")
     try:
-        async for event in loop.run(user_message, host_id=host_id, ai_config_id=ai_config_id):
+        async for event in loop.run(
+            user_message,
+            host_id=host_id,
+            ai_config_id=ai_config_id,
+            use_deep_thinking=use_deep_thinking,
+        ):
             await queue.put(event)
         logger.info(f"Agent loop completed for session {session_id}")
     except Exception as e:
@@ -618,9 +698,17 @@ async def _run_agent_loop_serial(
     queue: asyncio.Queue,
     host_id: int | None = None,
     ai_config_id: str | None = None,
+    use_deep_thinking: bool = False,
 ):
     """运行单轮推理；串行由 OpsAgentLoop 内部全局锁保证。"""
-    await _run_agent_loop(loop, user_message, queue, host_id=host_id, ai_config_id=ai_config_id)
+    await _run_agent_loop(
+        loop,
+        user_message,
+        queue,
+        host_id=host_id,
+        ai_config_id=ai_config_id,
+        use_deep_thinking=use_deep_thinking,
+    )
 
 
 async def _queue_sender(queue: asyncio.Queue, websocket: WebSocket):
