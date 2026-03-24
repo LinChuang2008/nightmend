@@ -1,10 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # =============================================================================
 # VigilOps Agent 安装脚本
 # =============================================================================
 #
 # 用法：
-#   git clone https://github.com/LinChuang2008/vigilops.git
 #   cd vigilops
 #   sudo ./scripts/install-agent.sh --server URL --token TOKEN
 #
@@ -14,7 +13,7 @@
 #   - 生成配置文件
 #   - 安装 systemd 服务
 #
-set -euo pipefail
+set -e
 
 # =============================================================================
 # 常量

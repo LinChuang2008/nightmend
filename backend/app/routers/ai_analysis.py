@@ -150,7 +150,7 @@ async def root_cause_analysis(
     ]
 
     try:
-        content = await chat_completion(messages, max_tokens=800, temperature=0.2)
+        content = await chat_completion(messages, max_tokens=800, temperature=0.2, feature_key="alert_analysis")
         content = content.strip()
         if content.startswith("```"):
             lines = content.splitlines()
@@ -223,7 +223,7 @@ async def analyze_alert(
     ]
 
     try:
-        analysis_text = await chat_completion(messages, max_tokens=500, temperature=0.2)
+        analysis_text = await chat_completion(messages, max_tokens=500, temperature=0.2, feature_key="alert_analysis")
     except LLMClientError as e:
         raise HTTPException(503, f"AI 服务不可用: {e}")
 
@@ -296,7 +296,7 @@ async def analyze_logs_on_demand(
     ]
 
     try:
-        content = await chat_completion(messages, max_tokens=600, temperature=0.1)
+        content = await chat_completion(messages, max_tokens=600, temperature=0.1, feature_key="log_analysis")
         content = content.strip()
         if content.startswith("```"):
             lines = content.splitlines()
@@ -380,7 +380,7 @@ async def generate_runbook(
     ]
 
     try:
-        result_text = await chat_completion(messages, max_tokens=2000)
+        result_text = await chat_completion(messages, max_tokens=2000, feature_key="runbook_generation")
         # Parse JSON from LLM response (strip markdown fences if present)
         text = result_text.strip()
         if text.startswith("```"):

@@ -44,6 +44,7 @@ from app.schemas.agent import (
 )
 from app.models.log_entry import LogEntry
 from app.models.db_metric import MonitoredDatabase, DbMetric
+from app.models.database_target import DatabaseMonitorTarget
 from app.models.alert import AlertRule
 from app.schemas.log_entry import LogBatchRequest, LogBatchResponse
 
@@ -480,6 +481,53 @@ async def report_db_metrics(
         pass
 
     return {"status": "ok", "database_id": monitored_db.id, "metric_id": metric.id}
+
+
+@router.get("/db-targets", status_code=200)
+async def list_db_targets_for_agent(
+    host_id: int,
+    agent_token: AgentToken = Depends(verify_agent_token),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Agent 拉取数据库监控目标配置。
+    仅允许读取当前 token 关联主机的目标，避免跨主机越权。
+    """
+    host_result = await db.execute(
+        select(Host).where(Host.id == host_id, Host.agent_token_id == agent_token.id)
+    )
+    host = host_result.scalar_one_or_none()
+    if not host:
+        raise HTTPException(status_code=403, detail="host_id not allowed for current token")
+
+    result = await db.execute(
+        select(DatabaseMonitorTarget)
+        .where(
+            DatabaseMonitorTarget.host_id == host_id,
+            DatabaseMonitorTarget.is_active == True,  # noqa: E712
+        )
+        .order_by(DatabaseMonitorTarget.id)
+    )
+    items = result.scalars().all()
+    return {
+        "items": [
+            {
+                "id": t.id,
+                "name": t.name,
+                "db_type": t.db_type,
+                "db_host": t.db_host,
+                "db_port": t.db_port,
+                "db_name": t.db_name,
+                "username": t.username,
+                "password": t.password,
+                "interval_sec": t.interval_sec,
+                "connect_timeout_sec": t.connect_timeout_sec,
+                "is_active": t.is_active,
+                "extra_config": t.extra_config or {},
+            }
+            for t in items
+        ]
+    }
 
 
 async def _check_db_metric_alerts(database_id: int, body: dict, db: AsyncSession):

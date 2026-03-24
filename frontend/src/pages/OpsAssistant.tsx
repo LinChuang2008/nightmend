@@ -19,6 +19,7 @@ export default function OpsAssistant() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hosts, setHosts] = useState<any[]>([]);
+  const [aiConfigs, setAiConfigs] = useState<Array<{ id: string; name: string; feature_key: string; model: string; is_default?: boolean }>>([]);
   const streamingMsgIdRef = useRef<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
   useEffect(() => { currentSessionIdRef.current = currentSessionId; }, [currentSessionId]);
@@ -28,6 +29,12 @@ export default function OpsAssistant() {
     api.get('/hosts?status=online&limit=100')
       .then((r: any) => setHosts(r.data?.items || []))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    opsApi.listAIConfigs()
+      .then((list) => setAiConfigs(list.filter((c) => c.feature_key === 'ops_assistant')))
+      .catch(() => setAiConfigs([]));
   }, []);
 
   const loadSessions = useCallback(async () => {
@@ -163,13 +170,13 @@ export default function OpsAssistant() {
 
   const { sendMessage, confirmCommand, answerQuestion } = useOpsWebSocket({ sessionId: currentSessionId, onEvent: handleEvent });
 
-  const handleSend = useCallback((content: string, hostId?: number) => {
+  const handleSend = useCallback((content: string, hostId?: number, aiConfigId?: string) => {
     if (!currentSessionId || isProcessing) return;
     setIsProcessing(true);
     streamingMsgIdRef.current = null;
     setMessages((prev: UiMessage[]) => [...prev, { id: `user-${Date.now()}`, type: 'user', text: content }]);
     resetScroll();
-    sendMessage(content, hostId);
+    sendMessage(content, hostId, aiConfigId);
   }, [currentSessionId, isProcessing, sendMessage, resetScroll]);
 
   const handleConfirmCommand = useCallback((messageId: string, action: 'confirm' | 'reject') => {
@@ -243,7 +250,7 @@ export default function OpsAssistant() {
           containerRef={containerRef as React.RefObject<HTMLDivElement>}
         />
 
-        <OpsInputBar onSend={handleSend} disabled={isProcessing} hosts={hosts} />
+        <OpsInputBar onSend={handleSend} disabled={isProcessing} hosts={hosts} aiConfigs={aiConfigs} />
 
         <div className="cc-statusbar">
           <span className="cc-statusbar-hint">? for shortcuts</span>

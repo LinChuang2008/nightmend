@@ -105,8 +105,8 @@ export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) 
     }
   }, []);
 
-  const sendMessage = useCallback((content: string, hostId?: number) => {
-    send({ type: 'user_message', content, host_id: hostId ?? null });
+  const sendMessage = useCallback((content: string, hostId?: number, aiConfigId?: string) => {
+    send({ type: 'user_message', content, host_id: hostId ?? null, ai_config_id: aiConfigId ?? null });
   }, [send]);
 
   const confirmCommand = useCallback((messageId: string, action: 'confirm' | 'reject') => {

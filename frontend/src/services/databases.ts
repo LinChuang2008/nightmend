@@ -88,6 +88,45 @@ export interface DatabaseMetricsResponse {
   metrics: DatabaseMetric[];
 }
 
+export interface DatabaseTargetItem {
+  id: number;
+  host_id: number;
+  host_name: string;
+  name: string;
+  db_type: string;
+  db_host: string;
+  db_port: number;
+  db_name: string;
+  username: string;
+  has_password: boolean;
+  interval_sec: number;
+  connect_timeout_sec: number;
+  is_active: boolean;
+  extra_config?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DatabaseTargetListResponse {
+  items: DatabaseTargetItem[];
+  total: number;
+}
+
+export interface DatabaseTargetPayload {
+  host_id: number;
+  name: string;
+  db_type: string;
+  db_host: string;
+  db_port: number;
+  db_name: string;
+  username: string;
+  password: string;
+  interval_sec: number;
+  connect_timeout_sec: number;
+  is_active: boolean;
+  extra_config?: Record<string, unknown> | null;
+}
+
 /** 数据库服务 */
 export const databaseService = {
   /** 获取数据库列表 */
@@ -98,4 +137,12 @@ export const databaseService = {
   getMetrics: (id: number | string, period = '1h') => api.get<DatabaseMetricsResponse>(`/databases/${id}/metrics`, { params: { period } }),
   /** 获取慢查询列表 */
   getSlowQueries: (id: number | string) => api.get<SlowQueriesResponse>(`/databases/${id}/slow-queries`),
+  /** 获取数据库监控目标（管理端） */
+  listTargets: (params?: Record<string, unknown>) => api.get<DatabaseTargetListResponse>('/databases/targets', { params }),
+  /** 新增数据库监控目标（管理端） */
+  createTarget: (data: DatabaseTargetPayload) => api.post<{ id: number }>('/databases/targets', data),
+  /** 更新数据库监控目标（管理端） */
+  updateTarget: (id: number, data: Partial<DatabaseTargetPayload>) => api.put('/databases/targets/' + id, data),
+  /** 删除（停用）数据库监控目标（管理端） */
+  deleteTarget: (id: number) => api.delete('/databases/targets/' + id),
 };

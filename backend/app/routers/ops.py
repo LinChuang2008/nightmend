@@ -17,11 +17,23 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_admin_user, get_current_user
+from app.core.config import settings
 from app.models.user import User
 from app.models.ops_session import OpsSession
 from app.models.ops_message import OpsMessage
-from app.schemas.ops import OpsSessionCreate, OpsSessionResponse, OpsSessionDetail, OpsMessageResponse, SkillInfo
+from app.models.setting import Setting
+from app.schemas.ops import (
+    OpsSessionCreate,
+    OpsSessionResponse,
+    OpsSessionDetail,
+    OpsMessageResponse,
+    SkillInfo,
+    OpsAIConfigResponse,
+    OpsAIConfigCreate,
+    OpsAIConfigUpdate,
+    OpsAIConfigImport,
+)
 from app.services.ops_agent_loop import get_or_create_loop, remove_loop, OPS_WS_CHANNEL
 from app.services.ops_skill_loader import list_skills
 from app.core.redis import get_redis
@@ -33,6 +45,140 @@ router = APIRouter(prefix="/api/v1/ops", tags=["ops"])
 
 # 本进程内持有的前端 WebSocket 连接
 _frontend_ws_clients: dict[str, WebSocket] = {}  # session_id -> WebSocket
+
+_AI_SETTING_KEYS = {
+    "configs": "ops_ai_configs_v2",
+    "default_id": "ops_ai_default_config_id",
+    "base_url": "ops_ai_base_url",
+    "model": "ops_ai_model",
+    "api_key": "ops_ai_api_key",
+    "max_tokens": "ops_ai_max_tokens",
+    "extra_context": "ops_ai_extra_context",
+}
+
+_AI_FEATURE_POLICIES: dict[str, dict] = {
+    "default": {"label": "默认配置（全局回退）", "max_models": 1},
+    "ops_assistant": {"label": "AI 运维助手", "max_models": 999},
+    "ai_insight": {"label": "AI 智能洞察", "max_models": 1},
+    "ops_report": {"label": "AI 运维报告", "max_models": 1},
+    "alert_analysis": {"label": "AI 告警分析", "max_models": 1},
+    "log_analysis": {"label": "AI 日志分析", "max_models": 1},
+    "runbook_generation": {"label": "AI Runbook 生成", "max_models": 1},
+}
+
+
+async def _get_setting_value(db: AsyncSession, key: str) -> str | None:
+    result = await db.execute(select(Setting).where(Setting.key == key))
+    setting = result.scalar_one_or_none()
+    return setting.value if setting else None
+
+
+async def _set_setting_value(db: AsyncSession, key: str, value: str, description: str = ""):
+    result = await db.execute(select(Setting).where(Setting.key == key))
+    setting = result.scalar_one_or_none()
+    if setting:
+        setting.value = value
+        if description and not setting.description:
+            setting.description = description
+    else:
+        db.add(Setting(key=key, value=value, description=description))
+
+
+async def _load_ai_configs(db: AsyncSession) -> tuple[list[dict], str]:
+    raw = await _get_setting_value(db, _AI_SETTING_KEYS["configs"])
+    default_id = await _get_setting_value(db, _AI_SETTING_KEYS["default_id"]) or ""
+    if raw:
+        try:
+            data = json.loads(raw)
+            if isinstance(data, list):
+                return data, default_id
+        except json.JSONDecodeError:
+            pass
+
+    # 向后兼容：把旧单配置迁移成 v2 列表
+    legacy_base_url = await _get_setting_value(db, _AI_SETTING_KEYS["base_url"]) or settings.ai_api_base
+    legacy_model = await _get_setting_value(db, _AI_SETTING_KEYS["model"]) or settings.ai_model
+    legacy_api_key = await _get_setting_value(db, _AI_SETTING_KEYS["api_key"]) or settings.ai_api_key
+    legacy_max_tokens = await _get_setting_value(db, _AI_SETTING_KEYS["max_tokens"])
+    legacy_extra_context = await _get_setting_value(db, _AI_SETTING_KEYS["extra_context"]) or ""
+    try:
+        max_output_tokens = int(legacy_max_tokens) if legacy_max_tokens is not None else settings.ai_max_tokens
+    except ValueError:
+        max_output_tokens = settings.ai_max_tokens
+
+    # 回退配置使用稳定 ID，避免前端编辑时因随机 ID 变化导致 404
+    cfg_id = "legacy-default"
+    cfg = {
+        "id": cfg_id,
+        "feature_key": "ops_assistant",
+        "name": "AI 运维助手默认模型",
+        "base_url": legacy_base_url,
+        "model": legacy_model,
+        "api_key": legacy_api_key,
+        "max_output_tokens": max_output_tokens,
+        "model_context_tokens": 200000,
+        "allowed_context_tokens": 120000,
+        "extra_context": legacy_extra_context,
+        "enabled": True,
+    }
+    return [cfg], cfg_id
+
+
+def _sanitize_ai_config(cfg: dict, default_id: str) -> OpsAIConfigResponse:
+    feature_key = _feature_key_of(cfg)
+    api_key = str(cfg.get("api_key") or "").strip()
+    api_key_mask = None
+    if api_key:
+        if len(api_key) <= 4:
+            api_key_mask = "*" * len(api_key)
+        else:
+            api_key_mask = f"{api_key[:3]}****{api_key[-4:]}"
+    return OpsAIConfigResponse(
+        id=str(cfg.get("id") or ""),
+        feature_key=feature_key,
+        name=str(cfg.get("name") or _AI_FEATURE_POLICIES.get(feature_key, {}).get("label") or "未命名功能"),
+        base_url=str(cfg.get("base_url") or settings.ai_api_base),
+        model=str(cfg.get("model") or settings.ai_model),
+        max_output_tokens=int(cfg.get("max_output_tokens") or settings.ai_max_tokens),
+        model_context_tokens=int(cfg.get("model_context_tokens") or 200000),
+        allowed_context_tokens=int(cfg.get("allowed_context_tokens") or 120000),
+        extra_context=str(cfg.get("extra_context") or ""),
+        has_api_key=bool(api_key),
+        api_key_mask=api_key_mask,
+        is_default=str(cfg.get("id") or "") == default_id,
+        enabled=bool(cfg.get("enabled", True)),
+    )
+
+
+async def _save_ai_configs(db: AsyncSession, configs: list[dict], default_id: str):
+    await _set_setting_value(
+        db,
+        _AI_SETTING_KEYS["configs"],
+        json.dumps(configs, ensure_ascii=False),
+        "Ops AI multi business config list",
+    )
+    await _set_setting_value(
+        db,
+        _AI_SETTING_KEYS["default_id"],
+        default_id,
+        "Ops AI default config id",
+    )
+
+
+def _feature_key_of(cfg: dict) -> str:
+    return str(cfg.get("feature_key") or cfg.get("business_key") or "ops_assistant")
+
+
+def _enforce_feature_model_limit(configs: list[dict], feature_key: str):
+    from fastapi import HTTPException
+
+    policy = _AI_FEATURE_POLICIES.get(feature_key)
+    if not policy:
+        raise HTTPException(status_code=400, detail=f"不支持的 feature_key: {feature_key}")
+    if policy["max_models"] <= 1:
+        count = sum(1 for c in configs if _feature_key_of(c) == feature_key)
+        if count >= 1:
+            raise HTTPException(status_code=400, detail=f"{policy['label']} 仅允许配置一个模型")
 
 
 async def _close_inactive_sessions(db: AsyncSession, user_id: int):
@@ -142,6 +288,180 @@ async def get_skills(_: User = Depends(get_current_user)):
     return list_skills()
 
 
+@router.get("/ai-config-features")
+async def list_ai_config_features(_: User = Depends(get_current_user)):
+    return [
+        {"feature_key": key, "label": value["label"], "max_models": value["max_models"]}
+        for key, value in _AI_FEATURE_POLICIES.items()
+    ]
+
+
+@router.get("/ai-configs", response_model=list[OpsAIConfigResponse])
+async def list_ai_configs(
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    configs, default_id = await _load_ai_configs(db)
+    enabled_configs = [c for c in configs if bool(c.get("enabled", True))]
+    return [_sanitize_ai_config(c, default_id) for c in enabled_configs]
+
+
+@router.get("/ai-configs/admin", response_model=list[OpsAIConfigResponse])
+async def list_ai_configs_admin(
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    configs, default_id = await _load_ai_configs(db)
+    return [_sanitize_ai_config(c, default_id) for c in configs]
+
+
+@router.post("/ai-configs", response_model=OpsAIConfigResponse)
+async def create_ai_config(
+    body: OpsAIConfigCreate,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    configs, default_id = await _load_ai_configs(db)
+    feature_key = body.feature_key.strip()
+    _enforce_feature_model_limit(configs, feature_key)
+    new_cfg = {
+        "id": str(uuid.uuid4()),
+        "feature_key": feature_key,
+        "name": body.name.strip(),
+        "base_url": body.base_url.strip(),
+        "model": body.model.strip(),
+        "api_key": (body.api_key or "").strip(),
+        "max_output_tokens": int(body.max_output_tokens),
+        "model_context_tokens": int(body.model_context_tokens),
+        "allowed_context_tokens": int(body.allowed_context_tokens),
+        "extra_context": body.extra_context or "",
+        "enabled": bool(body.enabled),
+    }
+    configs.append(new_cfg)
+    if not default_id:
+        default_id = new_cfg["id"]
+    await _save_ai_configs(db, configs, default_id)
+    await db.commit()
+    return _sanitize_ai_config(new_cfg, default_id)
+
+
+@router.put("/ai-configs/{config_id}", response_model=OpsAIConfigResponse)
+async def update_ai_config(
+    config_id: str,
+    body: OpsAIConfigUpdate,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from fastapi import HTTPException
+
+    configs, default_id = await _load_ai_configs(db)
+    target = next((c for c in configs if str(c.get("id")) == config_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="AI 配置不存在")
+
+    updates = body.model_dump(exclude_unset=True)
+    if "feature_key" in updates and updates["feature_key"] is not None:
+        new_feature_key = str(updates["feature_key"]).strip()
+        old_feature_key = _feature_key_of(target)
+        if new_feature_key != old_feature_key:
+            _enforce_feature_model_limit([c for c in configs if str(c.get("id")) != config_id], new_feature_key)
+        target["feature_key"] = new_feature_key
+    if "name" in updates and updates["name"] is not None:
+        target["name"] = str(updates["name"]).strip()
+    if "base_url" in updates and updates["base_url"] is not None:
+        target["base_url"] = str(updates["base_url"]).strip()
+    if "model" in updates and updates["model"] is not None:
+        target["model"] = str(updates["model"]).strip()
+    if "api_key" in updates and updates["api_key"] is not None:
+        api_key = str(updates["api_key"]).strip()
+        # 编辑时留空表示“不更新”，避免把已保存密钥清空
+        if api_key:
+            target["api_key"] = api_key
+    if "max_output_tokens" in updates and updates["max_output_tokens"] is not None:
+        target["max_output_tokens"] = int(updates["max_output_tokens"])
+    if "model_context_tokens" in updates and updates["model_context_tokens"] is not None:
+        target["model_context_tokens"] = int(updates["model_context_tokens"])
+    if "allowed_context_tokens" in updates and updates["allowed_context_tokens"] is not None:
+        target["allowed_context_tokens"] = int(updates["allowed_context_tokens"])
+    if "extra_context" in updates and updates["extra_context"] is not None:
+        target["extra_context"] = str(updates["extra_context"])
+    if "enabled" in updates and updates["enabled"] is not None:
+        target["enabled"] = bool(updates["enabled"])
+
+    await _save_ai_configs(db, configs, default_id)
+    await db.commit()
+    return _sanitize_ai_config(target, default_id)
+
+
+@router.post("/ai-configs/{config_id}/default", response_model=OpsAIConfigResponse)
+async def set_default_ai_config(
+    config_id: str,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from fastapi import HTTPException
+
+    configs, _ = await _load_ai_configs(db)
+    target = next((c for c in configs if str(c.get("id")) == config_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="AI 配置不存在")
+    await _save_ai_configs(db, configs, config_id)
+    await db.commit()
+    return _sanitize_ai_config(target, config_id)
+
+
+@router.delete("/ai-configs/{config_id}", status_code=204)
+async def delete_ai_config(
+    config_id: str,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from fastapi import HTTPException
+
+    configs, default_id = await _load_ai_configs(db)
+    filtered = [c for c in configs if str(c.get("id")) != config_id]
+    if len(filtered) == len(configs):
+        raise HTTPException(status_code=404, detail="AI 配置不存在")
+    if not filtered:
+        raise HTTPException(status_code=400, detail="至少保留一个 AI 配置")
+    if default_id == config_id:
+        default_id = str(filtered[0].get("id"))
+    await _save_ai_configs(db, filtered, default_id)
+    await db.commit()
+
+
+@router.post("/ai-configs/import", response_model=OpsAIConfigResponse)
+async def import_ai_config(
+    body: OpsAIConfigImport,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    raw = body.config or {}
+    mapped = {
+        "base_url": raw.get("base_url") or raw.get("baseURL") or raw.get("api_base"),
+        "api_key": raw.get("api_key") or raw.get("apiKey"),
+        "model": raw.get("model"),
+        "max_output_tokens": raw.get("max_output_tokens") or raw.get("max_tokens") or raw.get("maxTokens"),
+        "model_context_tokens": raw.get("model_context_tokens") or raw.get("modelContextTokens"),
+        "allowed_context_tokens": raw.get("allowed_context_tokens") or raw.get("allowedContextTokens"),
+        "extra_context": raw.get("context") or raw.get("extra_context") or "",
+    }
+
+    payload = OpsAIConfigCreate(
+        feature_key=(body.feature_key or raw.get("feature_key") or raw.get("business_key") or "ops_assistant").strip(),
+        name=(body.name or raw.get("name") or "未命名功能").strip(),
+        base_url=str(mapped["base_url"] or settings.ai_api_base).strip(),
+        model=str(mapped["model"] or settings.ai_model).strip(),
+        api_key=str(mapped["api_key"] or "").strip(),
+        max_output_tokens=int(mapped["max_output_tokens"] or settings.ai_max_tokens),
+        model_context_tokens=int(mapped["model_context_tokens"] or 200000),
+        allowed_context_tokens=int(mapped["allowed_context_tokens"] or 120000),
+        extra_context=str(mapped["extra_context"] or ""),
+        enabled=True,
+    )
+    return await create_ai_config(payload, _, db)
+
+
 # ─── 前端 WebSocket ────────────────────────────────────────────────────────────
 
 @router.websocket("/ws/{session_id}")
@@ -238,6 +558,7 @@ async def ops_websocket(
                         content,
                         event_queue,
                         msg.get("host_id"),
+                        msg.get("ai_config_id"),
                     )
                 )
 
@@ -272,12 +593,18 @@ async def ops_websocket(
         _frontend_ws_clients.pop(session_id, None)
 
 
-async def _run_agent_loop(loop, user_message: str, queue: asyncio.Queue, host_id: int | None = None):
+async def _run_agent_loop(
+    loop,
+    user_message: str,
+    queue: asyncio.Queue,
+    host_id: int | None = None,
+    ai_config_id: str | None = None,
+):
     """在后台运行 AI 推理循环，将事件直接放入 asyncio.Queue。"""
     session_id = loop.session_id
     logger.info(f"Starting agent loop for session {session_id}")
     try:
-        async for event in loop.run(user_message, host_id=host_id):
+        async for event in loop.run(user_message, host_id=host_id, ai_config_id=ai_config_id):
             await queue.put(event)
         logger.info(f"Agent loop completed for session {session_id}")
     except Exception as e:
@@ -290,9 +617,10 @@ async def _run_agent_loop_serial(
     user_message: str,
     queue: asyncio.Queue,
     host_id: int | None = None,
+    ai_config_id: str | None = None,
 ):
     """运行单轮推理；串行由 OpsAgentLoop 内部全局锁保证。"""
-    await _run_agent_loop(loop, user_message, queue, host_id=host_id)
+    await _run_agent_loop(loop, user_message, queue, host_id=host_id, ai_config_id=ai_config_id)
 
 
 async def _queue_sender(queue: asyncio.Queue, websocket: WebSocket):

@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '021_add_custom_runbooks_table'
-down_revision = None
+down_revision = '021_add_suppression_rules'
 branch_labels = None
 depends_on = None
 

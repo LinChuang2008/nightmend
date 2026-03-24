@@ -41,9 +41,9 @@ const ServiceGroupsPage = lazy(() => import('./pages/topology/ServiceGroupsPage'
 const SLA = lazy(() => import('./pages/SLA'));
 const RemediationList = lazy(() => import('./pages/Remediation'));
 const RemediationDetail = lazy(() => import('./pages/RemediationDetail'));
-const RunbookManagement = lazy(() => import('./pages/RunbookManagement'));
 const AlertEscalation = lazy(() => import('./pages/AlertEscalation'));
 const OnCall = lazy(() => import('./pages/OnCall'));
+const AIConfigs = lazy(() => import('./pages/AIConfigs'));
 
 /** 路由权限守卫：根据角色限制可访问的页面 */
 const viewerAllowedPrefixes = ['/', '/dashboard', '/hosts', '/servers', '/services', '/topology', '/logs', '/databases', '/alerts', '/ops', '/remediations', '/runbooks', '/multi-server', '/service-groups', '/on-call', '/sla', '/ai-operation-logs', '/landing'];
@@ -56,7 +56,7 @@ function RoleGuard({ children }: { children: React.ReactElement }) {
     if (!allowed) return <Navigate to="/" replace />;
   }
   if (role === 'member') {
-    if (path.startsWith('/users') || path.startsWith('/settings')) return <Navigate to="/" replace />;
+    if (path.startsWith('/users') || path.startsWith('/settings') || path.startsWith('/ai-configs')) return <Navigate to="/" replace />;
   }
   return children;
 }
@@ -120,7 +120,7 @@ function AppInner() {
               <Route path="/alerts" element={<AlertList />} />
               <Route path="/remediations" element={<RemediationList />} />
               <Route path="/remediations/:id" element={<RemediationDetail />} />
-              <Route path="/runbooks" element={<RunbookManagement />} />
+              <Route path="/runbooks" element={<Navigate to="/ops" replace />} />
               <Route path="/sla" element={<SLA />} />
               <Route path="/ai-analysis" element={<Navigate to="/ops" replace />} />
               <Route path="/ops" element={<OpsAssistant />} />
@@ -134,6 +134,7 @@ function AppInner() {
               <Route path="/alert-escalation" element={<AlertEscalation />} />
               <Route path="/on-call" element={<OnCall />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/ai-configs" element={<AIConfigs />} />
             </Route>
             {/* 未匹配路由重定向到首页 */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -20,6 +20,7 @@ from app.core.redis import get_redis
 from app.core.database import async_session as AsyncSessionLocal
 from app.models.ops_session import OpsSession
 from app.models.ops_message import OpsMessage
+from app.models.setting import Setting
 from app.models.host import Host
 from app.models.host_metric import HostMetric
 from app.models.alert import Alert
@@ -39,6 +40,14 @@ OPS_WS_CHANNEL = "ops_ws:"                  # OpsAgentLoop → 前端 Worker
 COMPACTION_THRESHOLD = 40000
 # 命令确认超时（秒）
 COMMAND_CONFIRM_TIMEOUT = 60
+
+OPS_AI_BASE_URL_KEY = "ops_ai_base_url"
+OPS_AI_MODEL_KEY = "ops_ai_model"
+OPS_AI_API_KEY_KEY = "ops_ai_api_key"
+OPS_AI_MAX_TOKENS_KEY = "ops_ai_max_tokens"
+OPS_AI_EXTRA_CONTEXT_KEY = "ops_ai_extra_context"
+OPS_AI_CONFIGS_V2_KEY = "ops_ai_configs_v2"
+OPS_AI_DEFAULT_ID_KEY = "ops_ai_default_config_id"
 
 # ─── Tool Schemas ──────────────────────────────────────────────────────────────
 
@@ -232,9 +241,15 @@ class OpsAgentLoop:
 
     # ─── 公开接口 ──────────────────────────────────────────────────────────────
 
-    async def run(self, user_message: str, host_id: Optional[int] = None) -> AsyncIterator[dict]:
+    async def run(
+        self,
+        user_message: str,
+        host_id: Optional[int] = None,
+        ai_config_id: Optional[str] = None,
+    ) -> AsyncIterator[dict]:
         """主推理循环，yield 推送事件给前端。"""
         async with self._run_lock:
+            runtime_cfg = await self._load_ai_runtime_config(ai_config_id=ai_config_id, feature_key="ops_assistant")
             await self._ensure_context_loaded()
             if host_id:
                 await self._attach_target_host_context(host_id)
@@ -248,12 +263,13 @@ class OpsAgentLoop:
                 asyncio.create_task(self._generate_title(user_message))
 
             # 检查是否需要压缩
-            if session and session.token_count > COMPACTION_THRESHOLD:
+            compaction_threshold = max(8000, int(runtime_cfg.get("allowed_context_tokens", 120000) * 0.8))
+            if session and session.token_count > compaction_threshold:
                 async for event in self._compact_context():
                     yield event
 
             # 推理循环
-            async for event in self._inference_loop():
+            async for event in self._inference_loop(runtime_cfg):
                 yield event
 
     async def handle_command_confirm(self, message_id: str, action: str):
@@ -290,7 +306,7 @@ class OpsAgentLoop:
 
     # ─── 推理循环 ──────────────────────────────────────────────────────────────
 
-    async def _inference_loop(self) -> AsyncIterator[dict]:
+    async def _inference_loop(self, runtime_cfg: dict) -> AsyncIterator[dict]:
         """多轮推理，直到 AI 不再调用工具或调用 provide_conclusion。"""
         max_rounds = 20  # 防止无限循环
         for _ in range(max_rounds):
@@ -298,7 +314,7 @@ class OpsAgentLoop:
             response_text = ""
             tool_calls = []
 
-            async for chunk in self._call_api_stream():
+            async for chunk in self._call_api_stream(runtime_cfg):
                 if chunk.get("type") == "text_delta":
                     response_text += chunk["delta"]
                     yield {"event": "text_delta", "delta": chunk["delta"]}
@@ -780,23 +796,23 @@ class OpsAgentLoop:
 
     # ─── AI API 调用 ───────────────────────────────────────────────────────────
 
-    async def _call_api_stream(self) -> AsyncIterator[dict]:
-        """流式调用 DeepSeek API，yield text_delta 和 tool_calls。"""
-        if not settings.ai_api_key:
+    async def _call_api_stream(self, runtime_cfg: dict) -> AsyncIterator[dict]:
+        """流式调用 OpenAI 兼容 Chat Completions API，yield text_delta 和 tool_calls。"""
+        if not runtime_cfg["api_key"]:
             yield {"type": "text_delta", "delta": "AI API Key 未配置，请在设置中配置 AI_API_KEY。"}
             return
 
-        url = f"{settings.ai_api_base}/chat/completions"
-        headers = {"Authorization": f"Bearer {settings.ai_api_key}", "Content-Type": "application/json"}
-        safe_messages = self._normalized_messages_for_tool_protocol(self._context)
+        url = f"{runtime_cfg['base_url'].rstrip('/')}/chat/completions"
+        headers = {"Authorization": f"Bearer {runtime_cfg['api_key']}", "Content-Type": "application/json"}
+        safe_messages = self._normalized_messages_for_tool_protocol(self._context, runtime_cfg["extra_context"])
         payload = {
-            "model": settings.ai_model,
+            "model": runtime_cfg["model"],
             "messages": safe_messages,
             "tools": TOOLS,
             "tool_choice": "auto",
             "stream": True,
             "temperature": 0.3,
-            "max_tokens": 2000,
+            "max_tokens": runtime_cfg["max_tokens"],
         }
 
         logger.info(f"Calling AI API for session {self.session_id}, context_len={len(self._context)}")
@@ -856,7 +872,7 @@ class OpsAgentLoop:
             yield {"type": "tool_calls", "tool_calls": list(tool_calls_buffer.values())}
 
     @staticmethod
-    def _normalized_messages_for_tool_protocol(messages: list[dict]) -> list[dict]:
+    def _normalized_messages_for_tool_protocol(messages: list[dict], extra_context: str = "") -> list[dict]:
         """
         修复 assistant(tool_calls) 与 tool 响应不配对的上下文，避免上游 API 400。
 
@@ -864,6 +880,10 @@ class OpsAgentLoop:
         则自动补一条占位 tool 结果，保证协议完整。
         """
         normalized: list[dict] = []
+        if messages and messages[0].get("role") == "system" and extra_context:
+            merged_system = dict(messages[0])
+            merged_system["content"] = f"{messages[0].get('content', '')}\n\n【额外上下文】\n{extra_context}"
+            messages = [merged_system, *messages[1:]]
         total = len(messages)
         for idx, msg in enumerate(messages):
             normalized.append(msg)
@@ -902,10 +922,11 @@ class OpsAgentLoop:
 
     async def _call_api_simple(self, messages: list[dict], max_tokens: int = 500) -> str:
         """非流式 AI 调用，用于标题生成和上下文压缩。"""
-        url = f"{settings.ai_api_base}/chat/completions"
-        headers = {"Authorization": f"Bearer {settings.ai_api_key}", "Content-Type": "application/json"}
+        runtime_cfg = await self._load_ai_runtime_config()
+        url = f"{runtime_cfg['base_url'].rstrip('/')}/chat/completions"
+        headers = {"Authorization": f"Bearer {runtime_cfg['api_key']}", "Content-Type": "application/json"}
         payload = {
-            "model": settings.ai_model,
+            "model": runtime_cfg["model"],
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": 0.3,
@@ -914,6 +935,92 @@ class OpsAgentLoop:
             resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"]
+
+    async def _load_ai_runtime_config(
+        self,
+        ai_config_id: str | None = None,
+        feature_key: str | None = None,
+    ) -> dict:
+        """加载 AI 运行时配置：优先 v2 多业务配置，再回退到旧单配置。"""
+        cfg = {
+            "base_url": settings.ai_api_base,
+            "model": settings.ai_model,
+            "api_key": settings.ai_api_key,
+            "max_tokens": settings.ai_max_tokens,
+            "extra_context": "",
+            "model_context_tokens": 200000,
+            "allowed_context_tokens": 120000,
+        }
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Setting).where(
+                    Setting.key.in_(
+                        [
+                            OPS_AI_CONFIGS_V2_KEY,
+                            OPS_AI_DEFAULT_ID_KEY,
+                            OPS_AI_BASE_URL_KEY,
+                            OPS_AI_MODEL_KEY,
+                            OPS_AI_API_KEY_KEY,
+                            OPS_AI_MAX_TOKENS_KEY,
+                            OPS_AI_EXTRA_CONTEXT_KEY,
+                        ]
+                    )
+                )
+            )
+            settings_rows = {row.key: row.value for row in result.scalars().all()}
+
+        raw_configs = settings_rows.get(OPS_AI_CONFIGS_V2_KEY)
+        default_id = settings_rows.get(OPS_AI_DEFAULT_ID_KEY) or ""
+        if raw_configs:
+            try:
+                parsed = json.loads(raw_configs)
+            except json.JSONDecodeError:
+                parsed = []
+            if isinstance(parsed, list) and parsed:
+                scoped = parsed
+                if feature_key:
+                    scoped = [
+                        c for c in parsed
+                        if str(c.get("feature_key") or c.get("business_key") or "ops_assistant") == feature_key
+                    ]
+                    if not scoped:
+                        fallback_default = [
+                            c for c in parsed
+                            if str(c.get("feature_key") or c.get("business_key") or "ops_assistant") == "default"
+                        ]
+                        scoped = fallback_default or parsed
+                target = None
+                if ai_config_id:
+                    target = next((c for c in scoped if str(c.get("id")) == str(ai_config_id)), None)
+                if not target and default_id:
+                    target = next((c for c in scoped if str(c.get("id")) == str(default_id)), None)
+                if not target:
+                    target = next((c for c in scoped if bool(c.get("enabled", True))), scoped[0])
+                if target:
+                    cfg["base_url"] = str(target.get("base_url") or cfg["base_url"])
+                    cfg["model"] = str(target.get("model") or cfg["model"])
+                    cfg["api_key"] = str(target.get("api_key") or cfg["api_key"])
+                    cfg["max_tokens"] = int(target.get("max_output_tokens") or cfg["max_tokens"])
+                    cfg["extra_context"] = str(target.get("extra_context") or "")
+                    cfg["model_context_tokens"] = int(target.get("model_context_tokens") or 200000)
+                    cfg["allowed_context_tokens"] = int(target.get("allowed_context_tokens") or 120000)
+                    return cfg
+
+        # 兼容旧单配置
+        if settings_rows.get(OPS_AI_BASE_URL_KEY):
+            cfg["base_url"] = settings_rows[OPS_AI_BASE_URL_KEY]
+        if settings_rows.get(OPS_AI_MODEL_KEY):
+            cfg["model"] = settings_rows[OPS_AI_MODEL_KEY]
+        if settings_rows.get(OPS_AI_API_KEY_KEY):
+            cfg["api_key"] = settings_rows[OPS_AI_API_KEY_KEY]
+        if settings_rows.get(OPS_AI_MAX_TOKENS_KEY):
+            try:
+                cfg["max_tokens"] = int(settings_rows[OPS_AI_MAX_TOKENS_KEY])
+            except ValueError:
+                pass
+        if settings_rows.get(OPS_AI_EXTRA_CONTEXT_KEY):
+            cfg["extra_context"] = settings_rows[OPS_AI_EXTRA_CONTEXT_KEY]
+        return cfg
 
     # ─── 辅助方法 ──────────────────────────────────────────────────────────────
 

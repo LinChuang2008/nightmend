@@ -40,6 +40,7 @@ from app.models.ops_session import OpsSession
 from app.models.ops_message import OpsMessage
 from app.models.menu_setting import MenuSetting
 from app.models.ai_operation_log import AIOperationLog
+from app.models.database_target import DatabaseMonitorTarget
 
 # 导出所有模型类供外部模块使用 (Export all model classes for external modules)
 __all__ = [
@@ -52,4 +53,5 @@ __all__ = [
     "TopologyLayout", "AlertGroup", "AlertDeduplication", "EscalationRule", "AlertEscalation",
     "OnCallGroup", "OnCallSchedule", "RemediationLog", "SuppressionRule",
     "OpsSession", "OpsMessage", "MenuSetting", "AIOperationLog",
+    "DatabaseMonitorTarget",
 ]
