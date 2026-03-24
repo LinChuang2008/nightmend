@@ -629,17 +629,27 @@ class OpsAgentLoop:
             yield {"__type": "__result", "result": {"error": "命令确认超时，已自动取消", "action": "expired"}}
 
     async def _wait_command_result(self, request_id: str, timeout: int) -> dict:
-        """订阅 Redis channel 等待命令执行结果。"""
+        """订阅 Redis channel 等待命令执行结果，带硬超时防止永久阻塞。"""
         redis = await get_redis()
         channel = f"cmd_result:{self.session_id}"
         pubsub = redis.pubsub()
         await pubsub.subscribe(channel)
         try:
             deadline = asyncio.get_event_loop().time() + timeout
-            async for message in pubsub.listen():
-                if asyncio.get_event_loop().time() > deadline:
+            while True:
+                remaining = deadline - asyncio.get_event_loop().time()
+                if remaining <= 0:
+                    logger.warning(f"Command result timeout ({timeout}s) for request {request_id}")
                     break
-                if message["type"] != "message":
+                try:
+                    # get_message 带超时轮询，不会永久阻塞
+                    message = await asyncio.wait_for(
+                        pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0),
+                        timeout=min(remaining, 5.0),
+                    )
+                except asyncio.TimeoutError:
+                    continue
+                if message is None:
                     continue
                 try:
                     data = json.loads(message["data"])
@@ -647,7 +657,7 @@ class OpsAgentLoop:
                         return data
                 except Exception:
                     continue
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
         finally:
             await pubsub.unsubscribe(channel)
@@ -882,6 +892,9 @@ class OpsAgentLoop:
             stream_task.cancel()
             logger.error(f"AI API stream error: {e}")
             yield {"type": "text_delta", "delta": f"\n\n[AI 调用失败：{e}]"}
+        finally:
+            if not stream_task.done():
+                stream_task.cancel()
 
         if tool_calls_buffer:
             yield {"type": "tool_calls", "tool_calls": list(tool_calls_buffer.values())}
