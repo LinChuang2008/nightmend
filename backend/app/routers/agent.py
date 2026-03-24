@@ -681,6 +681,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from datetime import datetime
 import asyncio
 import hashlib
+import hmac
 import logging
 import json
 
@@ -763,7 +764,12 @@ async def agent_websocket(
         await websocket.close(code=1008, reason="Missing token")
         return
 
-    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    from app.core.config import settings
+    token_hash = hmac.new(
+        settings.agent_token_hmac_key.encode(),
+        raw_token.encode(),
+        hashlib.sha256,
+    ).hexdigest()
 
     result = await db.execute(
         select(AgentToken).where(

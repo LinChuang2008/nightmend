@@ -19,6 +19,8 @@ import tempfile
 import urllib.request
 from datetime import datetime, timezone
 
+import ssl
+
 import httpx
 import websocket
 
@@ -75,7 +77,7 @@ class AgentReporter:
         while True:  # 永久重连循环
             try:
                 logger.info(f"Attempting to connect WebSocket: {ws_url}")
-                sslopt = {"cert_reqs": __import__('ssl').CERT_REQUIRED} if ws_url.startswith("wss://") else {}
+                sslopt = {"cert_reqs": ssl.CERT_REQUIRED} if ws_url.startswith("wss://") else {}
                 ws = websocket.create_connection(
                     ws_url,
                     timeout=10,
