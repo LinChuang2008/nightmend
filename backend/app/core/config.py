@@ -138,6 +138,10 @@ class Settings(BaseSettings):
     webhook_allowed_domains: str = ""  # 例如: "api.example.com,webhook.example.com"
     webhook_enable_ssl_verification: bool = True  # 是否启用 SSL 证书验证 (Enable SSL Certificate Verification)
 
+    # AlertManager Bridge 配置 (AlertManager Bridge Configuration)
+    alertmanager_webhook_token: str = ""  # Bearer token for webhook auth, generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+    alertmanager_auto_threshold: float = 0.9  # AI 信心分数 >= 此值时自动执行修复 (Auto-execute when confidence >= this)
+
     # 环境变量别名（Environment Variable Aliases）
     # Pydantic Settings 需要明确指定环境变量名称
     WEBHOOK_ALLOWED_DOMAINS: str = ""

@@ -75,6 +75,7 @@ from app.routers import ai_operation_logs
 from app.routers import ai_analysis
 from app.routers import custom_runbooks
 from app.routers import promql
+from app.routers import webhooks
 from app.api.v1 import data_retention
 from app.api.v1 import alert_deduplication
 
@@ -307,6 +308,7 @@ app.include_router(ai_operation_logs.router)  # AI 操作日志 (AI operation lo
 app.include_router(ai_analysis.router)  # AI 分析 (AI analysis: insights, root-cause, logs)
 app.include_router(custom_runbooks.router)  # 自定义 Runbook 管理 (Custom Runbook Management)
 app.include_router(promql.router)  # PromQL 查询 (PromQL Query Engine)
+app.include_router(webhooks.router)  # 外部告警源 Webhook (External Alert Source Webhooks)
 
 
 @app.get("/health")
