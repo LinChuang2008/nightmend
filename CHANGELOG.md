@@ -4,6 +4,35 @@ All notable changes to VigilOps will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2026.03.29] - 2026-03-29
+
+### Added
+- Prometheus AlertManager Bridge: webhook endpoint at `/api/v1/webhooks/alertmanager` with Bearer token auth, HMAC constant-time verification, and Redis-based deduplication
+- Alert source abstraction layer (`AlertSourceAdapter` ABC) with `PrometheusAdapter` implementation for parsing, host mapping, and severity normalization
+- Diagnosis-only demo mode (`ENABLE_REMEDIATION=false`): AI root cause analysis via SSE stream at `/api/v1/demo/alerts/stream`, no remediation execution
+- Demo page at `/demo`: unauthenticated React page with AlertManager config snippet, real-time alert feed with AI diagnosis, connection status indicator
+- AI engine integration for alert diagnosis with memory system recall and fault pattern storage
+- 12 new tests: webhook auth, alert processing, diagnosis flow, SSE endpoint, remediation gating, config defaults
+
+### Security
+- OAuth race condition fix in external auth callback
+- WebSocket connection leak prevention in dashboard WS
+- Template injection prevention in notification templates (Jinja2 sandboxing)
+- Webhook SSL verification enforcement
+- `shlex.quote` for shell argument injection prevention in command executor
+- SSH host key enforcement for remediation connections
+- SSE endpoint middleware bypass for streaming (SecurityMiddleware, RequestSizeMiddleware, RateLimitMiddleware)
+
+### Changed
+- MCP server refactored for cleaner tool organization
+- Notification and settings API improvements
+- Frontend AppLayout responsive sidebar enhancements
+- Agent reporter hardened with connection retry and error handling
+
+### Fixed
+- Test mocks updated for merged stats query and tightened rm patterns
+- Agent WS token validation and OPS command timeout handling
+
 ## [2026.03.14] - 2026-03-14
 
 > Version scheme changed to date-based: vYYYY.MM.DD (beta: vYYYY.MM.DD-beta.N)
