@@ -225,3 +225,69 @@ curl http://localhost:9090/api/v1/targets
 5. **监控监控**: 监控 Prometheus 和 VigilOps 的健康状态
 
 通过以上配置，您可以将 VigilOps 无缝集成到现有的 Prometheus 监控体系中，实现统一的监控数据收集和告警管理。
+
+---
+
+## 7. AlertManager Webhook 集成（v2026.03.29 新增）
+
+VigilOps 可以接收 Prometheus AlertManager 的告警推送，实现 **AI 自动诊断 + 可选自动修复**。
+
+### AlertManager 配置
+
+在 AlertManager 的 `alertmanager.yml` 中添加 VigilOps 作为 webhook receiver：
+
+```yaml
+# alertmanager.yml
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'vigilops'
+  group_by: ['alertname', 'instance']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+
+receivers:
+  - name: 'vigilops'
+    webhook_configs:
+      - url: 'http://vigilops-backend:8000/api/v1/webhooks/alertmanager'
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: '<your-webhook-token>'
+```
+
+### VigilOps 环境变量
+
+在 `.env` 中配置以下参数：
+
+```bash
+# AlertManager Webhook 认证令牌
+ALERTMANAGER_WEBHOOK_TOKEN=your-secure-token
+
+# 可选：HMAC 签名验证密钥（如果 AlertManager 配置了 HMAC）
+ALERTMANAGER_HMAC_SECRET=your-hmac-secret
+
+# 诊断模式：仅运行 AI 分析，不执行自动修复
+ENABLE_REMEDIATION=false
+```
+
+### 工作流程
+
+1. AlertManager 检测到告警 → 通过 webhook 推送到 VigilOps
+2. VigilOps 验证 Bearer Token + 可选 HMAC 签名
+3. Redis 去重防止重复告警处理
+4. `PrometheusAdapter` 解析告警并映射到 VigilOps 主机
+5. AI 引擎进行根因分析，生成诊断结果
+6. 如果 `ENABLE_REMEDIATION=true`，匹配 Runbook 并执行自动修复
+
+### 诊断演示模式
+
+设置 `ENABLE_REMEDIATION=false` 后，VigilOps 只运行 AI 诊断，不执行任何修复命令。适合初期评估。
+
+访问 `/demo` 页面可以：
+- 查看 AlertManager 配置片段
+- 实时观看告警流 + AI 诊断结果（SSE）
+- 无需登录

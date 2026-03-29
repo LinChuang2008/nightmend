@@ -24,8 +24,9 @@
 | **后端** | FastAPI + SQLAlchemy + PostgreSQL + Redis + Python 3.11+ |
 | **前端** | React 18 + TypeScript + Vite + Ant Design + ECharts |
 | **部署** | Docker Compose（4 容器：backend + frontend + postgres + redis） |
-| **AI** | DeepSeek API（OpenAI 兼容接口） |
-| **Agent** | Python agent 进程，systemd 管理，HTTP 上报 |
+| **AI** | DeepSeek API（OpenAI 兼容接口，支持深度思考） |
+| **Agent** | Python agent 进程，systemd 管理，HTTP 上报，自身资源指标采集 |
+| **外部集成** | Prometheus AlertManager Webhook、MCP Server |
 
 ---
 
@@ -57,6 +58,7 @@ graph TB
         end
     end
 
+    PROM[Prometheus<br/>AlertManager] -->|Webhook| API
     A -->|HTTP 上报| API
     F <-->|REST / WebSocket| API
     API --> CORE
