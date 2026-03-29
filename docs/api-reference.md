@@ -30,6 +30,9 @@
 20. [Audit Logs / 审计日志](#20-audit-logs--审计日志)
 21. [Agent Data Reporting / Agent 数据上报](#21-agent-data-reporting--agent-数据上报)
 22. [Agent Tokens / Agent 令牌管理](#22-agent-tokens--agent-令牌管理)
+23. [Webhooks / 外部告警接入](#23-webhooks--外部告警接入)
+24. [Demo / 演示接口](#24-demo--演示接口)
+25. [Custom Runbooks / 自定义 Runbook](#25-custom-runbooks--自定义-runbook)
 
 ---
 
@@ -1577,6 +1580,107 @@ Returns tokens without full token value (only prefix).
 Sets `is_active = false` (soft delete).
 
 **Response** `204`: No content
+
+---
+
+## 23. Webhooks / 外部告警接入
+
+> Auth: Bearer Token (in `Authorization` header)
+> Added in v2026.03.29
+
+### POST `/api/v1/webhooks/alertmanager`
+**AlertManager Webhook / AlertManager 告警接收**
+
+Receives alerts from Prometheus AlertManager. Supports HMAC signature verification and Redis deduplication.
+接收 Prometheus AlertManager 推送的告警，支持 HMAC 签名验证和 Redis 去重。
+
+**Headers:**
+```
+Authorization: Bearer <ALERTMANAGER_WEBHOOK_TOKEN>
+X-Vigilops-Signature: sha256=<hmac_hex>  (optional)
+```
+
+**Request Body:** Standard AlertManager webhook payload.
+
+**Response** `200`:
+```json
+{
+  "status": "ok",
+  "received": 3,
+  "deduplicated": 1,
+  "processed": 2
+}
+```
+
+---
+
+## 24. Demo / 演示接口
+
+> Auth: None (public)
+> Added in v2026.03.29
+
+### GET `/api/v1/demo/alerts/stream`
+**Alert Diagnosis SSE Stream / 告警诊断 SSE 流**
+
+Server-Sent Events endpoint for real-time alert diagnosis display. Requires `ENABLE_REMEDIATION=false`.
+
+**Response:** SSE stream with events:
+```
+event: alert
+data: {"alert_id": 1, "title": "HighCPU", "severity": "warning", ...}
+
+event: diagnosis
+data: {"alert_id": 1, "root_cause": "Memory leak in Java process", "confidence": 0.92, ...}
+```
+
+---
+
+## 25. Custom Runbooks / 自定义 Runbook
+
+> Auth: Bearer Token (Admin/Operator)
+> Added in v2026.03.29
+
+### GET `/api/v1/custom-runbooks`
+**List Custom Runbooks / 自定义 Runbook 列表**
+
+### POST `/api/v1/custom-runbooks`
+**Create Custom Runbook / 创建自定义 Runbook**
+
+```json
+{
+  "name": "nginx_restart",
+  "description": "Restart nginx when upstream errors detected",
+  "match_alert_types": ["service_down"],
+  "trigger_keywords": ["nginx", "upstream"],
+  "risk_level": "confirm",
+  "safety_checks": ["require_label:service"],
+  "steps": [
+    {"name": "Check status", "command": "systemctl status nginx", "timeout_sec": 10},
+    {"name": "Restart", "command": "systemctl restart nginx", "timeout_sec": 30, "rollback_command": "systemctl start nginx"}
+  ],
+  "verify_steps": [
+    {"name": "Verify", "command": "curl -f http://localhost:80/health", "timeout_sec": 10}
+  ]
+}
+```
+
+### PUT `/api/v1/custom-runbooks/{runbook_id}`
+**Update Custom Runbook / 更新自定义 Runbook**
+
+### DELETE `/api/v1/custom-runbooks/{runbook_id}`
+**Delete Custom Runbook / 删除自定义 Runbook**
+
+### POST `/api/v1/ai/generate-runbook`
+**AI Generate Runbook / AI 生成 Runbook**
+
+Uses AI to generate a runbook from natural language description.
+
+```json
+{
+  "description": "当 Redis 内存超过 80% 时自动清理过期 key",
+  "risk_level": "confirm"
+}
+```
 
 ---
 
