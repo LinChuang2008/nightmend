@@ -95,7 +95,7 @@ export default function Landing() {
           <Button type="text" href="https://github.com/LinChuang2008/vigilops/blob/main/README.md" target="_blank" rel="noopener noreferrer">
             GitHub
           </Button>
-          <Button type="primary" onClick={() => navigate('/demo')}>
+          <Button type="primary" onClick={() => navigate('/login')}>
             {t('landing.signIn')}
           </Button>
         </Space>
@@ -138,7 +138,7 @@ export default function Landing() {
           {t('landing.heroDescription')}
         </Paragraph>
         <Space size="large">
-          <Button type="primary" size="large" icon={<ArrowRightOutlined />} onClick={() => navigate('/demo')}>
+          <Button type="primary" size="large" icon={<ArrowRightOutlined />} onClick={() => navigate('/login')}>
             {t('landing.getStarted')}
           </Button>
           <Button
@@ -279,7 +279,7 @@ export default function Landing() {
           {t('landing.ctaDescription')}
         </Paragraph>
         <Space size="large">
-          <Button type="primary" size="large" icon={<ArrowRightOutlined />} onClick={() => navigate('/demo')}>
+          <Button type="primary" size="large" icon={<ArrowRightOutlined />} onClick={() => navigate('/login')}>
             {t('landing.getStarted')}
           </Button>
           <Button

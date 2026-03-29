@@ -39,16 +39,15 @@ VigilOps is the **first open-source AI platform** that doesn't just monitor — 
 
 **Try Online** (no install): [demo.lchuangnet.com](https://demo.lchuangnet.com/login) — `demo@vigilops.io` / `demo123`
 
-**Self-Host in 5 Minutes:**
+**Self-Host in 3 Steps:**
 
 ```bash
 git clone https://github.com/LinChuang2008/vigilops.git && cd vigilops
-cp .env.example .env   # Add your DeepSeek API key
-docker compose up -d
-# Open http://localhost:3001 — first registered account becomes admin
+cp .env.example .env                    # Optional: add DeepSeek API key for live AI
+docker compose up -d                    # Open http://localhost:3001
 ```
 
-> On first startup, the backend auto-creates 37 tables, 5 alert rules, and 8 dashboard components.
+> First registered account becomes admin. On first startup, the backend auto-creates tables, alert rules, and dashboard components.
 
 ---
 
@@ -84,6 +83,29 @@ docker compose up -d
 **13 Built-in Runbooks**: `disk_cleanup` | `service_restart` | `memory_pressure` | `log_rotation` | `zombie_killer` | `connection_reset` | `cpu_high` | `docker_cleanup` | `network_diag` | `mysql_health` | `redis_health` | `nginx_fix` | `swap_pressure`
 
 **AI Runbook Generator**: Describe a scenario in natural language, and AI generates an executable Runbook with safety checks — via `/api/v1/ai/generate-runbook`.
+
+---
+
+## Prometheus AlertManager Bridge
+
+Already running Prometheus? Add 3 lines to `alertmanager.yml` and get AI diagnosis on every alert:
+
+```yaml
+receivers:
+  - name: 'vigilops'
+    webhook_configs:
+      - url: 'http://your-vigilops:8001/api/v1/webhooks/alertmanager'
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: 'YOUR_TOKEN'
+route:
+  receiver: 'vigilops'
+```
+
+**What happens**: Prometheus fires alert → VigilOps receives it → AI analyzes root cause → diagnosis appears in real-time on the Demo page via SSE.
+
+Two modes: **Diagnosis-only** (safe, read-only analysis) or **Auto-remediation** (AI picks and executes the right Runbook).
 
 ---
 

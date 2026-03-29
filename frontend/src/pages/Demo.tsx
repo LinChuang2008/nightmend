@@ -259,6 +259,31 @@ export default function Demo() {
           </Space>
         )}
 
+        <Card size="small" style={{ textAlign: 'center', background: '#f6ffed', border: '1px solid #b7eb8f' }}>
+          <Space direction="vertical" size={4}>
+            <Text strong>这个 AI 诊断对你有用吗？</Text>
+            <Space>
+              <Button
+                size="small"
+                href="https://github.com/LinChuang2008/vigilops/issues/new?title=Demo+Feedback&labels=feedback"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                有用，我想试试
+              </Button>
+              <Button
+                size="small"
+                type="text"
+                href="https://github.com/LinChuang2008/vigilops/issues/new?title=Demo+Feedback&labels=feedback"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                没用，告诉你为什么
+              </Button>
+            </Space>
+          </Space>
+        </Card>
+
         <div style={{ textAlign: 'center', padding: '16px 0' }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
             VigilOps — 开源 AI 运维平台 | 自托管，数据不出境
