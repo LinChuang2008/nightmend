@@ -464,9 +464,22 @@ def analyze_incident(
                         } for log in related_logs
                     ]
 
-            mcp_user = db.query(User).order_by(User.id.asc()).first()
+            # 使用专用 MCP 服务账号（viewer 角色，最小权限），不冒充 admin
+            mcp_user = db.query(User).filter(User.email == "mcp-service@vigilops.internal").first()
             if not mcp_user:
-                return {"error": "No available user for MCP analyze_incident"}
+                # 自动创建专用服务账号（viewer 角色，禁止登录）
+                from app.core.security import get_password_hash
+                import secrets
+                mcp_user = User(
+                    email="mcp-service@vigilops.internal",
+                    name="MCP Service",
+                    hashed_password=get_password_hash(secrets.token_hex(32)),
+                    role="viewer",
+                    is_active=True,
+                )
+                db.add(mcp_user)
+                db.commit()
+                db.refresh(mcp_user)
 
             # 创建临时 OpsSession
             session_id = str(uuid.uuid4())
