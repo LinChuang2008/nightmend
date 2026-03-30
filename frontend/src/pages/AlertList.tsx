@@ -414,9 +414,11 @@ export default function AlertList() {
           <Space size="small" wrap>
             <Tag color={severityColor[record.severity]}>{record.severity}</Tag>
             <Tag color={statusColor[record.status]}>{record.status}</Tag>
-            <span style={{ fontSize: '12px', color: '#666' }}>
-              {new Date(record.fired_at).toLocaleString()}
-            </span>
+            <Tooltip title={new Date(record.fired_at).toLocaleString()}>
+              <span style={{ fontSize: '12px', color: '#666' }}>
+                {dayjs(record.fired_at).locale(i18n.language === 'zh' ? 'zh-cn' : 'en').fromNow()}
+              </span>
+            </Tooltip>
           </Space>
         </div>
       )
