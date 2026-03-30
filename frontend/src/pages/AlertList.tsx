@@ -11,6 +11,9 @@ import { Table, Card, Tag, Typography, Select, Space, Button, Drawer, Descriptio
 import { ExclamationCircleOutlined, RobotOutlined, PauseCircleOutlined, PlayCircleOutlined, BellOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/zh-cn';
+dayjs.extend(relativeTime);
 import api from '../services/api';
 import { alertService, notificationService, type NotificationChannel } from '../services/alerts';
 import { databaseService } from '../services/databases';
@@ -343,7 +346,9 @@ export default function AlertList() {
     }},
     { title: t('alerts.severity'), dataIndex: 'severity', render: (s: string) => <Tag color={severityColor[s]}>{t(`alerts.severityLevels.${s}`) || s}</Tag> },
     { title: t('alerts.status'), dataIndex: 'status', render: (s: string) => <Tag color={statusColor[s]}>{t(`alerts.statusTypes.${s}`) || s}</Tag> },
-    { title: t('alerts.triggeredAt'), dataIndex: 'fired_at', render: (val: string) => new Date(val).toLocaleString() },
+    { title: t('alerts.triggeredAt'), dataIndex: 'fired_at', render: (val: string) => (
+      <Tooltip title={new Date(val).toLocaleString()}>{dayjs(val).locale(i18n.language === 'zh' ? 'zh-cn' : 'en').fromNow()}</Tooltip>
+    ) },
     {
       title: t('alerts.remediationStatus'), dataIndex: 'remediation_status', key: 'remediation_status',
       render: (s: string) => {
