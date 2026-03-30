@@ -52,6 +52,20 @@ from app.schemas.log_entry import LogBatchRequest, LogBatchResponse
 router = APIRouter(prefix="/api/v1/agent", tags=["agent"])
 
 
+async def _verify_host_ownership(host_id: int, agent_token: AgentToken, db: AsyncSession) -> Host:
+    """验证 host 归属当前 agent token，防止跨 token 数据注入。"""
+    result = await db.execute(
+        select(Host).where(Host.id == host_id, Host.agent_token_id == agent_token.id)
+    )
+    host = result.scalar_one_or_none()
+    if not host:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Host {host_id} is not registered with this agent token"
+        )
+    return host
+
+
 def _auto_classify_service(name: str) -> str:
     """
     服务自动分类函数 (Automatic Service Classification)
@@ -229,6 +243,8 @@ async def report_metrics(
     """
     import json as _json
 
+    await _verify_host_ownership(body.host_id, agent_token, db)
+
     now = datetime.now(timezone.utc)
     recorded_at = body.timestamp or now
 
@@ -336,6 +352,9 @@ async def register_service(
     check_interval = body.get("check_interval", 60)
     timeout = body.get("timeout", 10)
 
+    if host_id:
+        await _verify_host_ownership(host_id, agent_token, db)
+
     # 查找已有服务（按 host_id + name 唯一确定，target 可能因发现机制变化）
     result = await db.execute(
         select(Service).where(Service.host_id == host_id, Service.name == name)
@@ -386,6 +405,14 @@ async def report_service_check(
         3. 供服务列表和拓扑图显示使用
     """
     now = datetime.now(timezone.utc)
+
+    # 验证 service 所属 host 归属当前 token
+    svc_result = await db.execute(
+        select(Service).where(Service.id == body.service_id)
+    )
+    svc = svc_result.scalar_one_or_none()
+    if svc and svc.host_id:
+        await _verify_host_ownership(svc.host_id, agent_token, db)
 
     check = ServiceCheck(
         service_id=body.service_id,
@@ -623,6 +650,11 @@ async def ingest_logs(
 
     if not body.logs:
         return LogBatchResponse(received=0)
+
+    # 验证日志中的 host_id 归属当前 token
+    host_ids = {item.host_id for item in body.logs if item.host_id}
+    for hid in host_ids:
+        await _verify_host_ownership(hid, agent_token, db)
 
     rows = [item.model_dump() for item in body.logs]
     await db.execute(insert(LogEntry), rows)
