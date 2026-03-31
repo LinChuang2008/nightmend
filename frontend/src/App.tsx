@@ -43,11 +43,12 @@ const RemediationList = lazy(() => import('./pages/Remediation'));
 const RemediationDetail = lazy(() => import('./pages/RemediationDetail'));
 const AlertEscalation = lazy(() => import('./pages/AlertEscalation'));
 const OnCall = lazy(() => import('./pages/OnCall'));
+const Demo = lazy(() => import('./pages/Demo'));
 const AIConfigs = lazy(() => import('./pages/AIConfigs'));
 const RunbookManagement = lazy(() => import('./pages/RunbookManagement'));
 
 /** 路由权限守卫：根据角色限制可访问的页面 */
-const viewerAllowedPrefixes = ['/', '/dashboard', '/hosts', '/servers', '/services', '/topology', '/logs', '/databases', '/alerts', '/ops', '/remediations', '/runbooks', '/multi-server', '/service-groups', '/on-call', '/sla', '/ai-operation-logs', '/landing'];
+const viewerAllowedPrefixes = ['/', '/dashboard', '/hosts', '/servers', '/services', '/topology', '/logs', '/databases', '/alerts', '/ops', '/remediations', '/runbooks', '/multi-server', '/service-groups', '/on-call', '/sla', '/ai-operation-logs', '/landing', '/demo'];
 function RoleGuard({ children }: { children: React.ReactElement }) {
   const location = useLocation();
   const role = localStorage.getItem('user_role') || 'viewer';
@@ -92,6 +93,8 @@ function AppInner() {
           <Routes>
             {/* Landing Page（无需认证） */}
             <Route path="/landing" element={<Landing />} />
+            {/* Demo 页面（无需认证） */}
+            <Route path="/demo" element={<Demo />} />
             {/* 登录页（无需认证） */}
             <Route path="/login" element={<Login />} />
             {/* 首页入口：未登录→Landing，已登录→Dashboard */}

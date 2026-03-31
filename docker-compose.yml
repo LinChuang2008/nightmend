@@ -22,13 +22,13 @@ services:
     image: redis:7-alpine
     environment:
       TZ: Asia/Shanghai
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD:-vigilops_dev}
     ports:
       - "127.0.0.1:${REDIS_PORT:-6380}:6379"
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-vigilops_dev}", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -82,7 +82,7 @@ services:
       REDIS_PORT: 6379
       POSTGRES_PORT: 5432
       TZ: Asia/Shanghai
-    command: ["/bin/sh", "-c", "python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"]
+    command: ["/bin/sh", "-c", "PYTHONPATH=/app alembic upgrade head && PYTHONPATH=/app uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"]
     depends_on:
       postgres:
         condition: service_healthy

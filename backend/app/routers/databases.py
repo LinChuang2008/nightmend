@@ -25,6 +25,7 @@ from app.models.db_metric import MonitoredDatabase, DbMetric
 from app.models.database_target import DatabaseMonitorTarget
 from app.models.user import User
 from app.schemas.database_target import DatabaseTargetCreate, DatabaseTargetOut, DatabaseTargetUpdate
+from app.core.crypto import encrypt_value
 
 router = APIRouter(prefix="/api/v1/databases", tags=["databases"])
 
@@ -145,7 +146,7 @@ async def create_database_target(
         db_port=data.db_port,
         db_name=data.db_name.strip(),
         username=data.username.strip(),
-        password=data.password,
+        password=encrypt_value(data.password) if data.password else "",
         interval_sec=data.interval_sec,
         connect_timeout_sec=data.connect_timeout_sec,
         is_active=data.is_active,
@@ -175,6 +176,8 @@ async def update_database_target(
     updates = data.model_dump(exclude_unset=True)
     if updates.get("password", None) == "":
         updates.pop("password", None)
+    elif "password" in updates and updates["password"]:
+        updates["password"] = encrypt_value(updates["password"])
     if "db_type" in updates:
         updates["db_type"] = _normalize_db_type(updates["db_type"])
     for key, value in updates.items():

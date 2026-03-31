@@ -42,8 +42,7 @@ class TestScanRecentLogs:
         with patch("app.services.anomaly_scanner.async_session") as mock_sess:
             mock_sess.return_value.__aenter__ = AsyncMock(return_value=db_session)
             mock_sess.return_value.__aexit__ = AsyncMock(return_value=False)
-            with patch("app.services.anomaly_scanner.ai_engine") as mock_ai:
-                mock_ai.analyze_logs = AsyncMock(return_value=ai_result)
+            with patch("app.services.anomaly_scanner.analyze_logs_brief", new_callable=AsyncMock, return_value=ai_result):
                 await scan_recent_logs(hours=1)
 
         from sqlalchemy import select
@@ -64,8 +63,7 @@ class TestScanRecentLogs:
         with patch("app.services.anomaly_scanner.async_session") as mock_sess:
             mock_sess.return_value.__aenter__ = AsyncMock(return_value=db_session)
             mock_sess.return_value.__aexit__ = AsyncMock(return_value=False)
-            with patch("app.services.anomaly_scanner.ai_engine") as mock_ai:
-                mock_ai.analyze_logs = AsyncMock(return_value={"error": True, "summary": "failed"})
+            with patch("app.services.anomaly_scanner.analyze_logs_brief", new_callable=AsyncMock, return_value={"error": True, "summary": "failed"}):
                 await scan_recent_logs(hours=1)
 
         from sqlalchemy import select

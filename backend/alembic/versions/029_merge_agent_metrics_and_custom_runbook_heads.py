@@ -11,8 +11,8 @@ from typing import Sequence, Union
 # revision identifiers, used by Alembic.
 revision: str = "029_merge_runbook_heads"
 down_revision: Union[str, Sequence[str], None] = (
-    "027_agent_res_metrics",
     "028_runbook_verify_steps",
+    "a9f923ad91b0",
 )
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

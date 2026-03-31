@@ -201,6 +201,7 @@ export default function Login() {
         background: 'rgba(255,255,255,0.1)',
         borderRadius: '50%',
         animation: 'float 6s ease-in-out infinite',
+        pointerEvents: 'none',
       }} />
       <div style={{
         position: 'absolute',
@@ -211,6 +212,7 @@ export default function Login() {
         background: 'rgba(255,255,255,0.05)',
         borderRadius: '50%',
         animation: 'float 8s ease-in-out infinite reverse',
+        pointerEvents: 'none',
       }} />
       <div style={{
         position: 'absolute',
@@ -220,6 +222,7 @@ export default function Login() {
         height: '250px',
         background: 'rgba(255,255,255,0.08)',
         borderRadius: '50%',
+        pointerEvents: 'none',
         animation: 'float 7s ease-in-out infinite',
       }} />
       {contextHolder}

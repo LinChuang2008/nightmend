@@ -310,10 +310,14 @@ class CommandExecutor:
             from app.core.config import settings
             _known_hosts_path = settings.agent_ssh_known_hosts or None
             if _known_hosts_path is None:
+                if settings.environment != "development":
+                    raise RuntimeError(
+                        "SSH host key verification is required in production. "
+                        "Set AGENT_SSH_KNOWN_HOSTS=/etc/ssh/ssh_known_hosts."
+                    )
                 logger.warning(
-                    "SSH host key verification is disabled (AGENT_SSH_KNOWN_HOSTS not set). "
-                    "This is a known security limitation for automated remediation. "
-                    "Set AGENT_SSH_KNOWN_HOSTS=/etc/ssh/ssh_known_hosts in production."
+                    "SSH host key verification is disabled (development mode). "
+                    "Set AGENT_SSH_KNOWN_HOSTS in production."
                 )
             async with asyncssh.connect(
                 self.remote_host,

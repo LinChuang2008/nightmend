@@ -58,6 +58,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         Returns:
             Response: 增强了安全头的 HTTP 响应 (HTTP response with enhanced security headers)
         """
+        # SSE 流端点直接放行，避免 BaseHTTPMiddleware 缓冲响应体
+        if request.url.path == "/api/v1/demo/alerts/stream":
+            return await call_next(request)
+
         # 请求前安全检查 (Pre-request security checks)
         if not self._is_request_safe(request):
             return Response(
@@ -65,14 +69,14 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 status_code=400,
                 headers={"Content-Type": "text/plain"}
             )
-        
+
         # 处理请求 (Process request)
         response = await call_next(request)
-        
+
         # 添加安全头 (Add security headers)
         if self.enable_security_headers:
             self._add_security_headers(response, request)
-        
+
         return response
     
     def _is_request_safe(self, request: Request) -> bool:
@@ -280,15 +284,11 @@ class RequestSizeMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         """
         检查请求大小并处理 (Check Request Size and Process)
-        
-        Args:
-            request: HTTP 请求对象 (HTTP request object)
-            call_next: 下一个处理函数 (Next handler function)
-            
-        Returns:
-            Response: HTTP 响应对象 (HTTP response object)
         """
-        # 获取 Content-Length 头 (Get Content-Length header)
+        # SSE 流端点直接放行
+        if request.url.path == "/api/v1/demo/alerts/stream":
+            return await call_next(request)
+
         content_length = request.headers.get("content-length")
         
         if content_length:

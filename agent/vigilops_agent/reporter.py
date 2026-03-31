@@ -19,6 +19,8 @@ import tempfile
 import urllib.request
 from datetime import datetime, timezone
 
+import ssl
+
 import httpx
 import websocket
 
@@ -77,7 +79,7 @@ class AgentReporter:
         while True:  # 永久重连循环
             try:
                 logger.info(f"Attempting to connect WebSocket: {ws_url}")
-                sslopt = {"cert_reqs": __import__('ssl').CERT_REQUIRED} if ws_url.startswith("wss://") else {}
+                sslopt = {"cert_reqs": ssl.CERT_REQUIRED} if ws_url.startswith("wss://") else {}
                 ws = websocket.create_connection(
                     ws_url,
                     timeout=10,
@@ -325,7 +327,7 @@ sc.exe start VigilOpsAgent | Out-Null
             return
 
         # 安全: 检查命令注入特殊字符
-        DANGEROUS_CHARS = [';', '&&', '||', '|', '`', '$(', '${', '\n', '\r']
+        DANGEROUS_CHARS = [';', '&&', '||', '|', '`', '$(', '${', '\n', '\r', '>', '<', '(', ')']
         for char in DANGEROUS_CHARS:
             if char in command:
                 logger.warning(f"Command rejected (dangerous chars) [request_id={request_id}]: {command[:100]}")

@@ -227,6 +227,11 @@ export default function SLA() {
                           <Tag color={s.is_met ? 'green' : 'red'}>
                             {s.is_met ? t('sla.met') : t('sla.notMet')}
                           </Tag>
+                          {s.actual_percent === 0 && (
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                              {t('sla.zeroExplain', '服务完全不可用或无监控数据')}
+                            </Text>
+                          )}
                           <div style={{ width: '100%' }}>
                             <Text type="secondary" style={{ fontSize: 12 }}>
                               {t('sla.errorBudgetRemaining')}{s.error_budget_remaining_minutes?.toFixed(1)} {t('common.minute')}

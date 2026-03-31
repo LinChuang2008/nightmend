@@ -487,13 +487,13 @@ export default function CustomizableDashboard() {
   };
 
   return (
-    <div ref={containerRef} style={{ width: '100%', overflow: 'hidden' }}>
+    <div ref={containerRef} style={{ width: '100%', overflowX: 'hidden' }}>
       {/* Agent 安装引导 Banner（当 hosts=0 时显示） */}
       {d.hosts.total === 0 && <AgentInstallBanner />}
       {/* 标题栏 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <Space>
-          <Title level={4} style={{ margin: 0 }}>{t('dashboard.systemOverview')}</Title>
+          <Title level={4} style={{ margin: 0, whiteSpace: 'nowrap' }}>{t('dashboard.systemOverview')}</Title>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: token.colorTextTertiary }}>
             <span style={{
               width: 8, height: 8, borderRadius: '50%',
@@ -510,7 +510,7 @@ export default function CustomizableDashboard() {
             </Tooltip>
           )}
         </Space>
-        <Space>
+        <Space wrap>
           <Tooltip title={isEditing ? t('dashboard.lockLayout') : t('dashboard.unlockLayout')}>
             <Button
               icon={isEditing ? <LockOutlined /> : <UnlockOutlined />}
@@ -530,8 +530,8 @@ export default function CustomizableDashboard() {
       </div>
 
       {/* ZONE A: AI 指挥中枢（AI 洞察 + 健康评分，固定在网格上方） */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16, minHeight: 140 }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16, minHeight: 140 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <AIInsightBanner
             insight={aiInsight}
             loading={aiLoading}

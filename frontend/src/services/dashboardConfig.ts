@@ -88,7 +88,7 @@ export const dashboardConfigService = {
    * 获取完整的仪表盘配置信息
    */
   async getConfig(): Promise<DashboardConfig> {
-    const response = await api.get('/api/v1/dashboard-config/');
+    const response = await api.get('/dashboard-config/');
     return response.data;
   },
 
@@ -99,7 +99,7 @@ export const dashboardConfigService = {
     total: number;
     items: DashboardLayout[];
   }> {
-    const response = await api.get('/api/v1/dashboard-config/layouts', {
+    const response = await api.get('/dashboard-config/layouts', {
       params: { page, page_size: pageSize }
     });
     return response.data;
@@ -109,7 +109,7 @@ export const dashboardConfigService = {
    * 创建新的布局
    */
   async createLayout(layout: Omit<DashboardLayout, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<DashboardLayout> {
-    const response = await api.post('/api/v1/dashboard-config/layouts', layout);
+    const response = await api.post('/dashboard-config/layouts', layout);
     return response.data;
   },
 
@@ -117,7 +117,7 @@ export const dashboardConfigService = {
    * 更新布局
    */
   async updateLayout(layoutId: number, updates: Partial<DashboardLayout>): Promise<DashboardLayout> {
-    const response = await api.put(`/api/v1/dashboard-config/layouts/${layoutId}`, updates);
+    const response = await api.put(`/dashboard-config/layouts/${layoutId}`, updates);
     return response.data;
   },
 
@@ -125,21 +125,21 @@ export const dashboardConfigService = {
    * 删除布局
    */
   async deleteLayout(layoutId: number): Promise<void> {
-    await api.delete(`/api/v1/dashboard-config/layouts/${layoutId}`);
+    await api.delete(`/dashboard-config/layouts/${layoutId}`);
   },
 
   /**
    * 激活指定布局
    */
   async activateLayout(layoutId: number): Promise<void> {
-    await api.post(`/api/v1/dashboard-config/layouts/${layoutId}/activate`);
+    await api.post(`/dashboard-config/layouts/${layoutId}/activate`);
   },
 
   /**
    * 从预设模板创建布局
    */
   async createFromPreset(presetId: string, layoutName: string): Promise<DashboardLayout> {
-    const response = await api.post('/api/v1/dashboard-config/layouts/from-preset', {
+    const response = await api.post('/dashboard-config/layouts/from-preset', {
       preset_id: presetId,
       layout_name: layoutName
     });
@@ -150,14 +150,14 @@ export const dashboardConfigService = {
    * 快速更新组件配置（拖拽等实时操作）
    */
   async quickConfigUpdate(update: QuickConfigUpdate): Promise<void> {
-    await api.post('/api/v1/dashboard-config/quick-config', update);
+    await api.post('/dashboard-config/quick-config', update);
   },
 
   /**
    * 获取可用组件列表
    */
   async getComponents(): Promise<DashboardComponent[]> {
-    const response = await api.get('/api/v1/dashboard-config/components');
+    const response = await api.get('/dashboard-config/components');
     return response.data;
   },
 
@@ -165,14 +165,14 @@ export const dashboardConfigService = {
    * 批量操作布局
    */
   async batchOperation(operation: BatchLayoutOperation): Promise<void> {
-    await api.post('/api/v1/dashboard-config/batch-operation', operation);
+    await api.post('/dashboard-config/batch-operation', operation);
   },
 
   /**
    * 导出布局配置
    */
   async exportLayout(layoutId: number): Promise<string> {
-    const response = await api.get(`/api/v1/dashboard-config/layouts/${layoutId}/export`);
+    const response = await api.get(`/dashboard-config/layouts/${layoutId}/export`);
     return JSON.stringify(response.data, null, 2);
   },
 

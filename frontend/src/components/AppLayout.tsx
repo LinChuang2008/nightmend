@@ -32,6 +32,7 @@ import {
   TeamOutlined,
   AuditOutlined,
   FileSearchOutlined,
+  HistoryOutlined,
   DeploymentUnitOutlined,
   SafetyCertificateOutlined,
   ThunderboltOutlined,
@@ -96,6 +97,16 @@ function filterMenuByHidden(items: ReturnType<typeof buildMenuItems>, hiddenKeys
     .filter((group) => ((group as any).children as any[]).length > 0);
 }
 
+/** 从 label 中提取纯文本（兼容 JSX <span> 包裹和字符串） */
+function extractLabelText(label: any): string {
+  if (typeof label === 'string') return label;
+  if (label && typeof label === 'object' && label.props?.children) {
+    const children = label.props.children;
+    return typeof children === 'string' ? children : String(children);
+  }
+  return String(label ?? '');
+}
+
 /** 提取可配置隐藏的叶子菜单项 */
 function getConfigurableMenuItems(items: ReturnType<typeof buildMenuItems>) {
   const result: Array<{ key: string; label: string }> = [];
@@ -103,10 +114,10 @@ function getConfigurableMenuItems(items: ReturnType<typeof buildMenuItems>) {
     for (const item of group.children || []) {
       if (item.children && Array.isArray(item.children)) {
         for (const child of item.children) {
-          result.push({ key: child.key, label: child.label });
+          result.push({ key: child.key, label: extractLabelText(child.label) });
         }
       } else {
-        result.push({ key: item.key, label: item.label });
+        result.push({ key: item.key, label: extractLabelText(item.label) });
       }
     }
   }
@@ -144,8 +155,8 @@ function buildMenuItems(t: (key: string) => string) {
       type: 'group' as const,
       label: t('menu.groupAnalysis'),
       children: [
-        { key: '/ops', icon: <RobotOutlined />, label: <span data-tour="ai-analysis">AI 运维助手</span> },
-        { key: '/ai-operation-logs', icon: <AuditOutlined />, label: t('menu.aiOperationLogs') },
+        { key: '/ops', icon: <RobotOutlined />, label: <span data-tour="ai-analysis">{t('menu.aiAnalysis')}</span> },
+        { key: '/ai-operation-logs', icon: <HistoryOutlined />, label: t('menu.aiOperationLogs') },
         { key: '/remediations', icon: <ThunderboltOutlined />, label: <span data-tour="remediation">{t('menu.remediation')}</span> },
         { key: '/runbooks', icon: <BookOutlined />, label: t('menu.runbooks') },
         { key: '/reports', icon: <FileSearchOutlined />, label: t('menu.reports') },
@@ -324,10 +335,11 @@ export default function AppLayout() {
 
   /** 渲染菜单内容 */
   const renderMenuContent = (inDrawer = false) => (
-    <>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* 品牌标识区域 */}
       <div style={{
         height: 64,
+        flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -344,16 +356,18 @@ export default function AppLayout() {
         </svg>
         {(inDrawer || !collapsed) ? 'VigilOps' : ''}
       </div>
-      <Menu
-        theme={inDrawer ? (isDark ? 'dark' : 'light') : 'dark'}
-        mode="inline"
-        selectedKeys={[selectedKey]}
-        openKeys={menuOpenKeys}
-        onOpenChange={(keys) => setMenuOpenKeys(keys as string[])}
-        items={menuItems}
-        onClick={handleMenuClick}
-      />
-    </>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        <Menu
+          theme={inDrawer ? (isDark ? 'dark' : 'light') : 'dark'}
+          mode="inline"
+          selectedKeys={[selectedKey]}
+          openKeys={menuOpenKeys}
+          onOpenChange={(keys) => setMenuOpenKeys(keys as string[])}
+          items={menuItems}
+          onClick={handleMenuClick}
+        />
+      </div>
+    </div>
   );
 
   return (
@@ -366,7 +380,7 @@ export default function AppLayout() {
     >
       {/* 桌面端侧边栏 */}
       {!isMobile && (
-        <Sider trigger={null} collapsible collapsed={collapsed} theme="dark">
+        <Sider trigger={null} collapsible collapsed={collapsed} theme="dark" style={{ height: '100vh', overflow: 'hidden' }}>
           {renderMenuContent()}
         </Sider>
       )}
@@ -421,21 +435,26 @@ export default function AppLayout() {
                   if (open) setMenuDraftKeys(hiddenMenuKeys);
                 }}
                 content={(
-                  <div style={{ width: 280 }}>
+                  <div style={{ width: 280, maxHeight: 400, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ fontWeight: 600, marginBottom: 8 }}>{t('header.menuSettings')}</div>
-                    <Checkbox.Group
-                      style={{ width: '100%' }}
-                      value={menuDraftKeys}
-                      onChange={(checked) => setMenuDraftKeys(checked as string[])}
-                    >
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        {configurableMenuItems.map((item) => (
-                          <Checkbox key={item.key} value={item.key}>
-                            {item.label}
-                          </Checkbox>
-                        ))}
-                      </Space>
-                    </Checkbox.Group>
+                    <div style={{ flex: 1, overflowY: 'auto', marginBottom: 8 }}>
+                      <Checkbox.Group
+                        style={{ width: '100%' }}
+                        value={configurableMenuItems.map(i => i.key).filter(k => !menuDraftKeys.includes(k))}
+                        onChange={(visibleKeys) => {
+                          const allKeys = configurableMenuItems.map(i => i.key);
+                          setMenuDraftKeys(allKeys.filter(k => !(visibleKeys as string[]).includes(k)));
+                        }}
+                      >
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                          {configurableMenuItems.map((item) => (
+                            <Checkbox key={item.key} value={item.key}>
+                              {item.label}
+                            </Checkbox>
+                          ))}
+                        </Space>
+                      </Checkbox.Group>
+                    </div>
                     <Divider style={{ margin: '12px 0' }} />
                     <Space>
                       <Button size="small" onClick={() => setMenuDraftKeys([])}>

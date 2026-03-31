@@ -174,7 +174,7 @@ export default function Reports() {
     },
     {
       title: '时间范围', key: 'period', width: 220,
-      render: (_: unknown, r: Report) => `${r.period_start} ~ ${r.period_end}`,
+      render: (_: unknown, r: Report) => `${dayjs(r.period_start).format('YYYY-MM-DD')} ~ ${dayjs(r.period_end).format('YYYY-MM-DD')}`,
     },
     { title: '状态', dataIndex: 'status', key: 'status', width: 100, render: renderStatus },
     {

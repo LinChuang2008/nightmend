@@ -20,6 +20,7 @@ from app.core.redis import get_redis
 from app.core.database import async_session as AsyncSessionLocal
 from app.models.ops_session import OpsSession
 from app.models.ops_message import OpsMessage
+from app.models.setting import Setting
 from app.models.host import Host
 from app.models.host_metric import HostMetric
 from app.models.alert import Alert
@@ -39,6 +40,14 @@ OPS_WS_CHANNEL = "ops_ws:"                  # OpsAgentLoop → 前端 Worker
 COMPACTION_THRESHOLD = 40000
 # 命令确认超时（秒）
 COMMAND_CONFIRM_TIMEOUT = 60
+
+OPS_AI_BASE_URL_KEY = "ops_ai_base_url"
+OPS_AI_MODEL_KEY = "ops_ai_model"
+OPS_AI_API_KEY_KEY = "ops_ai_api_key"
+OPS_AI_MAX_TOKENS_KEY = "ops_ai_max_tokens"
+OPS_AI_EXTRA_CONTEXT_KEY = "ops_ai_extra_context"
+OPS_AI_CONFIGS_V2_KEY = "ops_ai_configs_v2"
+OPS_AI_DEFAULT_ID_KEY = "ops_ai_default_config_id"
 
 # ─── Tool Schemas ──────────────────────────────────────────────────────────────
 
@@ -232,9 +241,22 @@ class OpsAgentLoop:
 
     # ─── 公开接口 ──────────────────────────────────────────────────────────────
 
-    async def run(self, user_message: str, host_id: Optional[int] = None) -> AsyncIterator[dict]:
+    async def run(
+        self,
+        user_message: str,
+        host_id: Optional[int] = None,
+        ai_config_id: Optional[str] = None,
+        use_deep_thinking: bool = False,
+    ) -> AsyncIterator[dict]:
         """主推理循环，yield 推送事件给前端。"""
         async with self._run_lock:
+            runtime_cfg = await self._load_ai_runtime_config(
+                ai_config_id=ai_config_id,
+                feature_key="ops_assistant",
+            )
+            runtime_cfg["use_deep_thinking"] = bool(
+                use_deep_thinking and runtime_cfg.get("supports_deep_thinking")
+            )
             await self._ensure_context_loaded()
             if host_id:
                 await self._attach_target_host_context(host_id)
@@ -248,12 +270,13 @@ class OpsAgentLoop:
                 asyncio.create_task(self._generate_title(user_message))
 
             # 检查是否需要压缩
-            if session and session.token_count > COMPACTION_THRESHOLD:
+            compaction_threshold = max(8000, int(runtime_cfg.get("allowed_context_tokens", 120000) * 0.8))
+            if session and session.token_count > compaction_threshold:
                 async for event in self._compact_context():
                     yield event
 
             # 推理循环
-            async for event in self._inference_loop():
+            async for event in self._inference_loop(runtime_cfg):
                 yield event
 
     async def handle_command_confirm(self, message_id: str, action: str):
@@ -290,29 +313,40 @@ class OpsAgentLoop:
 
     # ─── 推理循环 ──────────────────────────────────────────────────────────────
 
-    async def _inference_loop(self) -> AsyncIterator[dict]:
+    async def _inference_loop(self, runtime_cfg: dict) -> AsyncIterator[dict]:
         """多轮推理，直到 AI 不再调用工具或调用 provide_conclusion。"""
         max_rounds = 20  # 防止无限循环
         for _ in range(max_rounds):
             # 调用 AI API
             response_text = ""
+            reasoning_text = ""
             tool_calls = []
 
-            async for chunk in self._call_api_stream():
+            async for chunk in self._call_api_stream(runtime_cfg):
                 if chunk.get("type") == "text_delta":
                     response_text += chunk["delta"]
                     yield {"event": "text_delta", "delta": chunk["delta"]}
+                elif chunk.get("type") == "reasoning_delta":
+                    reasoning_text += chunk["delta"]
+                    yield {"event": "reasoning_delta", "delta": chunk["delta"]}
                 elif chunk.get("type") == "tool_calls":
                     tool_calls = chunk["tool_calls"]
 
             # 保存 AI 文本响应
-            if response_text:
-                await self._save_message("assistant", "text", {"text": response_text})
+            if response_text or reasoning_text:
+                await self._save_message("assistant", "text", {
+                    "text": response_text,
+                    "reasoning": reasoning_text,
+                })
 
             # 没有工具调用，推理结束
             if not tool_calls:
-                if response_text:
-                    self._context.append({"role": "assistant", "content": response_text})
+                if response_text or reasoning_text:
+                    self._context.append({
+                        "role": "assistant",
+                        "content": response_text,
+                        "reasoning": reasoning_text or None,
+                    })
                 yield {"event": "done"}
                 return
 
@@ -554,12 +588,51 @@ class OpsAgentLoop:
                 "count": len(logs),
             }
 
+    # 危险命令黑名单 — 阻止 AI 生成的可能造成不可逆损害的命令
+    _DANGEROUS_COMMAND_PATTERNS = [
+        r'\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?/',       # rm -rf /
+        r'\bdd\s+if=',                                  # dd if=/dev/zero
+        r'\bmkfs\b',                                    # mkfs (format disk)
+        r'\bshutdown\b',                                # shutdown
+        r'\breboot\b',                                  # reboot
+        r'\binit\s+[06]\b',                             # init 0/6
+        r'\bhalt\b',                                    # halt
+        r'\bpoweroff\b',                                # poweroff
+        r'>\s*/dev/sd[a-z]',                            # write to raw disk
+        r'\bchmod\s+(-[a-zA-Z]*\s+)?777\s+/',          # chmod 777 /
+        r'\bchown\s+(-[a-zA-Z]*\s+)?root.*/',          # chown root /
+        r':\(\)\s*\{\s*:\|:\s*&\s*\}\s*;',             # fork bomb
+        r'\bcurl\b.*\|\s*(ba)?sh',                      # curl | bash
+        r'\bwget\b.*\|\s*(ba)?sh',                      # wget | bash
+    ]
+
+    @staticmethod
+    def _is_dangerous_command(command: str) -> str | None:
+        """检查命令是否匹配危险模式，返回匹配的模式描述或 None。"""
+        import re
+        for pattern in OpsAgentLoop._DANGEROUS_COMMAND_PATTERNS:
+            if re.search(pattern, command, re.IGNORECASE):
+                return pattern
+        return None
+
     async def _tool_execute_command(self, args: dict, msg_id: str):
         """发送命令确认请求（async generator），先 yield command_request 事件，再等待用户确认。"""
         command = args["command"]
         host_id = args["host_id"]
         timeout = args.get("timeout", 120)
         reason = args.get("reason", "")
+
+        # 安全检查：拦截危险命令
+        danger = self._is_dangerous_command(command)
+        if danger:
+            logger.warning("Blocked dangerous command: %s (pattern: %s)", command, danger)
+            yield {"event": "command_blocked", "message_id": msg_id,
+                   "command": command, "reason": f"命令被安全策略拦截（匹配危险模式）"}
+            yield {"__type": "__result", "result": {
+                "error": f"安全策略拦截：此命令匹配危险模式，已被自动阻止。请使用更安全的替代方案。",
+                "blocked_pattern": danger,
+            }}
+            return
 
         # 获取主机名
         async with AsyncSessionLocal() as db:
@@ -629,17 +702,27 @@ class OpsAgentLoop:
             yield {"__type": "__result", "result": {"error": "命令确认超时，已自动取消", "action": "expired"}}
 
     async def _wait_command_result(self, request_id: str, timeout: int) -> dict:
-        """订阅 Redis channel 等待命令执行结果。"""
+        """订阅 Redis channel 等待命令执行结果，带硬超时防止永久阻塞。"""
         redis = await get_redis()
         channel = f"cmd_result:{self.session_id}"
         pubsub = redis.pubsub()
         await pubsub.subscribe(channel)
         try:
             deadline = asyncio.get_event_loop().time() + timeout
-            async for message in pubsub.listen():
-                if asyncio.get_event_loop().time() > deadline:
+            while True:
+                remaining = deadline - asyncio.get_event_loop().time()
+                if remaining <= 0:
+                    logger.warning(f"Command result timeout ({timeout}s) for request {request_id}")
                     break
-                if message["type"] != "message":
+                try:
+                    # get_message 带超时轮询，不会永久阻塞
+                    message = await asyncio.wait_for(
+                        pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0),
+                        timeout=min(remaining, 5.0),
+                    )
+                except asyncio.TimeoutError:
+                    continue
+                if message is None:
                     continue
                 try:
                     data = json.loads(message["data"])
@@ -647,7 +730,7 @@ class OpsAgentLoop:
                         return data
                 except Exception:
                     continue
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
         finally:
             await pubsub.unsubscribe(channel)
@@ -780,28 +863,34 @@ class OpsAgentLoop:
 
     # ─── AI API 调用 ───────────────────────────────────────────────────────────
 
-    async def _call_api_stream(self) -> AsyncIterator[dict]:
-        """流式调用 DeepSeek API，yield text_delta 和 tool_calls。"""
-        if not settings.ai_api_key:
+    async def _call_api_stream(self, runtime_cfg: dict) -> AsyncIterator[dict]:
+        """流式调用 OpenAI 兼容 Chat Completions API，yield text_delta 和 tool_calls。"""
+        if not runtime_cfg["api_key"]:
             yield {"type": "text_delta", "delta": "AI API Key 未配置，请在设置中配置 AI_API_KEY。"}
             return
 
-        url = f"{settings.ai_api_base}/chat/completions"
-        headers = {"Authorization": f"Bearer {settings.ai_api_key}", "Content-Type": "application/json"}
-        safe_messages = self._normalized_messages_for_tool_protocol(self._context)
+        url = f"{runtime_cfg['base_url'].rstrip('/')}/chat/completions"
+        headers = {"Authorization": f"Bearer {runtime_cfg['api_key']}", "Content-Type": "application/json"}
+        safe_messages = self._normalized_messages_for_tool_protocol(self._context, runtime_cfg["extra_context"])
         payload = {
-            "model": settings.ai_model,
+            "model": runtime_cfg["model"],
             "messages": safe_messages,
             "tools": TOOLS,
             "tool_choice": "auto",
             "stream": True,
             "temperature": 0.3,
-            "max_tokens": 2000,
+            "max_tokens": runtime_cfg["max_tokens"],
         }
+        if runtime_cfg.get("use_deep_thinking"):
+            payload["reasoning"] = {
+                "enabled": True,
+                "max_tokens": int(runtime_cfg.get("deep_thinking_max_tokens") or 0),
+            }
 
         logger.info(f"Calling AI API for session {self.session_id}, context_len={len(self._context)}")
 
         text_buffer = ""
+        reasoning_buffer = ""
         tool_calls_buffer: dict[int, dict] = {}
 
         stream_queue: asyncio.Queue = asyncio.Queue()
@@ -829,7 +918,18 @@ class OpsAgentLoop:
                             except json.JSONDecodeError:
                                 continue
 
-                            delta = chunk.get("choices", [{}])[0].get("delta", {})
+                            choices = chunk.get("choices")
+                            if not isinstance(choices, list) or not choices:
+                                if chunk.get("error"):
+                                    logger.error(f"AI API stream chunk error: {chunk.get('error')}")
+                                continue
+                            first_choice = choices[0] if isinstance(choices[0], dict) else {}
+                            delta = first_choice.get("delta", {})
+
+                            reasoning_delta = self._extract_reasoning_delta(delta)
+                            if reasoning_delta:
+                                reasoning_buffer += reasoning_delta
+                                await stream_queue.put({"type": "reasoning_delta", "delta": reasoning_delta})
 
                             if delta.get("content"):
                                 text_buffer += delta["content"]
@@ -882,12 +982,57 @@ class OpsAgentLoop:
             stream_task.cancel()
             logger.error(f"AI API stream error: {e}")
             yield {"type": "text_delta", "delta": f"\n\n[AI 调用失败：{e}]"}
+        finally:
+            if not stream_task.done():
+                stream_task.cancel()
 
         if tool_calls_buffer:
             yield {"type": "tool_calls", "tool_calls": list(tool_calls_buffer.values())}
 
     @staticmethod
-    def _normalized_messages_for_tool_protocol(messages: list[dict]) -> list[dict]:
+    def _extract_reasoning_delta(delta: dict) -> str:
+        """兼容多种 OpenAI 兼容接口返回的 reasoning 增量字段。"""
+        candidates = [
+            delta.get("reasoning_content"),
+            delta.get("reasoning"),
+            delta.get("reasoning_text"),
+        ]
+        for value in candidates:
+            text = OpsAgentLoop._normalize_reasoning_text(value)
+            if text:
+                return text
+        return ""
+
+    @staticmethod
+    def _normalize_reasoning_text(value: object) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            parts: list[str] = []
+            for item in value:
+                if isinstance(item, str):
+                    parts.append(item)
+                    continue
+                if isinstance(item, dict):
+                    text = item.get("text")
+                    if isinstance(text, str):
+                        parts.append(text)
+                        continue
+                    content = item.get("content")
+                    if isinstance(content, str):
+                        parts.append(content)
+            return "".join(parts)
+        if isinstance(value, dict):
+            for key in ("text", "content"):
+                text = value.get(key)
+                if isinstance(text, str):
+                    return text
+        return ""
+
+    @staticmethod
+    def _normalized_messages_for_tool_protocol(messages: list[dict], extra_context: str = "") -> list[dict]:
         """
         修复 assistant(tool_calls) 与 tool 响应不配对的上下文，避免上游 API 400。
 
@@ -895,6 +1040,10 @@ class OpsAgentLoop:
         则自动补一条占位 tool 结果，保证协议完整。
         """
         normalized: list[dict] = []
+        if messages and messages[0].get("role") == "system" and extra_context:
+            merged_system = dict(messages[0])
+            merged_system["content"] = f"{messages[0].get('content', '')}\n\n【额外上下文】\n{extra_context}"
+            messages = [merged_system, *messages[1:]]
         total = len(messages)
         for idx, msg in enumerate(messages):
             normalized.append(msg)
@@ -933,18 +1082,120 @@ class OpsAgentLoop:
 
     async def _call_api_simple(self, messages: list[dict], max_tokens: int = 500) -> str:
         """非流式 AI 调用，用于标题生成和上下文压缩。"""
-        url = f"{settings.ai_api_base}/chat/completions"
-        headers = {"Authorization": f"Bearer {settings.ai_api_key}", "Content-Type": "application/json"}
+        runtime_cfg = await self._load_ai_runtime_config()
+        url = f"{runtime_cfg['base_url'].rstrip('/')}/chat/completions"
+        headers = {"Authorization": f"Bearer {runtime_cfg['api_key']}", "Content-Type": "application/json"}
         payload = {
-            "model": settings.ai_model,
+            "model": runtime_cfg["model"],
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": 0.3,
         }
+        if runtime_cfg.get("use_deep_thinking"):
+            payload["reasoning"] = {
+                "enabled": True,
+                "max_tokens": int(runtime_cfg.get("deep_thinking_max_tokens") or 0),
+            }
         async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
-            return resp.json()["choices"][0]["message"]["content"]
+            data = resp.json()
+            choices = data.get("choices")
+            if not isinstance(choices, list) or not choices:
+                raise RuntimeError(f"AI API returned no choices: {json.dumps(data, ensure_ascii=False)[:500]}")
+            first_choice = choices[0] if isinstance(choices[0], dict) else {}
+            message = first_choice.get("message", {}) if isinstance(first_choice.get("message", {}), dict) else {}
+            return str(message.get("content") or "")
+
+    async def _load_ai_runtime_config(
+        self,
+        ai_config_id: str | None = None,
+        feature_key: str | None = None,
+    ) -> dict:
+        """加载 AI 运行时配置：优先 v2 多业务配置，再回退到旧单配置。"""
+        cfg = {
+            "base_url": settings.ai_api_base,
+            "model": settings.ai_model,
+            "api_key": settings.ai_api_key,
+            "max_tokens": settings.ai_max_tokens,
+            "supports_deep_thinking": False,
+            "deep_thinking_max_tokens": 0,
+            "extra_context": "",
+            "model_context_tokens": 200000,
+            "allowed_context_tokens": 120000,
+        }
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Setting).where(
+                    Setting.key.in_(
+                        [
+                            OPS_AI_CONFIGS_V2_KEY,
+                            OPS_AI_DEFAULT_ID_KEY,
+                            OPS_AI_BASE_URL_KEY,
+                            OPS_AI_MODEL_KEY,
+                            OPS_AI_API_KEY_KEY,
+                            OPS_AI_MAX_TOKENS_KEY,
+                            OPS_AI_EXTRA_CONTEXT_KEY,
+                        ]
+                    )
+                )
+            )
+            settings_rows = {row.key: row.value for row in result.scalars().all()}
+
+        raw_configs = settings_rows.get(OPS_AI_CONFIGS_V2_KEY)
+        default_id = settings_rows.get(OPS_AI_DEFAULT_ID_KEY) or ""
+        if raw_configs:
+            try:
+                parsed = json.loads(raw_configs)
+            except json.JSONDecodeError:
+                parsed = []
+            if isinstance(parsed, list) and parsed:
+                scoped = parsed
+                if feature_key:
+                    scoped = [
+                        c for c in parsed
+                        if str(c.get("feature_key") or c.get("business_key") or "ops_assistant") == feature_key
+                    ]
+                    if not scoped:
+                        fallback_default = [
+                            c for c in parsed
+                            if str(c.get("feature_key") or c.get("business_key") or "ops_assistant") == "default"
+                        ]
+                        scoped = fallback_default or parsed
+                target = None
+                if ai_config_id:
+                    target = next((c for c in scoped if str(c.get("id")) == str(ai_config_id)), None)
+                if not target and default_id:
+                    target = next((c for c in scoped if str(c.get("id")) == str(default_id)), None)
+                if not target:
+                    target = next((c for c in scoped if bool(c.get("enabled", True))), scoped[0])
+                if target:
+                    cfg["base_url"] = str(target.get("base_url") or cfg["base_url"])
+                    cfg["model"] = str(target.get("model") or cfg["model"])
+                    cfg["api_key"] = str(target.get("api_key") or cfg["api_key"])
+                    cfg["max_tokens"] = int(target.get("max_output_tokens") or cfg["max_tokens"])
+                    cfg["supports_deep_thinking"] = bool(target.get("supports_deep_thinking", False))
+                    cfg["deep_thinking_max_tokens"] = int(target.get("deep_thinking_max_tokens") or 0)
+                    cfg["extra_context"] = str(target.get("extra_context") or "")
+                    cfg["model_context_tokens"] = int(target.get("model_context_tokens") or 200000)
+                    cfg["allowed_context_tokens"] = int(target.get("allowed_context_tokens") or 120000)
+                    return cfg
+
+        # 兼容旧单配置
+        if settings_rows.get(OPS_AI_BASE_URL_KEY):
+            cfg["base_url"] = settings_rows[OPS_AI_BASE_URL_KEY]
+        if settings_rows.get(OPS_AI_MODEL_KEY):
+            cfg["model"] = settings_rows[OPS_AI_MODEL_KEY]
+        if settings_rows.get(OPS_AI_API_KEY_KEY):
+            cfg["api_key"] = settings_rows[OPS_AI_API_KEY_KEY]
+        if settings_rows.get(OPS_AI_MAX_TOKENS_KEY):
+            try:
+                cfg["max_tokens"] = int(settings_rows[OPS_AI_MAX_TOKENS_KEY])
+            except ValueError:
+                pass
+        if settings_rows.get(OPS_AI_EXTRA_CONTEXT_KEY):
+            cfg["extra_context"] = settings_rows[OPS_AI_EXTRA_CONTEXT_KEY]
+        return cfg
 
     # ─── 辅助方法 ──────────────────────────────────────────────────────────────
 

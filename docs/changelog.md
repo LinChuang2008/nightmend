@@ -4,6 +4,7 @@
 
 ## 目录
 
+- [v2026.03.29](#v20260329)
 - [v2026.03.14](#v20260314)
 - [v0.9.0 (2026-02-20)](#v090-2026-02-20)
 - [v0.8.0 (2026-02-19)](#v080-2026-02-19)
@@ -14,6 +15,42 @@
 - [v0.3.0 (2026-02-16)](#v030-2026-02-16)
 - [v0.2.0 (2026-02-16)](#v020-2026-02-16)
 - [v0.1.0 (2026-02-16)](#v010-2026-02-16)
+
+---
+
+## VigilOps 2026.03.29 (v2026.03.29)
+
+### 新功能
+- **Prometheus AlertManager Bridge**：Webhook 端点 `/api/v1/webhooks/alertmanager`，支持 Bearer Token 认证、HMAC 签名验证、Redis 去重
+- **告警源抽象层**：`AlertSourceAdapter` 基类 + `PrometheusAdapter` 实现，支持告警解析、主机映射、严重级别归一化
+- **诊断演示模式**：`ENABLE_REMEDIATION=false` 时仅运行 AI 根因分析，SSE 流式输出至 `/api/v1/demo/alerts/stream`
+- **Demo 页面** (`/demo`)：无需登录，展示 AlertManager 配置、实时告警流 + AI 诊断
+- **AI 深度思考**：新增 `supports_deep_thinking`、`deep_thinking_max_tokens` 配置，前端可折叠展示思考过程
+- **AI 配置中心** (`/ai-configs`)：统一管理 AI 模型参数
+- **Agent 自身资源指标**：上报 CPU、RSS 内存、线程数、运行时长、打开文件数，主机详情页展示
+- **自定义 Runbook 增强**：`match_alert_types`、`safety_checks`、`verify_commands`、回滚命令支持
+- **数据库监控目标管理** (`/databases`)
+
+### 安全修复
+- OAuth 回调竞态条件修复
+- WebSocket 连接泄漏防护
+- Jinja2 模板注入防护（沙箱化）
+- Webhook SSL 证书验证强制启用
+- `shlex.quote` 命令注入防护
+- SSH 主机密钥验证
+- MCP Server：DB 连接泄漏修复、N+1 查询优化、WebSocket 认证绕过修复
+
+### 变更
+- MCP Server 重构：工具组织优化、拓扑数据改用真实 `ServiceDependency` 表
+- OPS 助手会话稳定性：修复串会话、重复会话、空白会话问题
+- OpenAI 兼容流式响应：容忍 `choices` 为空的 SSE chunk
+- 后台任务改为工厂模式 + 自动重启监控
+- Runbook 注册表重构：告警类型匹配 + 关键词评分优先级
+
+### 修复
+- 全部 CI 测试 import 修复：`AIEngine` → `llm_client`、`RemediationAIClient` → `RemediationLLMClient`
+- JWT 测试 fixture 补充 `session_id`
+- Docker 后端启动路径修复（`PYTHONPATH=/app`）
 
 ---
 

@@ -75,6 +75,8 @@ from app.routers import ai_operation_logs
 from app.routers import ai_analysis
 from app.routers import custom_runbooks
 from app.routers import promql
+from app.routers import webhooks
+from app.routers import alert_stream
 from app.api.v1 import data_retention
 from app.api.v1 import alert_deduplication
 
@@ -83,10 +85,10 @@ from app.api.v1 import alert_deduplication
 async def lifespan(app: FastAPI):
     """
     应用生命周期管理器 (Application Lifecycle Manager)
-    
+
     管理 VigilOps 应用的完整生命周期，包括启动时的初始化和关闭时的清理。
     负责数据库表创建、内置数据初始化、后台任务启动和资源释放。
-    
+
     Manages the complete lifecycle of the VigilOps application, including initialization
     at startup and cleanup at shutdown. Responsible for database table creation,
     built-in data initialization, background task startup, and resource cleanup.
@@ -102,18 +104,12 @@ async def lifespan(app: FastAPI):
     from app.services.alert_seed import seed_builtin_rules
     from app.core.database import async_session
 
-    # 启动阶段：应用初始化 (Startup Phase: Application Initialization)
-    
-    # 自动创建数据库表结构 (Automatically create database table structure)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # 初始化内置告警规则（CPU、内存、磁盘等默认规则） (Initialize built-in alert rules)
     async with async_session() as session:
         await seed_builtin_rules(session)
-    
-    # 初始化默认数据保留策略设置 (Initialize default data retention policy settings)
-    # DataRetentionService 使用同步 .query()，需要同步 Session
+
     from app.services.data_retention import DataRetentionService
     from app.core.database import SessionLocal
     try:
@@ -190,7 +186,6 @@ async def lifespan(app: FastAPI):
 
     monitor_task = asyncio.create_task(_monitor_tasks(), name="task_monitor")
 
-    # 应用运行阶段 (Application running phase)
     yield
 
     # 关闭阶段：清理资源和取消任务 (Shutdown Phase: Cleanup resources and cancel tasks)
@@ -198,7 +193,6 @@ async def lifespan(app: FastAPI):
     for name, task in background_tasks.items():
         task.cancel()
 
-    # 关闭连接池和资源 (Close connection pools and resources)
     await close_redis()
     await engine.dispose()
 
@@ -252,6 +246,7 @@ else:
         "https://demo.lchuangnet.com",
         "https://lchuangnet.com",
         "https://www.lchuangnet.com",
+        "http://139.196.210.68:3001",
     ]
     if _frontend_url and _frontend_url not in allowed_origins:
         allowed_origins.append(_frontend_url)
@@ -307,6 +302,8 @@ app.include_router(ai_operation_logs.router)  # AI 操作日志 (AI operation lo
 app.include_router(ai_analysis.router)  # AI 分析 (AI analysis: insights, root-cause, logs)
 app.include_router(custom_runbooks.router)  # 自定义 Runbook 管理 (Custom Runbook Management)
 app.include_router(promql.router)  # PromQL 查询 (PromQL Query Engine)
+app.include_router(webhooks.router)  # 外部告警源 Webhook (External Alert Source Webhooks)
+app.include_router(alert_stream.router)  # 告警诊断 SSE 流 (Alert Diagnosis SSE Stream)
 
 
 @app.get("/health")

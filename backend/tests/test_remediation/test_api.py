@@ -81,6 +81,12 @@ class FakeScalarResult:
     def first(self):
         return self._items[0] if self._items else self._value
 
+    def one(self):
+        """模拟 .one() — 返回一行对象，支持属性访问。"""
+        if self._value is not None and hasattr(self._value, '__getattr__'):
+            return self._value
+        return self
+
 
 @pytest.fixture
 def mock_db():
@@ -244,11 +250,18 @@ async def test_trigger_remediation_conflict(client, mock_db):
 
 @pytest.mark.asyncio
 async def test_stats(client, mock_db):
+    # 第一次查询返回合并后的统计行（total, success, failed, pending）
+    stats_row = MagicMock()
+    stats_row.total = 100
+    stats_row.success = 75
+    stats_row.failed = 15
+    stats_row.pending = 10
+
+    stats_result = MagicMock()
+    stats_result.one.return_value = stats_row
+
     mock_db.execute = AsyncMock(side_effect=[
-        FakeScalarResult(value=100),   # total
-        FakeScalarResult(value=75),    # success
-        FakeScalarResult(value=15),    # failed
-        FakeScalarResult(value=10),    # pending
+        stats_result,                  # merged stats query (total/success/failed/pending)
         FakeScalarResult(value=320.5), # avg duration
         FakeScalarResult(value=5),     # today
         FakeScalarResult(value=25),    # week

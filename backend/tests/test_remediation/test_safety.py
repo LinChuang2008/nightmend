@@ -29,7 +29,7 @@ class TestCheckCommandSafety:
         assert safe is False
 
     def test_not_in_whitelist(self):
-        safe, reason = check_command_safety("python3 -c 'import os; os.system(\"rm -rf /\")'")
+        safe, reason = check_command_safety("nmap 192.168.1.1")
         assert safe is False
         assert "allowed prefix" in reason.lower()
 

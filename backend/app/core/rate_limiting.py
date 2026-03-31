@@ -184,6 +184,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             "/redoc",
             "/openapi.json",
             "/favicon.ico",
+            "/api/v1/demo/alerts/stream",
         ]
         
         return path in skip_paths or path.startswith("/static")

@@ -25,7 +25,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_operator_user
+from app.core.deps import get_current_user, get_operator_user, get_admin_user
 from app.models.notification import NotificationChannel, NotificationLog
 from app.models.user import User
 from app.schemas.notification import (
@@ -430,7 +430,7 @@ async def update_channel(
     data: NotificationChannelUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(get_operator_user),
 ):
     """更新指定通知渠道配置。"""
     from app.services.audit import log_audit
@@ -523,7 +523,7 @@ async def delete_channel(
     channel_id: int,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(get_admin_user),
 ):
     """删除指定通知渠道。"""
     from app.services.audit import log_audit

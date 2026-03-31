@@ -647,6 +647,7 @@ async def ops_websocket(
                 )
 
             elif msg_type == "approval_reply":
+                logger.info(f"Received approval_reply for session {session_id}: message_id={msg.get('message_id')}, action={msg.get('action')}")
                 await loop.handle_approval_reply(
                     message_id=msg.get("message_id", ""),
                     action=msg.get("action", ""),
@@ -656,6 +657,9 @@ async def ops_websocket(
 
             elif msg_type == "ping":
                 await websocket.send_json({"type": "pong"})
+
+            else:
+                logger.warning(f"Unknown WS message type for session {session_id}: {msg_type}")
 
     except WebSocketDisconnect:
         logger.info(f"Ops WebSocket disconnected: session_id={session_id}")

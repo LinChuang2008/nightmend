@@ -181,20 +181,24 @@ async def download_agent_wheel(
         filename: wheel 文件名
     """
     from fastapi.responses import FileResponse
-
     from pathlib import Path as PathLib
 
-    wheel_path = os.path.join(WHEEL_STORAGE_DIR, version, filename)
-
-    if not os.path.exists(wheel_path):
-        raise HTTPException(status_code=404, detail="Wheel file not found")
-
-    # 验证文件名安全性 (防止路径遍历)
-    if ".." in filename or "/" in filename or not filename.endswith(".whl"):
+    # 验证 version 和 filename 安全性（防止路径遍历）
+    if ".." in version or "/" in version or "\\" in version:
+        raise HTTPException(status_code=400, detail="Invalid version")
+    if ".." in filename or "/" in filename or "\\" in filename or not filename.endswith(".whl"):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
+    wheel_path = PathLib(WHEEL_STORAGE_DIR) / version / filename
+    # 确保解析后的路径仍在存储目录内
+    if not wheel_path.resolve().is_relative_to(PathLib(WHEEL_STORAGE_DIR).resolve()):
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    if not wheel_path.exists():
+        raise HTTPException(status_code=404, detail="Wheel file not found")
+
     return FileResponse(
-        path=wheel_path,
+        path=str(wheel_path),
         filename=filename,
         media_type="application/octet-stream"
     )

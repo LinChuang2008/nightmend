@@ -143,8 +143,7 @@ class TestGenerateReport:
     @pytest.mark.asyncio
     async def test_daily_report_success(self, db_session, period):
         ai_content = "# 日报\n内容\n【摘要】系统运行正常"
-        with patch("app.services.report_generator.ai_engine") as mock_ai:
-            mock_ai._call_api = AsyncMock(return_value=ai_content)
+        with patch("app.services.report_generator.chat_completion", new_callable=AsyncMock, return_value=ai_content):
             report = await generate_report(db_session, "daily", period[0], period[1], generated_by=1)
             assert report.status == "completed"
             assert report.title.startswith("日报")
@@ -155,8 +154,7 @@ class TestGenerateReport:
         start = datetime(2026, 2, 14)
         end = datetime(2026, 2, 21)
         ai_content = "# 周报\n分析内容"
-        with patch("app.services.report_generator.ai_engine") as mock_ai:
-            mock_ai._call_api = AsyncMock(return_value=ai_content)
+        with patch("app.services.report_generator.chat_completion", new_callable=AsyncMock, return_value=ai_content):
             report = await generate_report(db_session, "weekly", start, end)
             assert report.status == "completed"
             assert "周报" in report.title
@@ -164,8 +162,7 @@ class TestGenerateReport:
 
     @pytest.mark.asyncio
     async def test_report_ai_failure(self, db_session, period):
-        with patch("app.services.report_generator.ai_engine") as mock_ai:
-            mock_ai._call_api = AsyncMock(side_effect=Exception("AI down"))
+        with patch("app.services.report_generator.chat_completion", new_callable=AsyncMock, side_effect=Exception("AI down")):
             report = await generate_report(db_session, "daily", period[0], period[1])
             assert report.status == "failed"
             assert "AI down" in report.content

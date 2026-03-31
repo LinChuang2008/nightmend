@@ -25,6 +25,7 @@ os.environ["MEMORY_ENABLED"] = "false"
 
 from app.core.database import Base, get_db
 from app.core.security import create_access_token, hash_password
+from app.services.auth_session import generate_session_id, set_active_session
 import app.core.redis as redis_module
 from app.core.redis import get_redis
 from app.models.user import User
@@ -189,10 +190,35 @@ class FakePipeline:
         return results
 
 
+class FakePubSub:
+    """内存级 Redis PubSub 模拟。"""
+    def __init__(self):
+        self._channels: set[str] = set()
+        self._queue: asyncio.Queue = asyncio.Queue()
+
+    async def subscribe(self, *channels: str) -> None:
+        for ch in channels:
+            self._channels.add(ch)
+
+    async def unsubscribe(self, *channels: str) -> None:
+        for ch in channels:
+            self._channels.discard(ch)
+
+    async def get_message(self, ignore_subscribe_messages: bool = False, timeout: float = 0) -> dict | None:
+        try:
+            return await asyncio.wait_for(self._queue.get(), timeout=timeout)
+        except (asyncio.TimeoutError, asyncio.QueueEmpty):
+            return None
+
+    async def aclose(self) -> None:
+        self._channels.clear()
+
+
 class FakeRedis:
     """内存级 Redis 模拟，支持基本 get/set/delete/pipeline/sorted-set 操作。"""
     def __init__(self):
         self._store: dict[str, str] = {}
+        self._subscribers: list["FakePubSub"] = []
 
     def pipeline(self) -> FakePipeline:
         return FakePipeline(self._store)
@@ -225,8 +251,16 @@ class FakeRedis:
     async def expire(self, key: str, time: int) -> None:
         pass
 
-    async def publish(self, channel: str, message: str) -> None:
-        pass
+    async def publish(self, channel: str, message: str) -> int:
+        for sub in self._subscribers:
+            if channel in sub._channels:
+                await sub._queue.put({"type": "message", "channel": channel, "data": message.encode() if isinstance(message, str) else message})
+        return len(self._subscribers)
+
+    def pubsub(self) -> "FakePubSub":
+        ps = FakePubSub()
+        self._subscribers.append(ps)
+        return ps
 
     async def close(self) -> None:
         pass
@@ -266,11 +300,16 @@ def event_loop():
 async def setup_db():
     """每个测试前创建所有表，测试后清空。同时重置 FakeRedis 存储。"""
     fake_redis._store.clear()
+    # 确保 redis_module.redis_client 始终指向 fake_redis，
+    # 以便 token fixture 中的 set_active_session 能正确写入
+    original_redis_client = redis_module.redis_client
+    redis_module.redis_client = fake_redis
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+    redis_module.redis_client = original_redis_client
 
 
 @pytest_asyncio.fixture
@@ -340,14 +379,18 @@ async def viewer_user(db_session: AsyncSession) -> User:
 
 @pytest_asyncio.fixture
 async def admin_token(admin_user: User) -> str:
-    """管理员的 JWT access token。"""
-    return create_access_token(str(admin_user.id))
+    """管理员的 JWT access token（含 session_id）。"""
+    sid = generate_session_id()
+    await set_active_session(admin_user.id, sid)
+    return create_access_token(str(admin_user.id), session_id=sid)
 
 
 @pytest_asyncio.fixture
 async def viewer_token(viewer_user: User) -> str:
-    """只读用户的 JWT access token。"""
-    return create_access_token(str(viewer_user.id))
+    """只读用户的 JWT access token（含 session_id）。"""
+    sid = generate_session_id()
+    await set_active_session(viewer_user.id, sid)
+    return create_access_token(str(viewer_user.id), session_id=sid)
 
 
 @pytest_asyncio.fixture

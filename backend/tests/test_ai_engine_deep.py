@@ -1,19 +1,12 @@
-"""AI 引擎服务深度测试 — mock DeepSeek API，覆盖日志分析、对话、根因分析。"""
+"""LLM 客户端深度测试 — mock API，覆盖 chat_completion 和 analyze_logs_brief。"""
 import json
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from app.services.ai_engine import AIEngine
+from app.services.llm_client import chat_completion, analyze_logs_brief, LLMClientError
 
 
-@pytest.fixture
-def engine():
-    e = AIEngine()
-    e.api_key = "test-key"
-    return e
-
-
-def _mock_api_response(content: str):
+def _mock_httpx_response(content: str):
     """Create a mock httpx response."""
     resp = MagicMock()
     resp.status_code = 200
@@ -24,239 +17,120 @@ def _mock_api_response(content: str):
     return resp
 
 
-class TestCallApi:
+_MOCK_CFG = {
+    "base_url": "https://api.example.com",
+    "model": "test-model",
+    "api_key": "test-key",
+}
+
+_MOCK_CFG_NO_KEY = {**_MOCK_CFG, "api_key": ""}
+
+
+class TestChatCompletion:
+    @patch("app.services.llm_client._load_ai_runtime_config", new_callable=AsyncMock, return_value=_MOCK_CFG_NO_KEY)
     @pytest.mark.asyncio
-    async def test_call_api_success(self, engine):
-        content = '{"answer": "hello"}'
-        with patch("app.services.ai_engine.httpx.AsyncClient") as MockClient:
-            mock_client = AsyncMock()
-            mock_client.post.return_value = _mock_api_response(content)
-            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
-            result = await engine._call_api([{"role": "user", "content": "hi"}])
-            assert result == content
+    async def test_no_api_key_raises(self, mock_cfg):
+        with pytest.raises(LLMClientError, match="AI API Key 未配置"):
+            await chat_completion([{"role": "user", "content": "hi"}])
 
+    @patch("httpx.AsyncClient.post")
+    @patch("app.services.llm_client._load_ai_runtime_config", new_callable=AsyncMock, return_value=_MOCK_CFG)
+    @patch("app.services.llm_client.settings")
     @pytest.mark.asyncio
-    async def test_call_api_no_key(self):
-        e = AIEngine()
-        e.api_key = ""
-        with pytest.raises(ValueError, match="API key not configured"):
-            await e._call_api([{"role": "user", "content": "hi"}])
+    async def test_success(self, mock_settings, mock_cfg, mock_post):
+        mock_settings.environment = "test"
+        mock_post.return_value = _mock_httpx_response('{"answer": "hello"}')
 
+        result = await chat_completion([{"role": "user", "content": "hi"}])
+        assert result == '{"answer": "hello"}'
+
+    @patch("httpx.AsyncClient.post")
+    @patch("app.services.llm_client._load_ai_runtime_config", new_callable=AsyncMock, return_value=_MOCK_CFG)
+    @patch("app.services.llm_client.settings")
     @pytest.mark.asyncio
-    async def test_call_api_retry_on_failure(self, engine):
-        with patch("app.services.ai_engine.httpx.AsyncClient") as MockClient:
-            mock_client = AsyncMock()
-            # First call fails, second succeeds
-            mock_client.post.side_effect = [
-                Exception("timeout"),
-                _mock_api_response('{"ok": true}'),
-            ]
-            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
-            result = await engine._call_api([{"role": "user", "content": "hi"}])
-            assert result == '{"ok": true}'
+    async def test_custom_params(self, mock_settings, mock_cfg, mock_post):
+        mock_settings.environment = "test"
+        mock_post.return_value = _mock_httpx_response("ok")
 
+        result = await chat_completion(
+            [{"role": "user", "content": "hi"}],
+            max_tokens=500,
+            temperature=0.1,
+        )
+        assert result == "ok"
+        call_kwargs = mock_post.call_args
+        payload = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
+        assert payload["max_tokens"] == 500
+        assert payload["temperature"] == 0.1
+
+    @patch("httpx.AsyncClient.post")
+    @patch("app.services.llm_client._load_ai_runtime_config", new_callable=AsyncMock, return_value=_MOCK_CFG)
+    @patch("app.services.llm_client.settings")
     @pytest.mark.asyncio
-    async def test_call_api_all_retries_fail(self, engine):
-        with patch("app.services.ai_engine.httpx.AsyncClient") as MockClient:
-            mock_client = AsyncMock()
-            mock_client.post.side_effect = Exception("always fail")
-            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
-            with pytest.raises(Exception, match="always fail"):
-                await engine._call_api([{"role": "user", "content": "hi"}], max_retries=1)
+    async def test_http_error_propagates(self, mock_settings, mock_cfg, mock_post):
+        mock_settings.environment = "test"
+
+        import httpx
+        mock_post.side_effect = httpx.HTTPStatusError(
+            "Server Error", request=MagicMock(), response=MagicMock()
+        )
+        with pytest.raises(httpx.HTTPStatusError):
+            await chat_completion([{"role": "user", "content": "hi"}])
 
 
-class TestParseJsonResponse:
-    def test_plain_json(self, engine):
-        result = engine._parse_json_response('{"key": "value"}')
-        assert result == {"key": "value"}
-
-    def test_markdown_wrapped(self, engine):
-        text = '```json\n{"key": "value"}\n```'
-        result = engine._parse_json_response(text)
-        assert result == {"key": "value"}
-
-    def test_invalid_json(self, engine):
-        with pytest.raises(json.JSONDecodeError):
-            engine._parse_json_response("not json")
-
-
-class TestAnalyzeLogs:
+class TestAnalyzeLogsBrief:
+    @patch("app.services.llm_client.chat_completion", new_callable=AsyncMock)
     @pytest.mark.asyncio
-    async def test_empty_logs(self, engine):
-        result = await engine.analyze_logs([])
-        assert result["severity"] == "info"
-        assert result["title"] == "无日志数据"
-
-    @pytest.mark.asyncio
-    async def test_analyze_logs_success(self, engine):
-        ai_response = json.dumps({
-            "severity": "warning",
+    async def test_success(self, mock_chat):
+        mock_chat.return_value = json.dumps({
             "title": "High error rate",
-            "summary": "Found errors",
-            "anomalies": [{"pattern": "OOM", "count": 5, "risk": "high", "suggestion": "add memory"}],
-            "overall_assessment": "needs attention",
+            "summary": "Found OOM errors",
+            "severity": "warning",
         })
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value=ai_response):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.store = AsyncMock(return_value=True)
-                result = await engine.analyze_logs([{"timestamp": "2026-01-01", "level": "ERROR", "message": "OOM"}])
-                assert result["severity"] == "warning"
-                assert len(result["anomalies"]) == 1
+        result = await analyze_logs_brief([
+            {"timestamp": "2026-01-01", "level": "ERROR", "message": "OOM"}
+        ])
+        assert result["title"] == "High error rate"
+        assert result["severity"] == "warning"
 
+    @patch("app.services.llm_client.chat_completion", new_callable=AsyncMock)
     @pytest.mark.asyncio
-    async def test_analyze_logs_non_json_response(self, engine):
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value="plain text response"):
-            result = await engine.analyze_logs([{"timestamp": "t", "level": "ERROR", "message": "err"}])
-            assert result["summary"] == "plain text response"
+    async def test_markdown_wrapped_json(self, mock_chat):
+        mock_chat.return_value = '```json\n{"title": "test", "summary": "ok", "severity": "info"}\n```'
+        result = await analyze_logs_brief([{"timestamp": "t", "level": "INFO", "message": "ok"}])
+        assert result["title"] == "test"
+        assert result["severity"] == "info"
 
+    @patch("app.services.llm_client.chat_completion", new_callable=AsyncMock)
     @pytest.mark.asyncio
-    async def test_analyze_logs_api_error(self, engine):
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, side_effect=Exception("API down")):
-            result = await engine.analyze_logs([{"timestamp": "t", "level": "ERROR", "message": "err"}])
-            assert result.get("error") is True
+    async def test_api_error_returns_fallback(self, mock_chat):
+        mock_chat.side_effect = Exception("API down")
+        result = await analyze_logs_brief([{"timestamp": "t", "level": "ERROR", "message": "err"}])
+        assert "error" in result
+        assert result["severity"] == "warning"
 
+    @patch("app.services.llm_client.chat_completion", new_callable=AsyncMock)
     @pytest.mark.asyncio
-    async def test_analyze_logs_with_context(self, engine):
-        ai_resp = json.dumps({"severity": "info", "title": "ok", "summary": "ok", "anomalies": [], "overall_assessment": "ok"})
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value=ai_resp):
-            result = await engine.analyze_logs(
-                [{"timestamp": "t", "level": "INFO", "message": "ok"}],
-                context="triggered by alert"
-            )
-            assert result["severity"] == "info"
+    async def test_invalid_json_returns_fallback(self, mock_chat):
+        mock_chat.return_value = "not valid json"
+        result = await analyze_logs_brief([{"timestamp": "t", "level": "ERROR", "message": "err"}])
+        assert "error" in result
 
+    @patch("app.services.llm_client.chat_completion", new_callable=AsyncMock)
     @pytest.mark.asyncio
-    async def test_analyze_logs_truncates_to_200(self, engine):
+    async def test_truncates_logs_to_200(self, mock_chat):
+        mock_chat.return_value = json.dumps({"title": "ok", "summary": "ok", "severity": "info"})
         logs = [{"timestamp": "t", "level": "ERROR", "message": f"msg{i}"} for i in range(300)]
-        ai_resp = json.dumps({"severity": "info", "title": "ok", "summary": "ok", "anomalies": [], "overall_assessment": "ok"})
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value=ai_resp) as mock_call:
-            await engine.analyze_logs(logs)
-            call_args = mock_call.call_args[0][0]
-            # user message should only contain 200 logs worth of text
-            assert "msg199" in call_args[1]["content"]
+        await analyze_logs_brief(logs)
+        call_args = mock_chat.call_args[0][0]
+        user_content = call_args[1]["content"]
+        assert "msg199" in user_content
+        assert "msg200" not in user_content
 
-
-class TestChat:
+    @patch("app.services.llm_client.chat_completion", new_callable=AsyncMock)
     @pytest.mark.asyncio
-    async def test_chat_success(self, engine):
-        ai_resp = json.dumps({"answer": "CPU is high due to process X", "sources": [{"type": "metric", "summary": "cpu 95%"}]})
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value=ai_resp):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[])
-                mock_mem.store = AsyncMock(return_value=True)
-                result = await engine.chat("Why is CPU high?")
-                assert "CPU" in result["answer"]
-
-    @pytest.mark.asyncio
-    async def test_chat_with_context(self, engine):
-        ai_resp = json.dumps({"answer": "check logs", "sources": []})
-        context = {
-            "logs": [{"timestamp": "t", "level": "ERROR", "host_id": 1, "service": "app", "message": "err"}],
-            "metrics": [{"host_id": 1, "hostname": "h1", "cpu_percent": 90, "memory_percent": 50, "disk_percent": 30}],
-            "alerts": [{"severity": "critical", "title": "CPU", "status": "firing", "fired_at": "t"}],
-            "services": [{"name": "api", "type": "http", "target": "http://x", "status": "up"}],
-        }
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value=ai_resp):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[{"content": "past experience"}])
-                mock_mem.store = AsyncMock(return_value=True)
-                result = await engine.chat("What's wrong?", context)
-                assert "memory_context" in result
-
-    @pytest.mark.asyncio
-    async def test_chat_non_json_response(self, engine):
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value="just text"):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[])
-                mock_mem.store = AsyncMock(return_value=True)
-                result = await engine.chat("hello")
-                assert result["answer"] == "just text"
-
-    @pytest.mark.asyncio
-    async def test_chat_api_error(self, engine):
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, side_effect=Exception("fail")):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[])
-                result = await engine.chat("hello")
-                assert result.get("error") is True
-
-    @pytest.mark.asyncio
-    async def test_chat_no_context(self, engine):
-        ai_resp = json.dumps({"answer": "no data", "sources": []})
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value=ai_resp):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[])
-                mock_mem.store = AsyncMock(return_value=True)
-                result = await engine.chat("hello", None)
-                assert result["answer"] == "no data"
-
-
-class TestAnalyzeRootCause:
-    @pytest.mark.asyncio
-    async def test_root_cause_success(self, engine):
-        ai_resp = json.dumps({
-            "root_cause": "disk full",
-            "confidence": "high",
-            "evidence": ["disk 99%"],
-            "recommendations": ["clean disk"],
-        })
-        alert = {"title": "Disk Alert", "severity": "critical", "status": "firing",
-                 "message": "disk full", "metric_value": 99, "threshold": 90, "fired_at": "t"}
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value=ai_resp):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[])
-                mock_mem.store = AsyncMock(return_value=True)
-                result = await engine.analyze_root_cause(alert, [], [])
-                assert result["root_cause"] == "disk full"
-                assert result["confidence"] == "high"
-
-    @pytest.mark.asyncio
-    async def test_root_cause_with_memories(self, engine):
-        ai_resp = json.dumps({"root_cause": "OOM", "confidence": "medium", "evidence": [], "recommendations": []})
-        alert = {"title": "Memory Alert", "severity": "warning", "status": "firing",
-                 "message": "mem", "metric_value": 95, "threshold": 80, "fired_at": "t"}
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value=ai_resp):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[{"content": "last time OOM was from java"}])
-                mock_mem.store = AsyncMock(return_value=True)
-                result = await engine.analyze_root_cause(alert, [], [])
-                assert len(result["memory_context"]) == 1
-
-    @pytest.mark.asyncio
-    async def test_root_cause_non_json(self, engine):
-        alert = {"title": "Test", "severity": "info", "status": "firing",
-                 "message": "", "metric_value": None, "threshold": None, "fired_at": ""}
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value="plain analysis"):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[])
-                mock_mem.store = AsyncMock(return_value=True)
-                result = await engine.analyze_root_cause(alert, [], [])
-                assert result["root_cause"] == "plain analysis"
-                assert result["confidence"] == "low"
-
-    @pytest.mark.asyncio
-    async def test_root_cause_api_error(self, engine):
-        alert = {"title": "Test", "severity": "info", "status": "firing",
-                 "message": "", "metric_value": None, "threshold": None, "fired_at": ""}
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, side_effect=Exception("fail")):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[])
-                result = await engine.analyze_root_cause(alert, [], [])
-                assert result.get("error") is True
-
-    @pytest.mark.asyncio
-    async def test_root_cause_with_metrics_and_logs(self, engine):
-        ai_resp = json.dumps({"root_cause": "CPU spike", "confidence": "high", "evidence": ["cpu 100%"], "recommendations": ["scale up"]})
-        alert = {"title": "CPU", "severity": "critical", "status": "firing",
-                 "message": "cpu high", "metric_value": 100, "threshold": 80, "fired_at": "t"}
-        metrics = [{"recorded_at": "t", "host_id": 1, "cpu_percent": 100, "memory_percent": 50, "disk_percent": 30}]
-        logs = [{"timestamp": "t", "level": "ERROR", "service": "app", "message": "process killed"}]
-        with patch.object(engine, "_call_api", new_callable=AsyncMock, return_value=ai_resp):
-            with patch("app.services.ai_engine.memory_client") as mock_mem:
-                mock_mem.recall = AsyncMock(return_value=[])
-                mock_mem.store = AsyncMock(return_value=True)
-                result = await engine.analyze_root_cause(alert, metrics, logs)
-                assert result["confidence"] == "high"
+    async def test_missing_fields_use_defaults(self, mock_chat):
+        mock_chat.return_value = json.dumps({})
+        result = await analyze_logs_brief([{"timestamp": "t", "level": "INFO", "message": "ok"}])
+        assert result["title"] == "日志异常扫描结果"
+        assert result["severity"] == "info"

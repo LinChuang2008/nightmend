@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_operator_user
+from app.core.deps import get_current_user, get_operator_user, get_admin_user
 from app.models.setting import Setting
 from app.models.user import User
 from app.services.audit import log_audit
@@ -118,7 +118,7 @@ async def update_settings(
     data: dict,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_admin_user),
 ):
     """
     批量更新系统设置 (Batch Update System Settings)
@@ -162,10 +162,19 @@ async def update_settings(
         - 部分配置可能需要重启相关服务生效
         - 建议在维护窗口进行重要配置的修改
     """
-    # 权限检查：仅管理员可以修改系统设置
-    if user.role != "admin":
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Admin only")
+    # 权限检查已由 get_admin_user 依赖完成
+
+    # 安全: 限制可修改的配置项白名单
+    ALLOWED_SETTINGS = {
+        "metrics_retention_days", "alert_check_interval", "ai_auto_scan",
+        "ai_model", "ai_api_url", "notification_max_retries",
+        "remediation_auto_mode", "remediation_approval_required",
+        "dashboard_refresh_interval", "log_retention_days",
+        "session_timeout_minutes", "max_login_attempts",
+    }
+    for key in data.keys():
+        if key not in ALLOWED_SETTINGS:
+            raise HTTPException(status_code=400, detail=f"Setting '{key}' is not allowed to be modified")
 
     # 批量更新配置项
     for key, value in data.items():

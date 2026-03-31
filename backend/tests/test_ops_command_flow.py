@@ -79,7 +79,9 @@ async def _wait_event(events: list[dict], event_name: str, timeout: float = 3.0)
 @pytest.mark.asyncio
 async def test_ops_command_confirm_execute_and_result_back(monkeypatch):
     fake_redis = _FakeRedis()
-    monkeypatch.setattr(loop_module, "get_redis", lambda: fake_redis)
+    async def _fake_get_redis():
+        return fake_redis
+    monkeypatch.setattr(loop_module, "get_redis", _fake_get_redis)
     monkeypatch.setattr(loop_module, "AsyncSessionLocal", TestingSessionLocal)
 
     # 准备基础数据：用户、目标主机、会话

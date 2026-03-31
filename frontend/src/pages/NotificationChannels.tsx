@@ -342,7 +342,25 @@ export default function NotificationChannels() {
         <Button type="primary" onClick={openCreate}>{t('notifications.addChannel')}</Button>
       </Space>
       <Card>
-        <Table dataSource={channels} columns={columns} rowKey="id" loading={loading} pagination={false} />
+        <Table
+          dataSource={channels}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={false}
+          locale={{
+            emptyText: (
+              <div style={{ padding: '24px 0' }}>
+                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+                  {t('notifications.emptyHint', '添加 Webhook、邮件或钉钉渠道来接收告警通知')}
+                </Typography.Text>
+                <Button type="primary" size="small" onClick={openCreate}>
+                  {t('notifications.addChannel')}
+                </Button>
+              </div>
+            ),
+          }}
+        />
       </Card>
 
       <Modal
