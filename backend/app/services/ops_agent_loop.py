@@ -926,10 +926,12 @@ class OpsAgentLoop:
                             first_choice = choices[0] if isinstance(choices[0], dict) else {}
                             delta = first_choice.get("delta", {})
 
-                            reasoning_delta = self._extract_reasoning_delta(delta)
-                            if reasoning_delta:
-                                reasoning_buffer += reasoning_delta
-                                await stream_queue.put({"type": "reasoning_delta", "delta": reasoning_delta})
+                            # 只有在启用深度思考时才处理推理内容
+                            if runtime_cfg.get("use_deep_thinking"):
+                                reasoning_delta = self._extract_reasoning_delta(delta)
+                                if reasoning_delta:
+                                    reasoning_buffer += reasoning_delta
+                                    await stream_queue.put({"type": "reasoning_delta", "delta": reasoning_delta})
 
                             if delta.get("content"):
                                 text_buffer += delta["content"]
