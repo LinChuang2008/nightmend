@@ -110,6 +110,12 @@ async def lifespan(app: FastAPI):
     async with async_session() as session:
         await seed_builtin_rules(session)
 
+    # 初始化统一工具注册表 (Initialize Unified Tool Registry)
+    from app.tools import init_tool_registry
+    registry = init_tool_registry()
+    logger_init = logging.getLogger("vigilops.tools")
+    logger_init.info("Tool registry initialized: %d tools registered", registry.tool_count)
+
     from app.services.data_retention import DataRetentionService
     from app.core.database import SessionLocal
     try:
