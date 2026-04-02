@@ -14,6 +14,10 @@ class OpsSessionResponse(BaseModel):
     status: str
     target_host_id: Optional[int]
     token_count: int
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    context_limit_tokens: int = 120000
     created_at: datetime
     updated_at: datetime
 

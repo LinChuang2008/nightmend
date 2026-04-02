@@ -892,7 +892,7 @@ async def agent_websocket(
                 msg = json.loads(data)
                 if msg.get("type") == "ping":
                     await websocket.send_json({"type": "pong"})
-                elif msg.get("type") in ("command_output", "command_result"):
+                elif msg.get("type") in ("command_output", "command_result", "command_done"):
                     # 将命令执行结果路由到对应的 OpsAgentLoop（通过 Redis Pub/Sub）
                     await _route_command_result(host_id, msg)
             except json.JSONDecodeError:
@@ -996,7 +996,20 @@ async def _route_command_result(host_id: int, msg: dict):
                 }),
             )
 
-    elif msg_type == "command_result":
+    elif msg_type in ("command_result", "command_done"):
+        # 兼容旧/异构 Agent：
+        # 某些 Agent 在命令结束或拒绝时上报 type=command_done
+        # 统一转为 command_result，避免后端等待超时导致会话“卡住”。
+        if msg_type == "command_done":
+            msg = {
+                "type": "command_result",
+                "request_id": request_id,
+                "exit_code": msg.get("exit_code", -1),
+                "stdout": msg.get("stdout", ""),
+                "stderr": msg.get("stderr", ""),
+                "duration_ms": msg.get("duration_ms", 0),
+            }
+
         # 查找 session_id
         session_id = await redis.get(f"cmd_req_session:{request_id}")
         if session_id:

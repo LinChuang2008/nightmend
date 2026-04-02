@@ -9,6 +9,10 @@ export interface OpsSession {
   status: string;
   target_host_id: number | null;
   token_count: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  context_limit_tokens: number;
   created_at: string;
   updated_at: string;
 }

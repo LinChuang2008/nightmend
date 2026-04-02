@@ -16,6 +16,7 @@ export type OpsEvent =
   | { event: 'command_expired'; message_id: string; reason: string }
   | { event: 'ask_user'; message_id: string; question: string; input_type: 'radio' | 'checkbox' | 'text'; options?: string[] }
   | { event: 'todo_update'; todos: Array<{ id: string; text: string; status: 'pending' | 'in_progress' | 'done' }> }
+  | { event: 'context_usage'; prompt_tokens: number; completion_tokens: number; total_tokens: number; context_limit_tokens: number; used_percent: number }
   | { event: 'compaction'; summary: string }
   | { event: 'title_update'; title: string }
   | { event: 'done' }

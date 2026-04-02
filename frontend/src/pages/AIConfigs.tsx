@@ -41,6 +41,8 @@ export default function AIConfigs() {
 
   const selectedFeatureKey = Form.useWatch('feature_key', form) as string | undefined;
   const isAssistant = selectedFeatureKey === 'ops_assistant';
+  const isDefault = selectedFeatureKey === 'default';
+  const useContextSelect = isAssistant || isDefault;
 
   const assertFeatureLimit = (feature_key: string, skipId?: string) => {
     const policy = featureMap.get(feature_key);
@@ -219,19 +221,26 @@ export default function AIConfigs() {
           <Form.Item label="API Key（留空则不更新）" name="api_key">
             <Input.Password />
           </Form.Item>
-          {isAssistant && (
+          {useContextSelect && (
             <Form.Item label="模型上下文（Model Context）" name="model_context_tokens" rules={[{ required: true }]}>
               <Select options={CONTEXT_OPTIONS.map((v) => ({ value: v, label: `${v.toLocaleString()} tokens` }))} showSearch />
             </Form.Item>
           )}
-          {!isAssistant && (
+          {!useContextSelect && (
             <Form.Item label="模型上下文（Model Context）" name="model_context_tokens" rules={[{ required: true }]}>
               <InputNumber style={{ width: '100%' }} min={2048} max={1000000} />
             </Form.Item>
           )}
-          <Form.Item label="允许上下文（Allowed Context）" name="allowed_context_tokens" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} min={2048} max={1000000} />
-          </Form.Item>
+          {useContextSelect && (
+            <Form.Item label="允许上下文（Allowed Context）" name="allowed_context_tokens" rules={[{ required: true }]}>
+              <Select options={CONTEXT_OPTIONS.map((v) => ({ value: v, label: `${v.toLocaleString()} tokens` }))} showSearch />
+            </Form.Item>
+          )}
+          {!useContextSelect && (
+            <Form.Item label="允许上下文（Allowed Context）" name="allowed_context_tokens" rules={[{ required: true }]}>
+              <InputNumber style={{ width: '100%' }} min={2048} max={1000000} />
+            </Form.Item>
+          )}
           <Form.Item label="Max Output Tokens" name="max_output_tokens" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} min={128} max={64000} />
           </Form.Item>

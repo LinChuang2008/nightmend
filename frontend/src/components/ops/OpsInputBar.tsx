@@ -17,6 +17,9 @@ interface Host {
 interface OpsInputBarProps {
   onSend: (content: string, hostId?: number, aiConfigId?: string, useDeepThinking?: boolean) => void;
   disabled?: boolean;
+  pendingAskQuestion?: string;
+  onActiveModelChange?: (model: string) => void;
+  onActiveContextLimitChange?: (tokens: number) => void;
   hosts?: Host[];
   aiConfigs?: Array<{
     id: string;
@@ -26,10 +29,11 @@ interface OpsInputBarProps {
     is_default?: boolean;
     supports_deep_thinking?: boolean;
     deep_thinking_max_tokens?: number;
+    allowed_context_tokens?: number;
   }>;
 }
 
-export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = [] }: OpsInputBarProps) {
+export default function OpsInputBar({ onSend, disabled, pendingAskQuestion, onActiveModelChange, onActiveContextLimitChange, hosts = [], aiConfigs = [] }: OpsInputBarProps) {
   const [value, setValue] = useState('');
   const [selectedHostId, setSelectedHostId] = useState<number | undefined>();
   const [selectedAiConfigId, setSelectedAiConfigId] = useState<string>(DEFAULT_AI_CONFIG_ID);
@@ -37,6 +41,7 @@ export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = 
   const [showHostPicker, setShowHostPicker] = useState(false);
   const [searchText, setSearchText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isAnswerMode = Boolean(pendingAskQuestion);
 
   const selectedHost = hosts.find((h) => Number(h.id) === selectedHostId);
 
@@ -74,6 +79,15 @@ export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = 
   const deepThinkingSupported = Boolean(selectedAiConfig?.supports_deep_thinking);
 
   React.useEffect(() => {
+    onActiveModelChange?.(selectedAiConfig?.model || '');
+  }, [onActiveModelChange, selectedAiConfig?.model]);
+
+  React.useEffect(() => {
+    const limit = Number(selectedAiConfig?.allowed_context_tokens || 0);
+    if (limit > 0) onActiveContextLimitChange?.(limit);
+  }, [onActiveContextLimitChange, selectedAiConfig?.allowed_context_tokens]);
+
+  React.useEffect(() => {
     if (!deepThinkingSupported && useDeepThinking) {
       setUseDeepThinking(false);
     }
@@ -81,9 +95,13 @@ export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = 
 
   const handleSend = () => {
     const trimmed = value.trim();
-    if (!trimmed || disabled || !selectedHostId) return;
+    if (!trimmed || disabled || (!isAnswerMode && !selectedHostId)) return;
     const aiConfigId = selectedAiConfigId === DEFAULT_AI_CONFIG_ID ? undefined : selectedAiConfigId;
-    onSend(trimmed, selectedHostId, aiConfigId, deepThinkingSupported && useDeepThinking);
+    if (isAnswerMode) {
+      onSend(trimmed);
+    } else {
+      onSend(trimmed, selectedHostId, aiConfigId, deepThinkingSupported && useDeepThinking);
+    }
     setValue('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
@@ -211,15 +229,18 @@ export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = 
           value={value}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder=""
+          placeholder={isAnswerMode ? '输入对当前问题的答复，回车发送' : ''}
           disabled={disabled}
           rows={1}
           autoFocus
         />
         {disabled && <span className="cc-input-spinner">⠋</span>}
       </div>
-      {!selectedHostId && (
+      {!isAnswerMode && !selectedHostId && (
         <div className="cc-host-required">请先选择目标主机后再发送</div>
+      )}
+      {isAnswerMode && (
+        <div className="cc-answer-hint">等待你的答复: {pendingAskQuestion}</div>
       )}
 
       <style>{`
@@ -385,6 +406,14 @@ export default function OpsInputBar({ onSend, disabled, hosts = [], aiConfigs = 
           padding: 0 16px 8px;
           color: #ad7f00;
           font-size: 12px;
+        }
+        .cc-answer-hint {
+          padding: 0 16px 8px;
+          color: #7ec8ff;
+          font-size: 12px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         @keyframes cc-spin-chars {
           0%   { content: '⠋'; }

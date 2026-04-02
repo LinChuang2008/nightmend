@@ -88,6 +88,8 @@ class OpsAgentLoop:
         self._run_lock = asyncio.Lock()
         # 统一安全层（延迟初始化，等 Redis 可用）
         self._safety_checker: SafetyChecker | None = None
+        # 当前轮对话前端指定的主机（用于强制约束工具调用目标）
+        self._turn_target_host_id: Optional[int] = None
 
     # ─── 公开接口 ──────────────────────────────────────────────────────────────
 
@@ -107,9 +109,13 @@ class OpsAgentLoop:
             runtime_cfg["use_deep_thinking"] = bool(
                 use_deep_thinking and runtime_cfg.get("supports_deep_thinking")
             )
+            await self._sync_context_limit_tokens(int(runtime_cfg.get("allowed_context_tokens") or 120000))
             await self._ensure_context_loaded()
             if host_id:
                 await self._attach_target_host_context(host_id)
+                self._turn_target_host_id = int(host_id)
+            else:
+                self._turn_target_host_id = None
             # 持久化用户消息
             await self._save_message("user", "text", {"text": user_message})
             self._context.append({"role": "user", "content": user_message})
@@ -126,8 +132,11 @@ class OpsAgentLoop:
                     yield event
 
             # 推理循环
-            async for event in self._inference_loop(runtime_cfg):
-                yield event
+            try:
+                async for event in self._inference_loop(runtime_cfg):
+                    yield event
+            finally:
+                self._turn_target_host_id = None
 
     async def handle_command_confirm(self, message_id: str, action: str):
         """处理前端命令确认/拒绝。action: 'confirm' | 'reject'"""
@@ -171,6 +180,9 @@ class OpsAgentLoop:
             response_text = ""
             reasoning_text = ""
             tool_calls = []
+            usage_prompt_tokens = 0
+            usage_completion_tokens = 0
+            usage_total_tokens = 0
 
             async for chunk in self._call_api_stream(runtime_cfg):
                 if chunk.get("type") == "text_delta":
@@ -181,6 +193,28 @@ class OpsAgentLoop:
                     yield {"event": "reasoning_delta", "delta": chunk["delta"]}
                 elif chunk.get("type") == "tool_calls":
                     tool_calls = chunk["tool_calls"]
+                elif chunk.get("type") == "usage":
+                    usage_prompt_tokens = self._safe_int(chunk.get("prompt_tokens"))
+                    usage_completion_tokens = self._safe_int(chunk.get("completion_tokens"))
+                    usage_total_tokens = self._safe_int(chunk.get("total_tokens"))
+
+            if usage_prompt_tokens > 0 or usage_completion_tokens > 0 or usage_total_tokens > 0:
+                limit_tokens = int(runtime_cfg.get("allowed_context_tokens") or 120000)
+                await self._record_token_usage(
+                    prompt_tokens=usage_prompt_tokens,
+                    completion_tokens=usage_completion_tokens,
+                    total_tokens=usage_total_tokens,
+                    context_limit_tokens=limit_tokens,
+                )
+                used_percent = min(100, int((usage_prompt_tokens / max(limit_tokens, 1)) * 100))
+                yield {
+                    "event": "context_usage",
+                    "prompt_tokens": usage_prompt_tokens,
+                    "completion_tokens": usage_completion_tokens,
+                    "total_tokens": usage_total_tokens,
+                    "context_limit_tokens": limit_tokens,
+                    "used_percent": used_percent,
+                }
 
             # 保存 AI 文本响应
             if response_text or reasoning_text:
@@ -216,6 +250,7 @@ class OpsAgentLoop:
                     arguments = json.loads(tc["function"]["arguments"])
                 except json.JSONDecodeError:
                     arguments = {}
+                arguments = self._apply_target_host_override(tool_name, arguments)
                 tool_call_id = tc["id"]
                 msg_id = str(uuid.uuid4())
 
@@ -277,6 +312,35 @@ class OpsAgentLoop:
 
         yield {"event": "done"}
 
+    def _apply_target_host_override(self, tool_name: str, arguments: dict) -> dict:
+        """对主机相关工具强制应用当前轮目标主机，避免会话内切换主机后仍命中旧主机。"""
+        target_host_id = self._turn_target_host_id
+        if target_host_id is None:
+            return arguments
+
+        host_scoped_tools = {
+            "execute_command",
+            "get_host_metrics",
+            "search_logs",
+            "get_alerts",
+            "run_runbook",
+        }
+        if tool_name not in host_scoped_tools:
+            return arguments
+
+        patched = dict(arguments or {})
+        old_host_id = patched.get("host_id")
+        if old_host_id != target_host_id:
+            patched["host_id"] = target_host_id
+            logger.info(
+                "Override tool host_id by turn target: tool=%s old=%s new=%s session=%s",
+                tool_name,
+                old_host_id,
+                target_host_id,
+                self.session_id,
+            )
+        return patched
+
     # ─── 工具执行 ──────────────────────────────────────────────────────────────
 
     async def _get_safety_checker(self) -> SafetyChecker:
@@ -329,10 +393,15 @@ class OpsAgentLoop:
         error_msg = None
 
         try:
-            async for event in asyncio.wait_for(
-                self._consume_tool_events(tool, arguments, ctx, msg_id),
-                timeout=TOOL_EXECUTION_TIMEOUT,
-            ):
+            event_stream = self._consume_tool_events(tool, arguments, ctx, msg_id)
+            while True:
+                try:
+                    event = await asyncio.wait_for(
+                        event_stream.__anext__(),
+                        timeout=TOOL_EXECUTION_TIMEOUT,
+                    )
+                except StopAsyncIteration:
+                    break
                 if event.get("__type") == "__result":
                     result = event["result"]
                     should_stop = event.get("stop", False)
@@ -462,7 +531,10 @@ class OpsAgentLoop:
             result = await db.execute(select(OpsSession).where(OpsSession.id == self.session_id))
             session = result.scalar_one_or_none()
             if session:
-                session.token_count = len(self._context) * 200
+                compact_estimate = len(self._context) * 200
+                session.token_count = compact_estimate
+                session.prompt_tokens = compact_estimate
+                session.total_tokens = max(session.total_tokens, compact_estimate)
                 session.compacted_at = datetime.now(timezone.utc)
                 await db.commit()
 
@@ -513,6 +585,7 @@ class OpsAgentLoop:
             "tools": self._get_tools_schema(),
             "tool_choice": "auto",
             "stream": True,
+            "stream_options": {"include_usage": True},
             "temperature": 0.3,
             "max_tokens": runtime_cfg["max_tokens"],
         }
@@ -527,6 +600,9 @@ class OpsAgentLoop:
         text_buffer = ""
         reasoning_buffer = ""
         tool_calls_buffer: dict[int, dict] = {}
+        usage_prompt_tokens = 0
+        usage_completion_tokens = 0
+        usage_total_tokens = 0
 
         stream_queue: asyncio.Queue = asyncio.Queue()
         STREAM_TIMEOUT = 45
@@ -535,6 +611,9 @@ class OpsAgentLoop:
             """在独立 task 中运行流式读取，结果写入 queue。"""
             nonlocal text_buffer
             nonlocal reasoning_buffer
+            nonlocal usage_prompt_tokens
+            nonlocal usage_completion_tokens
+            nonlocal usage_total_tokens
             try:
                 async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=15.0), verify=False) as client:
                     async with client.stream("POST", url, json=payload, headers=headers) as resp:
@@ -553,6 +632,29 @@ class OpsAgentLoop:
                                 chunk = json.loads(data_str)
                             except json.JSONDecodeError:
                                 continue
+
+                            usage = chunk.get("usage")
+                            if isinstance(usage, dict):
+                                prompt_tokens = self._safe_int(
+                                    usage.get("prompt_tokens")
+                                    or usage.get("input_tokens")
+                                    or usage.get("prompt_token_count")
+                                )
+                                completion_tokens = self._safe_int(
+                                    usage.get("completion_tokens")
+                                    or usage.get("output_tokens")
+                                    or usage.get("completion_token_count")
+                                )
+                                total_tokens = self._safe_int(
+                                    usage.get("total_tokens")
+                                    or usage.get("total_token_count")
+                                )
+                                if prompt_tokens > 0:
+                                    usage_prompt_tokens = prompt_tokens
+                                if completion_tokens > 0:
+                                    usage_completion_tokens = completion_tokens
+                                if total_tokens > 0:
+                                    usage_total_tokens = total_tokens
 
                             choices = chunk.get("choices")
                             if not isinstance(choices, list) or not choices:
@@ -624,6 +726,19 @@ class OpsAgentLoop:
             if not stream_task.done():
                 stream_task.cancel()
 
+        if usage_prompt_tokens <= 0:
+            usage_prompt_tokens = self._estimate_tokens_for_messages(safe_messages)
+        if usage_completion_tokens <= 0:
+            usage_completion_tokens = max(1, (len(text_buffer) + len(reasoning_buffer)) // 4)
+        if usage_total_tokens <= 0:
+            usage_total_tokens = usage_prompt_tokens + usage_completion_tokens
+        yield {
+            "type": "usage",
+            "prompt_tokens": usage_prompt_tokens,
+            "completion_tokens": usage_completion_tokens,
+            "total_tokens": usage_total_tokens,
+        }
+
         if tool_calls_buffer:
             yield {"type": "tool_calls", "tool_calls": list(tool_calls_buffer.values())}
 
@@ -668,6 +783,18 @@ class OpsAgentLoop:
                 if isinstance(text, str):
                     return text
         return ""
+
+    @staticmethod
+    def _safe_int(value: object) -> int:
+        try:
+            return max(0, int(value or 0))
+        except (TypeError, ValueError):
+            return 0
+
+    @staticmethod
+    def _estimate_tokens_for_messages(messages: list[dict]) -> int:
+        serialized = json.dumps(messages, ensure_ascii=False)
+        return max(1, len(serialized) // 4)
 
     @staticmethod
     def _normalized_messages_for_tool_protocol(messages: list[dict], extra_context: str = "") -> list[dict]:
@@ -938,6 +1065,39 @@ class OpsAgentLoop:
             result = await db.execute(select(OpsSession).where(OpsSession.id == self.session_id))
             return result.scalar_one_or_none()
 
+    async def _sync_context_limit_tokens(self, context_limit_tokens: int):
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(OpsSession).where(OpsSession.id == self.session_id))
+            session = result.scalar_one_or_none()
+            if not session:
+                return
+            if session.context_limit_tokens != context_limit_tokens:
+                session.context_limit_tokens = context_limit_tokens
+            session.updated_at = datetime.now(timezone.utc)
+            await db.commit()
+
+    async def _record_token_usage(
+        self,
+        prompt_tokens: int,
+        completion_tokens: int,
+        total_tokens: int,
+        context_limit_tokens: int,
+    ):
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(OpsSession).where(OpsSession.id == self.session_id))
+            session = result.scalar_one_or_none()
+            if not session:
+                return
+            session.prompt_tokens = max(0, prompt_tokens)
+            session.completion_tokens = max(0, completion_tokens)
+            session.total_tokens = max(0, total_tokens)
+            # token_count 兼容旧字段，语义保持为“当前上下文已用 token”
+            session.token_count = max(0, prompt_tokens)
+            session.context_limit_tokens = max(1, context_limit_tokens)
+            session.updated_at = datetime.now(timezone.utc)
+            session.status = "active"
+            await db.commit()
+
     async def _save_message(self, role: str, msg_type: str, content: dict,
                              tool_call_id: Optional[str] = None,
                              message_id: Optional[str] = None) -> str:
@@ -957,7 +1117,6 @@ class OpsAgentLoop:
             if session:
                 session.updated_at = datetime.now(timezone.utc)
                 session.status = "active"
-                session.token_count += len(json.dumps(content)) // 4
             await db.commit()
         return msg_id
 
@@ -1039,13 +1198,23 @@ class OpsAgentLoop:
                 session.updated_at = datetime.now(timezone.utc)
                 await db.commit()
 
+        # 同一会话中仅保留一条目标主机系统提示，避免历史主机提示干扰模型判断
+        self._context = [
+            m for m in self._context
+            if not (
+                m.get("role") == "system"
+                and isinstance(m.get("content"), str)
+                and m["content"].startswith("【用户已指定本轮目标主机】")
+            )
+        ]
+
         self._context.append({
             "role": "system",
             "content": (
                 "【用户已指定本轮目标主机】\n"
                 f"- host_id: {host_id}\n"
                 f"- host_name: {host_name}\n"
-                "后续执行命令时优先针对该主机，除非用户明确要求切换目标。"
+                "本轮工具调用必须使用该主机；除非用户再次明确切换目标主机。"
             ),
         })
 

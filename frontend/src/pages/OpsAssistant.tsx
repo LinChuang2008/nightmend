@@ -13,6 +13,8 @@ import OpsSidebar from '../components/ops/OpsSidebar';
 import OpsTodoPanel, { type Todo } from '../components/ops/OpsTodoPanel';
 import api from '../services/api';
 
+const DEFAULT_CONTEXT_WINDOW = 128000;
+
 export default function OpsAssistant() {
   const [sessions, setSessions] = useState<OpsSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -25,10 +27,13 @@ export default function OpsAssistant() {
     name: string;
     feature_key: string;
     model: string;
+    allowed_context_tokens?: number;
     is_default?: boolean;
     supports_deep_thinking?: boolean;
     deep_thinking_max_tokens?: number;
   }>>([]);
+  const [contextUsedTokens, setContextUsedTokens] = useState(0);
+  const [contextLimitTokens, setContextLimitTokens] = useState(DEFAULT_CONTEXT_WINDOW);
   const streamingMsgIdRef = useRef<string | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
   useEffect(() => { currentSessionIdRef.current = currentSessionId; }, [currentSessionId]);
@@ -69,6 +74,8 @@ export default function OpsAssistant() {
     setMessages([]);
     setTodos([]);
     setIsProcessing(false);
+    setContextUsedTokens(0);
+    setContextLimitTokens(DEFAULT_CONTEXT_WINDOW);
     streamingMsgIdRef.current = null;
     opsApi.getSession(sessionId).then((detail: any) => {
       if (cancelled || currentSessionIdRef.current !== sessionId) return;
@@ -106,6 +113,8 @@ export default function OpsAssistant() {
         .filter((m: any): m is UiMessage => m !== null);
       setMessages(uiMsgs);
       setTodos(latestTodos);
+      setContextUsedTokens(Number(detail.prompt_tokens || detail.token_count || 0));
+      setContextLimitTokens(Number(detail.context_limit_tokens || DEFAULT_CONTEXT_WINDOW));
     }).catch(() => {});
     return () => {
       cancelled = true;
@@ -183,10 +192,28 @@ export default function OpsAssistant() {
         setMessages((prev: UiMessage[]) => prev.map((m: UiMessage) => m.id === event.message_id ? { ...m, commandStatus: 'expired' } : m));
         break;
       case 'ask_user':
+        // AI 等待用户输入时，释放输入栏，允许在主输入区作答
+        setIsProcessing(false);
         setMessages((prev: UiMessage[]) => [...prev, { id: event.message_id, type: 'ask_user', question: event.question, inputType: event.input_type, options: event.options, askStatus: 'pending' }]);
         break;
       case 'todo_update':
         setTodos(event.todos);
+        break;
+      case 'context_usage':
+        setContextUsedTokens(Math.max(0, Number(event.prompt_tokens || 0)));
+        setContextLimitTokens(Math.max(1, Number(event.context_limit_tokens || DEFAULT_CONTEXT_WINDOW)));
+        setSessions((prev: OpsSession[]) => prev.map((s: OpsSession) => (
+          s.id === currentSessionIdRef.current
+            ? {
+                ...s,
+                prompt_tokens: Math.max(0, Number(event.prompt_tokens || 0)),
+                completion_tokens: Math.max(0, Number(event.completion_tokens || 0)),
+                total_tokens: Math.max(0, Number(event.total_tokens || 0)),
+                token_count: Math.max(0, Number(event.prompt_tokens || 0)),
+                context_limit_tokens: Math.max(1, Number(event.context_limit_tokens || DEFAULT_CONTEXT_WINDOW)),
+              }
+            : s
+        )));
         break;
       case 'compaction':
         setMessages((prev: UiMessage[]) => [...prev, { id: `compact-${Date.now()}`, type: 'compaction', summary: event.summary }]);
@@ -208,6 +235,10 @@ export default function OpsAssistant() {
 
   const { sendMessage, confirmCommand, answerQuestion } = useOpsWebSocket({ sessionId: currentSessionId, onEvent: handleEvent });
 
+  const pendingAskMessage = [...messages]
+    .reverse()
+    .find((m) => m.type === 'ask_user' && m.askStatus === 'pending');
+
   const handleSend = useCallback((content: string, hostId?: number, aiConfigId?: string, useDeepThinking?: boolean) => {
     if (!currentSessionId || isProcessing) return;
     setIsProcessing(true);
@@ -223,9 +254,24 @@ export default function OpsAssistant() {
   }, [confirmCommand]);
 
   const handleAnswerQuestion = useCallback((messageId: string, answer: string) => {
-    setMessages((prev: UiMessage[]) => prev.map((m: UiMessage) => m.id === messageId ? { ...m, askStatus: 'answered', answer } : m));
+    setIsProcessing(true);
+    setMessages((prev: UiMessage[]) => [
+      ...prev.map((m: UiMessage): UiMessage => (
+        m.id === messageId ? { ...m, askStatus: 'answered' as const, answer } : m
+      )),
+      { id: `user-answer-${Date.now()}`, type: 'user', text: answer },
+    ]);
+    resetScroll();
     answerQuestion(messageId, answer);
-  }, [answerQuestion]);
+  }, [answerQuestion, resetScroll]);
+
+  const handleSendOrAnswer = useCallback((content: string, hostId?: number, aiConfigId?: string, useDeepThinking?: boolean) => {
+    if (pendingAskMessage?.id) {
+      handleAnswerQuestion(pendingAskMessage.id, content);
+      return;
+    }
+    handleSend(content, hostId, aiConfigId, useDeepThinking);
+  }, [handleAnswerQuestion, handleSend, pendingAskMessage?.id]);
 
   const handleNewSession = async () => {
     try {
@@ -261,6 +307,10 @@ export default function OpsAssistant() {
   };
 
   const currentSession = sessions.find((s: OpsSession) => s.id === currentSessionId);
+  const usedTokens = Math.max(0, contextUsedTokens || currentSession?.prompt_tokens || currentSession?.token_count || 0);
+  const contextWindow = Math.max(1, contextLimitTokens || currentSession?.context_limit_tokens || DEFAULT_CONTEXT_WINDOW);
+  const usedPercent = Math.min(100, Math.round((usedTokens / contextWindow) * 100));
+  const contextTone = usedPercent >= 90 ? 'danger' : usedPercent >= 75 ? 'warn' : 'ok';
 
   return (
     <div style={{ height: '100%', minHeight: 0, background: '#0a0a0a', display: 'flex', alignItems: 'stretch', overflow: 'hidden' }}>
@@ -291,7 +341,14 @@ export default function OpsAssistant() {
           containerRef={containerRef as React.RefObject<HTMLDivElement>}
         />
 
-        <OpsInputBar onSend={handleSend} disabled={isProcessing} hosts={hosts} aiConfigs={aiConfigs} />
+        <OpsInputBar
+          onSend={handleSendOrAnswer}
+          disabled={isProcessing}
+          hosts={hosts}
+          aiConfigs={aiConfigs}
+          pendingAskQuestion={pendingAskMessage?.question}
+          onActiveContextLimitChange={setContextLimitTokens}
+        />
 
         <div className="cc-statusbar">
           <span className="cc-statusbar-hint">? for shortcuts</span>
@@ -300,6 +357,9 @@ export default function OpsAssistant() {
               ? <span className="cc-statusbar-thinking">thinking...</span>
               : <span>{sessions.length} session{sessions.length !== 1 ? 's' : ''} · {messages.filter(m => m.type === 'user').length} messages</span>
             }
+            <span className={`cc-context-pill ${contextTone}`}>
+              ctx {usedPercent}% ({Math.max(1, Math.round(usedTokens / 1000))}k/{Math.round(contextWindow / 1000)}k)
+            </span>
           </span>
         </div>
       </div>
@@ -350,6 +410,22 @@ export default function OpsAssistant() {
         }
         .cc-statusbar-hint { font-size: 12px; color: #555; }
         .cc-statusbar-info { font-size: 12px; color: #666; }
+        .cc-context-pill {
+          margin-left: 10px;
+          padding: 1px 6px;
+          border: 1px solid #2f2f2f;
+          border-radius: 10px;
+          font-size: 11px;
+          color: #8d8d8d;
+        }
+        .cc-context-pill.warn {
+          color: #e0b100;
+          border-color: #5d4c00;
+        }
+        .cc-context-pill.danger {
+          color: #ff7f7f;
+          border-color: #5b2424;
+        }
         .cc-statusbar-thinking {
           color: #f0a500;
           animation: cc-blink 1s step-end infinite;
