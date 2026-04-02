@@ -4,7 +4,7 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
-TEST_EMAIL="${TEST_EMAIL:-demo@vigilops.io}"
+TEST_EMAIL="${TEST_EMAIL:-demo@nightmend.io}"
 TEST_PASSWORD="${TEST_PASSWORD:-demo123}"
 TIMEOUT=120   # 等待健康检查最长秒数
 

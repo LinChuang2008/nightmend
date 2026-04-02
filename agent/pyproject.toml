@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vigilops-agent"
+name = "nightmend-agent"
 version = "0.2.5"
-description = "VigilOps monitoring agent"
+description = "NightMend monitoring agent"
 requires-python = ">=3.9"
 dependencies = [
     "psutil>=5.9",
@@ -32,7 +32,7 @@ db = [
 windows = ["pywin32>=306"]
 
 [project.scripts]
-vigilops-agent = "vigilops_agent.cli:main"
+nightmend-agent = "nightmend_agent.cli:main"
 
 [dependency-groups]
 dev = [

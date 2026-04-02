@@ -1,6 +1,6 @@
 """DBMetrics schema 序列化测试。"""
 from dataclasses import asdict
-from vigilops_agent.db_schema import DBMetrics, SlowQuery
+from nightmend_agent.db_schema import DBMetrics, SlowQuery
 
 
 def test_dbmetrics_default_values():

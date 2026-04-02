@@ -1,6 +1,6 @@
 # 日志后端配置指南 (Log Backend Configuration Guide)
 
-VigilOps 支持多种高性能日志存储后端，可根据数据量和性能需求灵活选择。
+NightMend 支持多种高性能日志存储后端，可根据数据量和性能需求灵活选择。
 
 ## 支持的后端类型
 
@@ -37,7 +37,7 @@ CLICKHOUSE_HOST=localhost
 CLICKHOUSE_PORT=8123
 CLICKHOUSE_USER=default
 CLICKHOUSE_PASSWORD=
-CLICKHOUSE_DATABASE=vigilops
+CLICKHOUSE_DATABASE=nightmend
 
 # Loki 配置 (如果使用)
 LOKI_URL=http://localhost:3100
@@ -59,7 +59,7 @@ services:
       - "8123:8123"
       - "9000:9000"
     environment:
-      CLICKHOUSE_DB: vigilops
+      CLICKHOUSE_DB: nightmend
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: ""
     volumes:
@@ -96,7 +96,7 @@ volumes:
 
 ```bash
 # 从 PostgreSQL 迁移到 ClickHouse
-cd /path/to/vigilops
+cd /path/to/nightmend
 python scripts/migrate_logs.py --source postgresql --target clickhouse
 
 # 检查迁移计划 (不实际迁移数据)
@@ -159,7 +159,7 @@ curl -X GET "http://localhost:8001/api/v1/admin/logs/config" \
 
 ### 自动故障转移
 
-VigilOps 支持自动故障转移：
+NightMend 支持自动故障转移：
 
 1. **主后端**: 配置的高性能后端 (如 ClickHouse)
 2. **备用后端**: PostgreSQL (总是可用)
@@ -259,7 +259,7 @@ PARTITION BY toYYYYMM(timestamp)
 
 ### 日志位置
 
-- **应用日志**: `/var/log/vigilops/`
+- **应用日志**: `/var/log/nightmend/`
 - **ClickHouse 日志**: `/var/log/clickhouse-server/`
 - **Loki 日志**: Docker 容器日志
 

@@ -1,10 +1,10 @@
 """
 应用配置模块 (Application Configuration Module)
 
-使用 Pydantic Settings 管理 VigilOps 平台的所有配置项，支持从 .env 文件和环境变量读取。
+使用 Pydantic Settings 管理 NightMend 平台的所有配置项，支持从 .env 文件和环境变量读取。
 提供数据库连接、Redis 缓存、AI 服务、JWT 认证等各模块的配置管理。
 
-Uses Pydantic Settings to manage all configuration items for the VigilOps platform,
+Uses Pydantic Settings to manage all configuration items for the NightMend platform,
 supporting reading from .env files and environment variables. Provides configuration
 management for database connections, Redis cache, AI services, JWT authentication, and other modules.
 """
@@ -33,9 +33,9 @@ class Settings(BaseSettings):
     # 数据库配置 (Database Configuration)
     postgres_host: str = "localhost"  # PostgreSQL 主机地址 (PostgreSQL Host)
     postgres_port: int = 5432  # PostgreSQL 端口号 (PostgreSQL Port)
-    postgres_db: str = "vigilops"  # 数据库名称 (Database Name)
-    postgres_user: str = "vigilops"  # 数据库用户名 (Database Username)
-    postgres_password: str = "vigilops_dev_password"  # 数据库密码 (Database Password)
+    postgres_db: str = "nightmend"  # 数据库名称 (Database Name)
+    postgres_user: str = "nightmend"  # 数据库用户名 (Database Username)
+    postgres_password: str = "nightmend_dev_password"  # 数据库密码 (Database Password)
 
     # Redis 配置 (Redis Configuration)
     redis_host: str = "localhost"  # Redis 主机地址 (Redis Host)
@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     clickhouse_port: int = 8123  # ClickHouse HTTP 端口 (ClickHouse HTTP Port)
     clickhouse_user: str = "default"  # ClickHouse 用户名 (ClickHouse Username)
     clickhouse_password: str = ""  # ClickHouse 密码 (ClickHouse Password)
-    clickhouse_database: str = "vigilops"  # ClickHouse 数据库名 (ClickHouse Database)
+    clickhouse_database: str = "nightmend"  # ClickHouse 数据库名 (ClickHouse Database)
     
     # Loki 配置 (Loki Configuration)
     loki_url: str = "http://localhost:3100"  # Loki 服务地址 (Loki Service URL)
@@ -122,7 +122,7 @@ class Settings(BaseSettings):
     ldap_bind_password: str = ""  # 绑定密码 (Bind Password)
 
     # MCP Server 配置 (MCP Server Configuration)
-    vigilops_mcp_api_key: str = ""  # MCP API Key，留空则禁用认证 (MCP API Key; empty = auth disabled)
+    nightmend_mcp_api_key: str = ""  # MCP API Key，留空则禁用认证 (MCP API Key; empty = auth disabled)
 
     # 安全和限流配置 (Security and Rate Limiting Configuration)
     enable_rate_limiting: bool = True  # 是否启用 API 限流 (Enable API Rate Limiting)
@@ -205,8 +205,8 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # 数据库凭据安全检查 (Database Credentials Security Check)
-_DB_DEFAULT_PASSWORD = "vigilops_dev_password"
-_DB_DEFAULT_USER = "vigilops"
+_DB_DEFAULT_PASSWORD = "nightmend_dev_password"
+_DB_DEFAULT_USER = "nightmend"
 
 # JWT 密钥安全检查 (JWT Secret Key Security Check)
 # 使用 settings.environment 保持一致性，避免 os.getenv 与 pydantic-settings 不一致

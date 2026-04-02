@@ -18,7 +18,7 @@ const ThemeContext = createContext<ThemeContextType>({
   isDark: false,
 });
 
-const STORAGE_KEY = 'vigilops_theme';
+const STORAGE_KEY = 'nightmend_theme';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {

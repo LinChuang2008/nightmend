@@ -1,11 +1,11 @@
 """
 数据模型包 (Data Models Package)
 
-集中导出所有 SQLAlchemy ORM 模型，为 VigilOps 运维监控平台提供完整的数据模型定义。
+集中导出所有 SQLAlchemy ORM 模型，为 NightMend 运维监控平台提供完整的数据模型定义。
 包含用户管理、主机监控、服务检查、告警通知、AI 分析等各个功能模块的数据结构。
 
 Centrally exports all SQLAlchemy ORM models, providing complete data model definitions
-for the VigilOps operations monitoring platform. Includes data structures for
+for the NightMend operations monitoring platform. Includes data structures for
 user management, host monitoring, service checking, alert notifications, AI analysis, and other modules.
 """
 from app.models.user import User

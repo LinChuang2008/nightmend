@@ -11,7 +11,7 @@
 依赖关系：依赖 Report 数据模型和 report_generator 服务
 API端点：GET /api/v1/reports, GET /api/v1/reports/{id}, POST /api/v1/reports/generate, DELETE /api/v1/reports/{id}
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from datetime import datetime, timedelta, timezone
 from typing import Optional

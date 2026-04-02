@@ -1,8 +1,8 @@
-# VigilOps 数据库初始化脚本
+# NightMend 数据库初始化脚本
 
 ## 概述
 
-本目录包含 VigilOps 项目的完整数据库初始化脚本，基于生产环境实际表结构生成。
+本目录包含 NightMend 项目的完整数据库初始化脚本，基于生产环境实际表结构生成。
 
 ## 文件说明
 
@@ -15,20 +15,20 @@
 
 ```bash
 # 在项目根目录执行
-docker compose exec -T postgres psql -U vigilops -d vigilops -f backend/sql/init_complete.sql
+docker compose exec -T postgres psql -U nightmend -d nightmend -f backend/sql/init_complete.sql
 ```
 
 ### 方式二：直接连接 PostgreSQL 执行
 
 ```bash
-psql -h localhost -U vigilops -d vigilops -f backend/sql/init_complete.sql
+psql -h localhost -U nightmend -d nightmend -f backend/sql/init_complete.sql
 ```
 
 ### 方式三：在生产服务器上执行
 
 ```bash
-cd /docker/vigilops
-docker compose exec -T postgres psql -U vigilops -d vigilops -f - < backend/sql/init_complete.sql
+cd /docker/nightmend
+docker compose exec -T postgres psql -U nightmend -d nightmend -f - < backend/sql/init_complete.sql
 ```
 
 ## 表结构分类

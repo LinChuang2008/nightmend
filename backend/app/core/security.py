@@ -1,10 +1,10 @@
 """
 安全工具模块 (Security Tools Module)
 
-提供 VigilOps 平台的安全功能，包括密码哈希加密、JWT 令牌生成与解析等。
+提供 NightMend 平台的安全功能，包括密码哈希加密、JWT 令牌生成与解析等。
 使用行业标准的 bcrypt 算法进行密码加密，JWT 进行用户认证和会话管理。
 
-Provides security functions for the VigilOps platform, including password hashing
+Provides security functions for the NightMend platform, including password hashing
 and JWT token generation/parsing. Uses industry-standard bcrypt algorithm for password
 encryption and JWT for user authentication and session management.
 """

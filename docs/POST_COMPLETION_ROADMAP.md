@@ -1,4 +1,4 @@
-# VigilOps 项目完成总结与后续规划
+# NightMend 项目完成总结与后续规划
 
 > 生成时间：2026-02-26 22:34  
 > 作者：AI公司 CEO  
@@ -16,7 +16,7 @@
 - **总代码量**: ~28,000 行，150+ 文件
 - **CTO 评分**: 7.2/10 (优秀)
 - **Demo 地址**: https://demo.lchuangnet.com (运行正常)
-- **默认账号**: demo@vigilops.io / demo123
+- **默认账号**: demo@nightmend.io / demo123
 
 ### 差异化优势
 1. **AI 原生设计** — 根因分析、智能告警、自动修复

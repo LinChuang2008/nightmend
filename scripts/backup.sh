@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# VigilOps PostgreSQL 备份脚本
+# NightMend PostgreSQL 备份脚本
 # 用法: bash scripts/backup.sh [--backup-dir DIR] [--keep-days N]
 set -euo pipefail
 
@@ -15,12 +15,12 @@ fi
 
 DB_HOST="${POSTGRES_HOST:-localhost}"
 DB_PORT="${POSTGRES_PORT:-5433}"
-DB_NAME="${POSTGRES_DB:-vigilops}"
-DB_USER="${POSTGRES_USER:-vigilops}"
+DB_NAME="${POSTGRES_DB:-nightmend}"
+DB_USER="${POSTGRES_USER:-nightmend}"
 
 usage() {
     cat <<EOF
-VigilOps PostgreSQL 备份工具
+NightMend PostgreSQL 备份工具
 
 用法: $0 [OPTIONS]
 
@@ -39,7 +39,7 @@ VigilOps PostgreSQL 备份工具
   $0 --keep-days 14                     # 保留 14 天
 
 设置 cron 自动备份 (每天凌晨 2 点):
-  0 2 * * * cd /path/to/vigilops && bash scripts/backup.sh >> logs/backup.log 2>&1
+  0 2 * * * cd /path/to/nightmend && bash scripts/backup.sh >> logs/backup.log 2>&1
 EOF
     exit 0
 }
@@ -57,7 +57,7 @@ done
 mkdir -p "$BACKUP_DIR"
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-FILENAME="vigilops_${TIMESTAMP}.sql.gz"
+FILENAME="nightmend_${TIMESTAMP}.sql.gz"
 FILEPATH="${BACKUP_DIR}/${FILENAME}"
 
 echo "[$(date)] 开始备份 ${DB_NAME}@${DB_HOST}:${DB_PORT} ..."
@@ -79,10 +79,10 @@ SIZE=$(du -h "$FILEPATH" | cut -f1)
 echo "[$(date)] 备份完成: $FILEPATH ($SIZE)"
 
 # 自动轮转：删除超过 KEEP_DAYS 天的备份
-DELETED=$(find "$BACKUP_DIR" -name "vigilops_*.sql.gz" -mtime +"$KEEP_DAYS" -print -delete | wc -l)
+DELETED=$(find "$BACKUP_DIR" -name "nightmend_*.sql.gz" -mtime +"$KEEP_DAYS" -print -delete | wc -l)
 if [ "$DELETED" -gt 0 ]; then
     echo "[$(date)] 已清理 ${DELETED} 个过期备份 (>${KEEP_DAYS} 天)"
 fi
 
 echo "[$(date)] 当前备份文件:"
-ls -lh "$BACKUP_DIR"/vigilops_*.sql.gz 2>/dev/null || echo "  (无)"
+ls -lh "$BACKUP_DIR"/nightmend_*.sql.gz 2>/dev/null || echo "  (无)"

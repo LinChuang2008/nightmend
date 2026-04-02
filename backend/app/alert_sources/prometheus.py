@@ -1,7 +1,7 @@
 """
 Prometheus AlertManager 适配器 (Prometheus AlertManager Adapter)
 
-解析 AlertManager webhook payload，映射到 VigilOps Host，
+解析 AlertManager webhook payload，映射到 NightMend Host，
 转换为 RemediationAlert 供自动修复管道使用。
 
 AlertManager webhook payload 格式:
@@ -31,9 +31,9 @@ from app.remediation.models import RemediationAlert
 
 from .base import AlertSourceAdapter, IncomingAlert
 
-logger = logging.getLogger("vigilops.alert_sources.prometheus")
+logger = logging.getLogger("nightmend.alert_sources.prometheus")
 
-# Prometheus alertname → VigilOps alert_type 映射
+# Prometheus alertname → NightMend alert_type 映射
 _ALERTNAME_MAP: dict[str, str] = {
     "highcpu": "cpu_high",
     "cpuhigh": "cpu_high",
@@ -52,7 +52,7 @@ _ALERTNAME_MAP: dict[str, str] = {
     "kubepodcrashlooping": "container_crash",
 }
 
-# Prometheus severity → VigilOps severity 映射
+# Prometheus severity → NightMend severity 映射
 _SEVERITY_MAP: dict[str, str] = {
     "critical": "critical",
     "error": "critical",
@@ -126,15 +126,15 @@ class PrometheusAdapter(AlertSourceAdapter):
         return result
 
     async def map_to_host(self, alert: IncomingAlert, db: AsyncSession) -> Optional[Host]:
-        """将 Prometheus instance 映射到 VigilOps Host。
+        """将 Prometheus instance 映射到 NightMend Host。
 
         匹配策略:
-        1. 自定义 label vigilops_host_id → 直接按 ID 查
+        1. 自定义 label nightmend_host_id → 直接按 ID 查
         2. 提取 IP → 匹配 Host.ip_address / private_ip / public_ip
         3. 提取 hostname → 匹配 Host.hostname
         """
         # 策略 1: 自定义 label
-        host_id_str = alert.labels.get("vigilops_host_id")
+        host_id_str = alert.labels.get("nightmend_host_id")
         if host_id_str:
             try:
                 result = await db.execute(

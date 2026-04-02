@@ -11,7 +11,7 @@
 依赖关系：依赖SQLAlchemy、JWT认证、服务健康检查数据
 API端点：GET /services, GET /services/{id}, GET /services/{id}/checks
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from datetime import datetime, timezone, timedelta
 

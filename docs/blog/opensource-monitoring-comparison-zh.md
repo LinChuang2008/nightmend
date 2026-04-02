@@ -1,6 +1,6 @@
-# 开源运维监控工具横评：Zabbix、夜莺、Prometheus+Grafana、VigilOps 怎么选
+# 开源运维监控工具横评：Zabbix、夜莺、Prometheus+Grafana、NightMend 怎么选
 
-> 作者：VigilOps 团队 | 2026-02
+> 作者：NightMend 团队 | 2026-02
 
 ---
 
@@ -8,7 +8,7 @@
 
 如果你在搜索"开源监控工具选型"，大概率已经看了不少文章。大多数对比文章有两个问题：一是写的时间太早，没有覆盖 AI 运维的趋势；二是每个工具的介绍都像在念产品手册。
 
-这篇文章试图做点不一样的事：从一个**中小团队运维负责人**的视角，基于真实的选型决策因素，做一次诚实的横向对比。VigilOps 是我们自己的项目，但我们会尽量客观——包括诚实地标注我们不如别人的地方。
+这篇文章试图做点不一样的事：从一个**中小团队运维负责人**的视角，基于真实的选型决策因素，做一次诚实的横向对比。NightMend 是我们自己的项目，但我们会尽量客观——包括诚实地标注我们不如别人的地方。
 
 ## 四个候选方案
 
@@ -73,9 +73,9 @@ Zabbix 是运维圈的"老前辈"。1998 年发布第一版，至今仍被大量
 - 日志和链路追踪能力有限（主要还是指标监控）
 - 企业版功能需要付费
 
-### VigilOps：AI 运维新兵
+### NightMend：AI 运维新兵
 
-VigilOps 是一个早期的开源 AI 运维平台，核心差异化是内置 AI 分析和自动修复能力。
+NightMend 是一个早期的开源 AI 运维平台，核心差异化是内置 AI 分析和自动修复能力。
 
 **适合谁：** 小团队（< 50 台主机），想尝试 AI 运维的技术负责人。
 
@@ -98,7 +98,7 @@ VigilOps 是一个早期的开源 AI 运维平台，核心差异化是内置 AI 
 
 ## 详细对比表
 
-| 维度 | Zabbix | Prometheus+Grafana | 夜莺 | VigilOps |
+| 维度 | Zabbix | Prometheus+Grafana | 夜莺 | NightMend |
 |------|--------|-------------------|------|----------|
 | **部署复杂度** | 中 | 高（多组件） | 低 | 低（Docker） |
 | **主机监控** | ✅ 强 | ✅ 强（node_exporter） | ✅ 强 | ✅ 基础 |
@@ -133,22 +133,22 @@ VigilOps 是一个早期的开源 AI 运维平台，核心差异化是内置 AI 
 
 ### 如果你想尝试 AI 运维 + 告警自动修复
 
-**试试 VigilOps。** 但请带着正确的预期：这是一个早期项目，适合在非关键环境中试用，或者作为现有监控的补充而不是替代。它的独特价值在于"从告警到修复"的自动化闭环——这是其他三个方案都不具备的。
+**试试 NightMend。** 但请带着正确的预期：这是一个早期项目，适合在非关键环境中试用，或者作为现有监控的补充而不是替代。它的独特价值在于"从告警到修复"的自动化闭环——这是其他三个方案都不具备的。
 
-**不建议的做法：** 直接用 VigilOps 替换你正在运行的 Zabbix 或 Prometheus。我们还没有达到那个成熟度。更合理的方式是在你的测试环境或新项目中试用，体验 AI 运维的效果，然后根据实际情况决定是否扩大使用范围。
+**不建议的做法：** 直接用 NightMend 替换你正在运行的 Zabbix 或 Prometheus。我们还没有达到那个成熟度。更合理的方式是在你的测试环境或新项目中试用，体验 AI 运维的效果，然后根据实际情况决定是否扩大使用范围。
 
 ## 组合使用的可能
 
 最后说一个我们自己觉得合理的组合方案：
 
-**Prometheus/夜莺（指标采集和存储）+ VigilOps（AI 分析和自动修复）**
+**Prometheus/夜莺（指标采集和存储）+ NightMend（AI 分析和自动修复）**
 
-VigilOps 本身有完整的监控能力，但如果你已经有成熟的 Prometheus 体系，不需要迁移。VigilOps 可以接收 Webhook 告警，用 AI 分析后决定是否自动修复。这样你保留了现有监控的稳定性，同时获得了 AI 运维的能力。
+NightMend 本身有完整的监控能力，但如果你已经有成熟的 Prometheus 体系，不需要迁移。NightMend 可以接收 Webhook 告警，用 AI 分析后决定是否自动修复。这样你保留了现有监控的稳定性，同时获得了 AI 运维的能力。
 
 这不是一句营销话——我们真心觉得"渐进式采用"比"全盘替换"更合理。
 
 ---
 
-*想自己试试？`docker compose up -d` 就能跑起来。在线 Demo：[https://demo.lchuangnet.com](https://demo.lchuangnet.com)（`demo@vigilops.io` / `demo123`）*
+*想自己试试？`docker compose up -d` 就能跑起来。在线 Demo：[https://demo.lchuangnet.com](https://demo.lchuangnet.com)（`demo@nightmend.io` / `demo123`）*
 
-*VigilOps 是一个 Apache 2.0 开源项目。GitHub：[LinChuang2008/vigilops](https://github.com/LinChuang2008/vigilops)*
+*NightMend 是一个 Apache 2.0 开源项目。GitHub：[LinChuang2008/nightmend](https://github.com/LinChuang2008/nightmend)*

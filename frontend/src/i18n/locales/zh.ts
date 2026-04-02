@@ -65,7 +65,7 @@ const zh = {
 
   // ========== 登录页 ==========
   login: {
-    title: 'VigilOps',
+    title: 'NightMend',
     subtitle: 'AI 智能运维监控平台',
     loginTab: '登录',
     registerTab: '注册',
@@ -1323,14 +1323,14 @@ const zh = {
   // ========== Agent 安装 Banner ==========
   agentBanner: {
     title: '还没有接入主机，复制以下命令安装 Agent',
-    description: '在需要监控的服务器上运行以下命令，即可接入 VigilOps：',
+    description: '在需要监控的服务器上运行以下命令，即可接入 NightMend：',
     tokenHint: '提示：请前往「系统设置 → Agent Token」获取完整 Token',
     manageTokens: '前往 Settings',
   },
 
   // ========== 新手引导 ==========
   quickStart: {
-    title: '🚀 快速上手 VigilOps',
+    title: '🚀 快速上手 NightMend',
     subtitle: '按以下步骤完成初始配置，开始监控你的基础设施',
     doNotShow: '不再显示',
     close: '关闭',
@@ -1339,7 +1339,7 @@ const zh = {
     steps: {
       installAgent: {
         title: '安装 Agent',
-        description: '在目标服务器上运行一键安装命令，将主机接入 VigilOps 监控。',
+        description: '在目标服务器上运行一键安装命令，将主机接入 NightMend 监控。',
         action: '前往 Settings 获取 Token',
       },
       viewHosts: {
@@ -1505,7 +1505,7 @@ const zh = {
     signIn: '登录',
     heroTag: 'AI 驱动的智能运维',
     heroTitle: '让 AI 守护你的基础设施',
-    heroDescription: 'VigilOps 是一款 AI 驱动的基础设施监控平台，提供智能告警分析、自动修复和 MCP 集成，让运维团队专注于创造价值。',
+    heroDescription: 'NightMend 是一款 AI 驱动的基础设施监控平台，提供智能告警分析、自动修复和 MCP 集成，让运维团队专注于创造价值。',
     getStarted: '开始体验',
     viewDocs: '查看文档',
     featuresTitle: '核心特性',

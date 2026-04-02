@@ -15,13 +15,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: vigilops
-          POSTGRES_PASSWORD: vigilops_dev_password
-          POSTGRES_DB: vigilops
+          POSTGRES_USER: nightmend
+          POSTGRES_PASSWORD: nightmend_dev_password
+          POSTGRES_DB: nightmend
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U vigilops"
+          --health-cmd "pg_isready -U nightmend"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
@@ -54,9 +54,9 @@ jobs:
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
-          POSTGRES_USER: vigilops
-          POSTGRES_PASSWORD: vigilops_dev_password
-          POSTGRES_DB: vigilops
+          POSTGRES_USER: nightmend
+          POSTGRES_PASSWORD: nightmend_dev_password
+          POSTGRES_DB: nightmend
           REDIS_HOST: localhost
           AI_API_KEY: test-key-for-ci
           MEMORY_ENABLED: "false"

@@ -1,6 +1,6 @@
 # HTTPS 配置指南
 
-VigilOps 通过 nginx 反向代理实现 SSL 终止，内部容器间通信仍使用 HTTP。
+NightMend 通过 nginx 反向代理实现 SSL 终止，内部容器间通信仍使用 HTTP。
 
 ## 架构
 

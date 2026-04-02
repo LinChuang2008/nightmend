@@ -1,5 +1,5 @@
 #!/bin/bash
-# VigilOps Docker Image Build & Push Script
+# NightMend Docker Image Build & Push Script
 # Push to GitHub Container Registry (ghcr.io)
 #
 # Prerequisites:
@@ -17,13 +17,13 @@ REPO="ghcr.io/linchuang2008"
 TAG="${1:-latest}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-echo "=== VigilOps Image Build & Push ==="
+echo "=== NightMend Image Build & Push ==="
 echo "Registry: $REPO"
 echo "Tag: $TAG"
 echo ""
 
 # Check docker login
-if ! docker manifest inspect "$REPO/vigilops-backend:test" >/dev/null 2>&1; then
+if ! docker manifest inspect "$REPO/nightmend-backend:test" >/dev/null 2>&1; then
   echo "⚠️  Make sure you're logged in to ghcr.io:"
   echo '   echo $GITHUB_TOKEN | docker login ghcr.io -u LinChuang2008 --password-stdin'
   echo ""
@@ -31,38 +31,38 @@ fi
 
 # Build backend
 echo "🔨 Building backend..."
-docker build --no-cache -t "$REPO/vigilops-backend:$TAG" "$ROOT/backend"
+docker build --no-cache -t "$REPO/nightmend-backend:$TAG" "$ROOT/backend"
 echo "✅ Backend built"
 
 # Build frontend
 echo "🔨 Building frontend..."
-docker build --no-cache -t "$REPO/vigilops-frontend:$TAG" "$ROOT/frontend"
+docker build --no-cache -t "$REPO/nightmend-frontend:$TAG" "$ROOT/frontend"
 echo "✅ Frontend built"
 
 # Push
 echo "🚀 Pushing backend..."
-docker push "$REPO/vigilops-backend:$TAG"
+docker push "$REPO/nightmend-backend:$TAG"
 echo "✅ Backend pushed"
 
 echo "🚀 Pushing frontend..."
-docker push "$REPO/vigilops-frontend:$TAG"
+docker push "$REPO/nightmend-frontend:$TAG"
 echo "✅ Frontend pushed"
 
 # Tag as latest if version tag
 if [ "$TAG" != "latest" ]; then
   echo "🏷️  Tagging as latest..."
-  docker tag "$REPO/vigilops-backend:$TAG" "$REPO/vigilops-backend:latest"
-  docker tag "$REPO/vigilops-frontend:$TAG" "$REPO/vigilops-frontend:latest"
-  docker push "$REPO/vigilops-backend:latest"
-  docker push "$REPO/vigilops-frontend:latest"
+  docker tag "$REPO/nightmend-backend:$TAG" "$REPO/nightmend-backend:latest"
+  docker tag "$REPO/nightmend-frontend:$TAG" "$REPO/nightmend-frontend:latest"
+  docker push "$REPO/nightmend-backend:latest"
+  docker push "$REPO/nightmend-frontend:latest"
   echo "✅ Latest tags pushed"
 fi
 
 echo ""
 echo "=== Done! ==="
 echo "Images available:"
-echo "  $REPO/vigilops-backend:$TAG"
-echo "  $REPO/vigilops-frontend:$TAG"
+echo "  $REPO/nightmend-backend:$TAG"
+echo "  $REPO/nightmend-frontend:$TAG"
 echo ""
 echo "Users can now run:"
-echo "  curl -fsSL https://raw.githubusercontent.com/LinChuang2008/vigilops/main/install.sh | bash"
+echo "  curl -fsSL https://raw.githubusercontent.com/LinChuang2008/nightmend/main/install.sh | bash"

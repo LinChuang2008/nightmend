@@ -1,5 +1,5 @@
 """
-VigilOps 内置 Runbook - Redis 健康检查与修复
+NightMend 内置 Runbook - Redis 健康检查与修复
 """
 from ..models import RiskLevel, RunbookDefinition, RunbookStep
 

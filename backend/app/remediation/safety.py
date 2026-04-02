@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复系统 - 安全防护模块
-VigilOps Remediation System - Security Protection Module
+NightMend 自动修复系统 - 安全防护模块
+NightMend Remediation System - Security Protection Module
 
 这是整个自动修复系统最重要的安全防线，负责防止恶意或危险的命令执行。
 This is the most critical security barrier of the entire remediation system, responsible 
@@ -31,7 +31,7 @@ for preventing execution of malicious or dangerous commands.
 宁可误判拒绝 100 个安全命令，也不能放过 1 个危险命令。
 Better to mistakenly reject 100 safe commands than to let 1 dangerous command through.
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 安全等级：Critical
 """

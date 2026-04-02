@@ -11,7 +11,7 @@ SLA 管理路由 (Service Level Agreement Management Router)
 依赖关系：依赖 SLARule、SLAViolation、Service、ServiceCheck 数据模型
 API端点：GET/POST/DELETE /api/v1/sla/rules, GET /api/v1/sla/status, GET /api/v1/sla/violations, GET /api/v1/sla/report
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional

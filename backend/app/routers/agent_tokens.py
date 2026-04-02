@@ -1,7 +1,7 @@
 """
 Agent 令牌管理路由 (Agent Token Management Router)
 
-功能说明：提供 VigilOps Agent 认证令牌的完整生命周期管理
+功能说明：提供 NightMend Agent 认证令牌的完整生命周期管理
 核心职责：
   - Agent Token 的安全生成和创建（带前缀标识）
   - 令牌列表查询和状态管理
@@ -20,7 +20,7 @@ Security Design:
 
 Token Format: vop_<48位十六进制随机字符串>
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import hashlib
 import hmac
@@ -76,7 +76,7 @@ async def create_agent_token(
     """
     创建新的 Agent Token (Create New Agent Token)
     
-    为 VigilOps Agent 生成新的认证令牌，用于 Agent 与服务器的安全通信。
+    为 NightMend Agent 生成新的认证令牌，用于 Agent 与服务器的安全通信。
     令牌只在创建时返回一次，后续无法再次获取明文令牌。
     
     Args:
@@ -97,7 +97,7 @@ async def create_agent_token(
         - 数据库仅存储哈希值，保护安全
         
     Token Structure:
-        - 前缀: "vop_" (VigilOps 标识)
+        - 前缀: "vop_" (NightMend 标识)
         - 随机部分: 48位十六进制字符串 (192 bits 熵)
         - 总长度: 52字符
         - 示例: vop_a1b2c3d4e5f67890abcdef1234567890abcdef123456

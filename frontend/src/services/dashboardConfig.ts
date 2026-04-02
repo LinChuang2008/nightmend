@@ -194,7 +194,7 @@ export const dashboardConfigService = {
 
 // ==================== 本地存储 ====================
 
-const STORAGE_PREFIX = 'vigilops_dashboard_';
+const STORAGE_PREFIX = 'nightmend_dashboard_';
 
 export const localStorageService = {
   

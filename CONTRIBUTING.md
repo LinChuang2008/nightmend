@@ -1,12 +1,12 @@
-# Contributing to VigilOps
+# Contributing to NightMend
 
-感谢你对 VigilOps 的关注！无论是提 Bug、建议功能还是贡献代码，我们都非常欢迎。
+感谢你对 NightMend 的关注！无论是提 Bug、建议功能还是贡献代码，我们都非常欢迎。
 
-Thank you for your interest in contributing to VigilOps! Every contribution matters.
+Thank you for your interest in contributing to NightMend! Every contribution matters.
 
 ## 🐛 Reporting Bugs
 
-1. 先搜索 [existing issues](https://github.com/LinChuang2008/vigilops/issues) 确认没有重复
+1. 先搜索 [existing issues](https://github.com/LinChuang2008/nightmend/issues) 确认没有重复
 2. 使用 **Bug Report** 模板创建新 Issue
 3. 提供：复现步骤、期望行为、实际行为、环境信息
 
@@ -20,8 +20,8 @@ Thank you for your interest in contributing to VigilOps! Every contribution matt
 
 ```bash
 # 1. Fork 并克隆
-git clone https://github.com/YOUR_USERNAME/vigilops.git
-cd vigilops
+git clone https://github.com/YOUR_USERNAME/nightmend.git
+cd nightmend
 
 # 2. 创建功能分支
 git checkout -b feat/your-feature
@@ -98,7 +98,7 @@ npm run dev
 
 ## ❓ 有问题？
 
-- 创建 [Discussion](https://github.com/LinChuang2008/vigilops/discussions)
-- 加入 [Discord](https://discord.gg/vigilops)
+- 创建 [Discussion](https://github.com/LinChuang2008/nightmend/discussions)
+- 加入 [Discord](https://discord.gg/nightmend)
 
 再次感谢你的贡献！🎉

@@ -1,19 +1,19 @@
 <div align="center">
 
-# VigilOps
+# NightMend
 
 **你的团队每天收到 200+ 条告警，80% 是噪音。AI 在你睡觉时帮你修好。**
 
-[![Stars](https://img.shields.io/github/stars/LinChuang2008/vigilops?style=for-the-badge&logo=github&color=gold)](https://github.com/LinChuang2008/vigilops)
+[![Stars](https://img.shields.io/github/stars/LinChuang2008/nightmend?style=for-the-badge&logo=github&color=gold)](https://github.com/LinChuang2008/nightmend)
 [![Demo](https://img.shields.io/badge/Live_Demo-Try_Now-brightgreen?style=for-the-badge)](https://demo.lchuangnet.com/login)
-[![Version](https://img.shields.io/badge/version-v2026.03.22-blue?style=for-the-badge)](https://github.com/LinChuang2008/vigilops/releases)
-[![CI](https://img.shields.io/github/actions/workflow/status/LinChuang2008/vigilops/test.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/LinChuang2008/vigilops/actions/workflows/test.yml)
+[![Version](https://img.shields.io/badge/version-v2026.03.22-blue?style=for-the-badge)](https://github.com/LinChuang2008/nightmend/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/LinChuang2008/nightmend/test.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/LinChuang2008/nightmend/actions/workflows/test.yml)
 
 [Live Demo](https://demo.lchuangnet.com/login) | [English](README.md) | [安装指南](#-本地部署5分钟) | [文档](#-文档)
 
 <br/>
 
-![VigilOps 演示 — 告警 → AI分析 → 自动修复 47秒](docs/screenshots/demo-animation.svg)
+![NightMend 演示 — 告警 → AI分析 → 自动修复 47秒](docs/screenshots/demo-animation.svg)
 
 </div>
 
@@ -24,14 +24,14 @@
 ### 在线演示（免安装）
 
 > **官方演示**: [**demo.lchuangnet.com**](https://demo.lchuangnet.com/login)
-> **登录账号**: `demo@vigilops.io` / `demo123` _(只读模式)_
+> **登录账号**: `demo@nightmend.io` / `demo123` _(只读模式)_
 > **立即查看**: AI告警分析、自动修复、MCP集成
 
 ### 本地部署（5分钟）
 
 ```bash
 # 1. 克隆并配置
-git clone https://github.com/LinChuang2008/vigilops.git && cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git && cd nightmend
 cp .env.example .env   # 在这里填入你的 DeepSeek API Key
 
 # 2. 启动（首次运行需要15-30分钟构建）
@@ -54,24 +54,24 @@ echo "打开浏览器访问: http://localhost:3001"
 
 ---
 
-## VigilOps 的独特之处
+## NightMend 的独特之处
 
 你试过 **Grafana + Prometheus**，知道 **夜莺** 和 **Datadog**。它们都能告诉你 *哪里出了问题*，但没有一个能 **帮你修好**。
 
-VigilOps 是 **全球首个开源AI运维平台**，不只是监控——还能 **自愈**：
+NightMend 是 **全球首个开源AI运维平台**，不只是监控——还能 **自愈**：
 
 1. **AI分析** — DeepSeek 读取日志、指标、拓扑找到真正原因
 2. **AI决策** — 从13个内置自动修复脚本中选择正确的Runbook
 3. **AI修复** — 带安全检查和审批流程的自动执行
 4. **AI学习** — 同类问题下次解决得更快
 
-**全球首创**: VigilOps 是 **全世界第一个开源监控平台，内置 MCP（模型上下文协议）集成** — 你的AI编程助手可以直接查询生产环境数据。
+**全球首创**: NightMend 是 **全世界第一个开源监控平台，内置 MCP（模型上下文协议）集成** — 你的AI编程助手可以直接查询生产环境数据。
 
 ---
 
 ## 功能对比（实话实说）
 
-| **功能** | **VigilOps** | **夜莺** | **Prometheus+Grafana** | **Datadog** | **Zabbix** |
+| **功能** | **NightMend** | **夜莺** | **Prometheus+Grafana** | **Datadog** | **Zabbix** |
 |---|:---:|:---:|:---:|:---:|:---:|
 | **AI根因分析** | Built-in | - | - | Enterprise | - |
 | **自动修复** | 13 Runbooks | - | - | Enterprise | - |
@@ -129,7 +129,7 @@ VigilOps 是 **全球首个开源AI运维平台**，不只是监控——还能 
 - **工具昂贵**: 企业监控工具年费10万+，但还是需要人工处理
 - **缺乏上下文**: "磁盘满了"告警，但不知道根因和解决方案
 
-**监控行业的现实**: 大多数工具擅长 *发现* 问题但不擅长 *解决* 问题。VigilOps 不是增加告警噪音——而是 **减少** 它。
+**监控行业的现实**: 大多数工具擅长 *发现* 问题但不擅长 *解决* 问题。NightMend 不是增加告警噪音——而是 **减少** 它。
 
 ---
 
@@ -145,8 +145,8 @@ VigilOps 是 **全球首个开源AI运维平台**，不只是监控——还能 
 
 ```bash
 # 1. 克隆到服务器
-git clone https://github.com/LinChuang2008/vigilops.git /opt/vigilops
-cd /opt/vigilops
+git clone https://github.com/LinChuang2008/nightmend.git /opt/nightmend
+cd /opt/nightmend
 
 # 2. 配置密钥（必须）
 cp .env.example .env
@@ -179,12 +179,12 @@ curl http://localhost:8001/health
 
 ## Agent — 跨平台监控客户端
 
-VigilOps Agent 采集系统指标、自动发现服务、监控数据库，支持 **Linux**、**Windows/Windows Server** 和 **macOS**。
+NightMend Agent 采集系统指标、自动发现服务、监控数据库，支持 **Linux**、**Windows/Windows Server** 和 **macOS**。
 
 **Linux:**
 ```bash
-pip install vigilops-agent
-vigilops-agent run -c /etc/vigilops/agent.yaml
+pip install nightmend-agent
+nightmend-agent run -c /etc/nightmend/agent.yaml
 ```
 
 **Windows (PowerShell):**
@@ -205,15 +205,15 @@ vigilops-agent run -c /etc/vigilops/agent.yaml
 
 ## MCP集成 — 全球开源首创！
 
-VigilOps 是 **世界第一个开源监控平台**，内置 **MCP（模型上下文协议）** 支持。你的AI编程助手（Claude Code, Cursor）可以直接从聊天界面查询实时生产数据。
+NightMend 是 **世界第一个开源监控平台**，内置 **MCP（模型上下文协议）** 支持。你的AI编程助手（Claude Code, Cursor）可以直接从聊天界面查询实时生产数据。
 
 在 `backend/.env` 中添加：
 
 ```env
-VIGILOPS_MCP_ENABLED=true
-VIGILOPS_MCP_HOST=0.0.0.0
-VIGILOPS_MCP_PORT=8003
-VIGILOPS_MCP_TOKEN=your-secret-token
+NIGHTMEND_MCP_ENABLED=true
+NIGHTMEND_MCP_HOST=0.0.0.0
+NIGHTMEND_MCP_PORT=8003
+NIGHTMEND_MCP_TOKEN=your-secret-token
 ```
 
 ### 可用MCP工具（共5个）
@@ -273,8 +273,8 @@ cd frontend && npm install
 
 ## 联系我们
 
-- [GitHub Discussions](https://github.com/LinChuang2008/vigilops/discussions) — 提问、建议、交流
-- [报告Bug](https://github.com/LinChuang2008/vigilops/issues/new)
+- [GitHub Discussions](https://github.com/LinChuang2008/nightmend/discussions) — 提问、建议、交流
+- [报告Bug](https://github.com/LinChuang2008/nightmend/issues/new)
 - Email: [lchuangnet@lchuangnet.com](mailto:lchuangnet@lchuangnet.com)
 
 ---

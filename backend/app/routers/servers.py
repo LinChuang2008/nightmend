@@ -13,7 +13,7 @@ API端点：GET/POST/PUT/DELETE /api/v1/servers, GET /api/v1/servers/{id}
 
 History: Cycle 8 Day 2 从 topology.py 独立为专用路由，支持多服务器拓扑管理
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, delete
@@ -200,7 +200,7 @@ async def create_server(
     """
     注册新服务器 (Register New Server)
     
-    向 VigilOps 系统注册新的服务器节点，用于后续的服务监控和拓扑管理。
+    向 NightMend 系统注册新的服务器节点，用于后续的服务监控和拓扑管理。
     hostname 必须唯一，作为服务器的主标识符。
     
     Args:

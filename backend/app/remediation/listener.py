@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复系统 - 告警监听器
-VigilOps Remediation System - Alert Event Listener
+NightMend 自动修复系统 - 告警监听器
+NightMend Remediation System - Alert Event Listener
 
 监听 Redis PubSub 告警事件并触发修复流程。
 Listens to Redis PubSub alert events and triggers remediation processes.
@@ -15,7 +15,7 @@ from app.core.database import async_session
 
 logger = logging.getLogger(__name__)
 
-CHANNEL = "vigilops:alert:new"
+CHANNEL = "nightmend:alert:new"
 
 
 async def start_listener():

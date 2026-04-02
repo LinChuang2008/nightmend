@@ -18,7 +18,7 @@
 
 ---
 
-## VigilOps 2026.03.29 (v2026.03.29)
+## NightMend 2026.03.29 (v2026.03.29)
 
 ### 新功能
 - **Prometheus AlertManager Bridge**：Webhook 端点 `/api/v1/webhooks/alertmanager`，支持 Bearer Token 认证、HMAC 签名验证、Redis 去重
@@ -54,13 +54,13 @@
 
 ---
 
-## VigilOps 2026.03.14 (v2026.03.14)
+## NightMend 2026.03.14 (v2026.03.14)
 
 > 自本版本起，版本号规则变更为日期制：vYYYY.MM.DD，小版本为 vYYYY.MM.DD-beta.N
 
 ### New Features
 - PromQL query support: /api/v1/promql/query, /query_range, /metadata
-- Helm Chart for Kubernetes deployment (charts/vigilops/)
+- Helm Chart for Kubernetes deployment (charts/nightmend/)
 - Slack and Telegram notification channels
 - Alert service test coverage: 26 new test cases
 
@@ -113,7 +113,7 @@
 - **CI/CD 流水线**：GitHub Actions 自动构建、测试、推送 Docker 镜像至 GHCR
 - **客户交付 SOP**：完整的部署交付流程文档
 - **技术博客**：6 篇中英双语文章（AI 可观测性趋势、5 分钟快速入门、Agentic SRE 自愈架构）
-- **Demo 账号**：内置 demo@vigilops.io 演示账号
+- **Demo 账号**：内置 demo@nightmend.io 演示账号
 - **Gitee 镜像**：Agent 安装脚本支持 Gitee 备用源（国内加速）
 - **落地页文案**：README 重构为产品落地页风格
 

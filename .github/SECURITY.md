@@ -9,7 +9,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in VigilOps, please report it responsibly:
+If you discover a security vulnerability in NightMend, please report it responsibly:
 
 1. **DO NOT** open a public issue
 2. Email us at **security@lchuang.net** with:
@@ -21,13 +21,13 @@ If you discover a security vulnerability in VigilOps, please report it responsib
 
 ## Security Best Practices
 
-When deploying VigilOps:
+When deploying NightMend:
 
-- **Change default credentials** (`admin` / `vigilops`) immediately
+- **Change default credentials** (`admin` / `nightmend`) immediately
 - Use HTTPS in production (reverse proxy with TLS)
 - Keep your `.env` file secure and never commit it
 - Restrict database ports (5432/6379) to internal networks
 - Enable audit logging for compliance tracking
 - Use Agent tokens with minimal required permissions
 
-Thank you for helping keep VigilOps secure! 🛡️
+Thank you for helping keep NightMend secure! 🛡️

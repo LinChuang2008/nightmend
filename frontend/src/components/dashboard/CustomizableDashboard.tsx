@@ -50,7 +50,7 @@ import 'react-resizable/css/styles.css';
 
 const { Title } = Typography;
 
-const STORAGE_KEY = 'vigilops-dashboard-config';
+const STORAGE_KEY = 'nightmend-dashboard-config';
 
 /* ==================== 类型定义 ==================== */
 

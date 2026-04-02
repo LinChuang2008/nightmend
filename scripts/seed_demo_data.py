@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VigilOps Demo 数据种子脚本 (Demo Seed Data Script)
+NightMend Demo 数据种子脚本 (Demo Seed Data Script)
 
 插入合理的示例数据，让 Demo 用户能看到产品最大卖点：
 - 自动修复执行记录（Runbook 执行历史）
@@ -25,7 +25,7 @@ import asyncpg
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://vigilops:vigilops@localhost:5432/vigilops"
+    "postgresql://nightmend:nightmend@localhost:5432/nightmend"
 )
 
 if DATABASE_URL.startswith("postgresql+asyncpg://"):
@@ -323,7 +323,7 @@ async def seed_escalation_history(conn, alerts):
 
 async def main(clean=False):
     print("=" * 60)
-    print("  VigilOps Demo 数据种子脚本")
+    print("  NightMend Demo 数据种子脚本")
     print("=" * 60)
 
     try:
@@ -357,7 +357,7 @@ async def main(clean=False):
         print(f"     修复记录: {r1} 条 | 升级规则: {r2} 条 | 升级历史: {r3} 条")
         print(f"{'=' * 60}")
         print(f"\n  请访问: https://demo.lchuangnet.com")
-        print(f"  账号: demo@vigilops.io / demo123")
+        print(f"  账号: demo@nightmend.io / demo123")
 
     finally:
         await conn.close()

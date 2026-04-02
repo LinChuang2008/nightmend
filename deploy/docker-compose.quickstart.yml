@@ -1,4 +1,4 @@
-# VigilOps Quickstart - 客户快速部署
+# NightMend Quickstart - 客户快速部署
 # 
 # 使用方式:
 #   1. 复制此文件和 .env.example 到部署目录
@@ -12,15 +12,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-vigilops}
-      POSTGRES_USER: ${POSTGRES_USER:-vigilops}
+      POSTGRES_DB: ${POSTGRES_DB:-nightmend}
+      POSTGRES_USER: ${POSTGRES_USER:-nightmend}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vigilops}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nightmend}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/linchuang2008/vigilops-backend:latest
+    image: ghcr.io/linchuang2008/nightmend-backend:latest
     ports:
       - "${BACKEND_PORT:-8001}:8000"
     env_file: .env
@@ -54,7 +54,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ghcr.io/linchuang2008/vigilops-frontend:latest
+    image: ghcr.io/linchuang2008/nightmend-frontend:latest
     ports:
       - "${FRONTEND_PORT:-3001}:80"
     depends_on:

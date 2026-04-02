@@ -1,11 +1,11 @@
-# VigilOps Production Docker Compose (offline deployment)
+# NightMend Production Docker Compose (offline deployment)
 # Uses pre-built images — no source code required
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-vigilops}
-      POSTGRES_USER: ${POSTGRES_USER:-vigilops}
+      POSTGRES_DB: ${POSTGRES_DB:-nightmend}
+      POSTGRES_USER: ${POSTGRES_USER:-nightmend}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
     ports:
       - "127.0.0.1:${POSTGRES_PORT_HOST:-5433}:5432"
@@ -13,7 +13,7 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vigilops}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nightmend}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,7 +24,7 @@ services:
         max-size: "50m"
         max-file: "5"
     networks:
-      - vigilops
+      - nightmend
 
   redis:
     image: redis:7-alpine
@@ -46,15 +46,15 @@ services:
         max-size: "50m"
         max-file: "5"
     networks:
-      - vigilops
+      - nightmend
 
   backend:
-    image: ghcr.io/linchuang2008/vigilops-backend:latest
+    image: ghcr.io/linchuang2008/nightmend-backend:latest
     ports:
       - "${BACKEND_PORT_HOST:-8001}:8000"
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-vigilops}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vigilops}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-nightmend}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nightmend}
       REDIS_URL: redis://redis:6379/0
     command: ["/bin/sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"]
     depends_on:
@@ -69,10 +69,10 @@ services:
         max-size: "50m"
         max-file: "5"
     networks:
-      - vigilops
+      - nightmend
 
   frontend:
-    image: ghcr.io/linchuang2008/vigilops-frontend:latest
+    image: ghcr.io/linchuang2008/nightmend-frontend:latest
     ports:
       - "${FRONTEND_PORT_HOST:-3001}:80"
     depends_on:
@@ -84,12 +84,12 @@ services:
         max-size: "50m"
         max-file: "5"
     networks:
-      - vigilops
+      - nightmend
 
 volumes:
   pgdata:
   redisdata:
 
 networks:
-  vigilops:
+  nightmend:
     driver: bridge

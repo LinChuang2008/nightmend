@@ -239,7 +239,7 @@ class ClickHouseLogBackend(LogBackend):
         self.base_url = clickhouse_url.rstrip("/")
         self.username = username
         self.password = password
-        self.table_name = "vigilops_logs"
+        self.table_name = "nightmend_logs"
         
     async def _ensure_table_exists(self):
         """确保日志表存在"""

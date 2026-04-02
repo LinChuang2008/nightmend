@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复 Runbook - 磁盘空间清理
-VigilOps Automatic Remediation Runbook - Disk Space Cleanup
+NightMend 自动修复 Runbook - 磁盘空间清理
+NightMend Automatic Remediation Runbook - Disk Space Cleanup
 
 这是一个自动化的磁盘空间清理脚本，用于处理磁盘空间不足的告警。
 This is an automated disk space cleanup script for handling disk space shortage alerts.
@@ -29,7 +29,7 @@ This is an automated disk space cleanup script for handling disk space shortage 
 - 释放包管理器缓存空间
 - 通常可释放 100MB - 10GB 空间（取决于系统使用情况）
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 风险等级：LOW
 """

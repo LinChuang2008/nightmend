@@ -156,7 +156,7 @@ def check_command_safety(cmd: str) -> tuple[bool, str]:
 class RateLimiter:
     """Redis-backed 频率限制器，持久化 + 分布式安全。"""
 
-    REDIS_PREFIX = "vigilops:ratelimit:"
+    REDIS_PREFIX = "nightmend:ratelimit:"
 
     def __init__(self, redis=None) -> None:
         self._redis = redis
@@ -198,7 +198,7 @@ class RateLimiter:
 class CircuitBreaker:
     """Redis-backed 熔断器，持久化 + 分布式安全。"""
 
-    REDIS_PREFIX = "vigilops:circuitbreaker:"
+    REDIS_PREFIX = "nightmend:circuitbreaker:"
     DEFAULT_MAX_FAILURES = 3
     DEFAULT_WINDOW_SECONDS = 1800  # 30 分钟
 

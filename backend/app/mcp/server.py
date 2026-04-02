@@ -1,7 +1,7 @@
 """
-VigilOps MCP Server (Model Context Protocol Server)
+NightMend MCP Server (Model Context Protocol Server)
 
-Exposes VigilOps core operational tools to AI agents through the MCP protocol.
+Exposes NightMend core operational tools to AI agents through the MCP protocol.
 First open-source monitoring platform with native MCP support + AI analysis.
 
 Features:
@@ -48,7 +48,7 @@ from app.tools.safety import SafetyChecker
 logger = logging.getLogger(__name__)
 
 # Initialize FastMCP server
-mcp_server = FastMCP("VigilOps")
+mcp_server = FastMCP("NightMend")
 
 
 @contextmanager
@@ -568,13 +568,13 @@ def analyze_incident(
                     ]
 
             # 使用专用 MCP 服务账号（viewer 角色，最小权限），不冒充 admin
-            mcp_user = db.query(User).filter(User.email == "mcp-service@vigilops.internal").first()
+            mcp_user = db.query(User).filter(User.email == "mcp-service@nightmend.internal").first()
             if not mcp_user:
                 # 自动创建专用服务账号（viewer 角色，禁止登录）
                 from app.core.security import get_password_hash
                 import secrets
                 mcp_user = User(
-                    email="mcp-service@vigilops.internal",
+                    email="mcp-service@nightmend.internal",
                     name="MCP Service",
                     hashed_password=get_password_hash(secrets.token_hex(32)),
                     role="viewer",
@@ -596,7 +596,7 @@ def analyze_incident(
 
         # DB session 已关闭，在独立线程中运行异步分析（使用自己的 DB 连接）
         prompt = (
-            "你是 VigilOps AI 运维助手。请基于以下告警上下文做根因分析与处置建议。\n"
+            "你是 NightMend AI 运维助手。请基于以下告警上下文做根因分析与处置建议。\n"
             "限制：本次仅做分析，不要调用 execute_command，不要 ask_user，不要等待人工确认。\n\n"
             f"事件描述：{description or 'Automated incident analysis'}\n"
             f"上下文JSON：{json.dumps(context_data, ensure_ascii=False)}"
@@ -722,16 +722,16 @@ def start_mcp_server(host: str = "127.0.0.1", port: int = 8003):
     registered = register_tools_from_registry(mcp_server)
     logger.info("MCP: %d tools auto-registered from ToolRegistry", registered)
 
-    api_key = settings.vigilops_mcp_api_key
-    logger.info(f"Starting VigilOps MCP Server on {host}:{port}")
+    api_key = settings.nightmend_mcp_api_key
+    logger.info(f"Starting NightMend MCP Server on {host}:{port}")
 
     if not api_key:
         import os
         env = os.getenv("ENVIRONMENT", "production").lower()
         if env != "development":
-            logger.error("VIGILOPS_MCP_API_KEY not set — refusing to start MCP server without authentication in production")
+            logger.error("NIGHTMEND_MCP_API_KEY not set — refusing to start MCP server without authentication in production")
             return
-        logger.warning("VIGILOPS_MCP_API_KEY not set — MCP server running without authentication (development mode)")
+        logger.warning("NIGHTMEND_MCP_API_KEY not set — MCP server running without authentication (development mode)")
         asyncio.run(mcp_server.run_http_async(host=host, port=port))
         return
 
@@ -763,14 +763,14 @@ def start_mcp_server(host: str = "127.0.0.1", port: int = 8003):
 
 def stop_mcp_server():
     """Stop the MCP server"""
-    logger.info("Stopping VigilOps MCP Server")
+    logger.info("Stopping NightMend MCP Server")
 
 
 if __name__ == "__main__":
     import os
 
-    host = os.environ.get("VIGILOPS_MCP_HOST", "0.0.0.0")
-    port = int(os.environ.get("VIGILOPS_MCP_PORT", "8003"))
+    host = os.environ.get("NIGHTMEND_MCP_HOST", "0.0.0.0")
+    port = int(os.environ.get("NIGHTMEND_MCP_PORT", "8003"))
     start_mcp_server(host=host, port=port)
 
 

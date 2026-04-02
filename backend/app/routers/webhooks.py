@@ -39,7 +39,7 @@ from app.remediation.agent import RemediationAgent
 from app.routers.alert_stream import DIAGNOSIS_CHANNEL
 from app.services.ai_engine import AIEngine
 
-logger = logging.getLogger("vigilops.webhooks")
+logger = logging.getLogger("nightmend.webhooks")
 
 router = APIRouter(prefix="/api/v1/webhooks", tags=["Webhooks"])
 
@@ -127,7 +127,7 @@ async def _process_alert(
         if settings.enable_remediation:
             logger.warning(
                 f"Unmatched alert: alertname={incoming.alertname} instance={incoming.instance} — "
-                f"no matching Host found in VigilOps"
+                f"no matching Host found in NightMend"
             )
             return {
                 "alertname": incoming.alertname,
@@ -146,7 +146,7 @@ async def _process_alert(
             "status": "diagnosing",
         }
 
-    # 2. 创建 VigilOps Alert 记录
+    # 2. 创建 NightMend Alert 记录
     alert_record = Alert(
         rule_id=0,  # 外部告警无 rule
         host_id=host.id,

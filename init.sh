@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-echo "=== VigilOps Init ==="
+echo "=== NightMend Init ==="
 
 # Check prerequisites
 command -v docker >/dev/null 2>&1 || { echo "❌ docker not found"; exit 1; }
@@ -22,7 +22,7 @@ docker compose up -d --build
 # Wait for health
 echo "⏳ Waiting for services..."
 for i in $(seq 1 30); do
-    if docker compose exec -T postgres pg_isready -U vigilops >/dev/null 2>&1; then
+    if docker compose exec -T postgres pg_isready -U nightmend >/dev/null 2>&1; then
         echo "✅ PostgreSQL ready"
         break
     fi
@@ -47,7 +47,7 @@ for i in $(seq 1 30); do
 done
 
 echo ""
-echo "🎉 VigilOps is running!"
+echo "🎉 NightMend is running!"
 echo "   Frontend: http://localhost:3001"
 echo "   Backend:  http://localhost:8001"
 echo "   API Docs: http://localhost:8001/docs"

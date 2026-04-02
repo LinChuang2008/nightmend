@@ -11,7 +11,7 @@
 依赖关系：依赖 SQLAlchemy、JWT安全模块、审计服务、Redis
 API端点：POST /register, POST /login, POST /refresh, GET /me
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select, func

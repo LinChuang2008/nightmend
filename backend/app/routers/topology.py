@@ -13,7 +13,7 @@
 依赖关系：依赖SQLAlchemy、AI引擎、JWT认证
 API端点：GET /topology, POST /dependencies, GET /recommend-dependencies, POST /layout, 多服务器相关API
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import re
 import json

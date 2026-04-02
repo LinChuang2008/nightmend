@@ -10,7 +10,7 @@
 依赖关系：依赖SQLAlchemy、管理员权限验证
 API端点：GET /notification-templates, POST /notification-templates, GET /notification-templates/{id}, PUT /notification-templates/{id}, DELETE /notification-templates/{id}
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from typing import List
 

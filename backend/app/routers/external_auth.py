@@ -10,7 +10,7 @@
 依赖关系：依赖 requests, python-ldap, authlib
 API端点：GET /oauth/{provider}, POST /oauth/callback, POST /ldap/login
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import asyncio
 import logging

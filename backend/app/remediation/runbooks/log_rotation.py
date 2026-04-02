@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复 Runbook - 日志轮转
-VigilOps Automatic Remediation Runbook - Log Rotation
+NightMend 自动修复 Runbook - 日志轮转
+NightMend Automatic Remediation Runbook - Log Rotation
 
 这是一个日志轮转修复脚本，用于处理日志文件过大导致的磁盘空间问题。
 This is a log rotation remediation script for handling disk space issues caused by oversized log files.
@@ -34,7 +34,7 @@ This is a log rotation remediation script for handling disk space issues caused 
 - 恢复正常的日志轮转机制
 - 维持系统日志的可管理性
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 风险等级：LOW
 """

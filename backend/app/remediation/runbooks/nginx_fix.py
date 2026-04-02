@@ -1,5 +1,5 @@
 """
-VigilOps 内置 Runbook - Nginx 排查与修复
+NightMend 内置 Runbook - Nginx 排查与修复
 """
 from ..models import RiskLevel, RunbookDefinition, RunbookStep
 

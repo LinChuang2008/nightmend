@@ -1,17 +1,17 @@
-# VigilOps MCP Integration
+# NightMend MCP Integration
 
-VigilOps is the **first open-source monitoring platform with native MCP support + AI analysis**.
+NightMend is the **first open-source monitoring platform with native MCP support + AI analysis**.
 
 ## Overview
 
-The Model Context Protocol (MCP) integration exposes VigilOps' core operational tools to AI agents, enabling intelligent monitoring and incident response through natural language.
+The Model Context Protocol (MCP) integration exposes NightMend' core operational tools to AI agents, enabling intelligent monitoring and incident response through natural language.
 
 ## Competitive Advantage
 
 - **Grafana**: Has official MCP support but lacks AI analysis
 - **Zabbix**: Only community MCP implementations  
 - **Prometheus**: No native MCP support
-- **VigilOps**: Native MCP + AI analysis = unique differentiator
+- **NightMend**: Native MCP + AI analysis = unique differentiator
 
 ## Available Tools
 
@@ -52,7 +52,7 @@ Search logs with keyword and filters.
 "Search for error logs containing 'connection' in the last 2 hours"
 
 ### 4. `analyze_incident` 🚀
-AI-powered incident root cause analysis (VigilOps differentiator).
+AI-powered incident root cause analysis (NightMend differentiator).
 
 **Parameters:**
 - `alert_id` (int): Specific alert to analyze
@@ -86,7 +86,7 @@ Get service topology and dependency mapping.
    ```json
    {
      "mcpServers": {
-       "vigilops": {
+       "nightmend": {
          "command": "python",
          "args": ["-m", "app.mcp.cli"],
          "cwd": "./backend"
@@ -100,18 +100,18 @@ Get service topology and dependency mapping.
 Set environment variables and restart the main application:
 
 ```bash
-export VIGILOPS_MCP_ENABLED=true
-export VIGILOPS_MCP_HOST=127.0.0.1
-export VIGILOPS_MCP_PORT=8003
+export NIGHTMEND_MCP_ENABLED=true
+export NIGHTMEND_MCP_HOST=127.0.0.1
+export NIGHTMEND_MCP_PORT=8003
 ```
 
-Then start VigilOps normally. The MCP server will run alongside the main API.
+Then start NightMend normally. The MCP server will run alongside the main API.
 
 ## Claude Desktop Integration
 
 1. **Install Claude Desktop** from Anthropic
 
-2. **Add VigilOps MCP server** to your configuration:
+2. **Add NightMend MCP server** to your configuration:
    - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
    - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
@@ -119,19 +119,19 @@ Then start VigilOps normally. The MCP server will run alongside the main API.
    ```json
    {
      "mcpServers": {
-       "vigilops": {
+       "nightmend": {
          "command": "python",
          "args": ["-m", "app.mcp.cli"],
-         "cwd": "/path/to/vigilops/backend",
+         "cwd": "/path/to/nightmend/backend",
          "env": {
-           "DATABASE_URL": "postgresql://vigilops:vigilops123@localhost:5433/vigilops"
+           "DATABASE_URL": "postgresql://nightmend:nightmend123@localhost:5433/nightmend"
          }
        }
      }
    }
    ```
 
-4. **Restart Claude Desktop** and you'll see VigilOps tools available
+4. **Restart Claude Desktop** and you'll see NightMend tools available
 
 ## Example Conversations
 
@@ -149,11 +149,11 @@ Then start VigilOps normally. The MCP server will run alongside the main API.
 
 ## OpenCode Integration
 
-[OpenCode](https://github.com/opencode-ai/opencode) is an open-source AI terminal coding assistant with native MCP support. It can directly connect to VigilOps MCP Server for intelligent ops interaction.
+[OpenCode](https://github.com/opencode-ai/opencode) is an open-source AI terminal coding assistant with native MCP support. It can directly connect to NightMend MCP Server for intelligent ops interaction.
 
 ### Quick Setup
 
-1. **Ensure VigilOps MCP Server is running** (default port 8003):
+1. **Ensure NightMend MCP Server is running** (default port 8003):
    ```bash
    docker compose up -d mcp
    ```
@@ -162,9 +162,9 @@ Then start VigilOps normally. The MCP server will run alongside the main API.
    ```json
    {
      "mcpServers": {
-       "vigilops": {
+       "nightmend": {
          "type": "sse",
-         "url": "http://<vigilops-host>:8003/sse",
+         "url": "http://<nightmend-host>:8003/sse",
          "headers": {
            "Authorization": "Bearer <your-mcp-api-key>"
          }
@@ -173,9 +173,9 @@ Then start VigilOps normally. The MCP server will run alongside the main API.
    }
    ```
 
-   Replace `<vigilops-host>` with your server IP (e.g., `10.211.55.11`) and `<your-mcp-api-key>` with the value of `VIGILOPS_MCP_API_KEY` from `.env`.
+   Replace `<nightmend-host>` with your server IP (e.g., `10.211.55.11`) and `<your-mcp-api-key>` with the value of `NIGHTMEND_MCP_API_KEY` from `.env`.
 
-3. **Start OpenCode** and use natural language to interact with VigilOps:
+3. **Start OpenCode** and use natural language to interact with NightMend:
    ```
    $ opencode
    > Check the health of all servers
@@ -190,9 +190,9 @@ Claude Code also supports MCP. Add to `~/.claude/settings.json`:
 ```json
 {
   "mcpServers": {
-    "vigilops": {
+    "nightmend": {
       "type": "sse",
-      "url": "http://<vigilops-host>:8003/sse",
+      "url": "http://<nightmend-host>:8003/sse",
       "headers": {
         "Authorization": "Bearer <your-mcp-api-key>"
       }
@@ -265,11 +265,11 @@ python -m app.mcp.cli --verbose --host 127.0.0.1 --port 8003
 
 - **Local access only** by default (127.0.0.1)
 - **Database credentials** in environment variables
-- **Bearer Token authentication** required in production via `VIGILOPS_MCP_API_KEY` environment variable
+- **Bearer Token authentication** required in production via `NIGHTMEND_MCP_API_KEY` environment variable
 - Production refuses to start without API key configured
 - Development mode (`ENVIRONMENT=development`) allows unauthenticated access for local testing
 - **Rate limiting** recommended for public exposure
 
 ## Marketing Message
 
-> "VigilOps: The first open-source monitoring platform with native MCP + AI analysis. Get intelligent operational insights through natural language."
+> "NightMend: The first open-source monitoring platform with native MCP + AI analysis. Get intelligent operational insights through natural language."

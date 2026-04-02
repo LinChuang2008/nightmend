@@ -1,7 +1,7 @@
 """
 系统设置管理路由 (System Settings Management Router)
 
-功能说明：提供 VigilOps 系统配置参数的统一管理，支持动态配置更新
+功能说明：提供 NightMend 系统配置参数的统一管理，支持动态配置更新
 核心职责：
   - 系统配置项的查询和展示（支持默认值回退）
   - 配置参数的批量更新（仅限管理员操作）
@@ -17,7 +17,7 @@ Configuration Categories:
   - heartbeat_timeout: 心跳检测超时配置
   - webhook_retry_count: 外部通知重试策略
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 
 import json

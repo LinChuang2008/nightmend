@@ -1,4 +1,4 @@
-# VigilOps v1.0 产品路线图
+# NightMend v1.0 产品路线图
 
 > **版本**: v1.0 | **制定日期**: 2026-03-14 | **制定人**: 产品官-小P
 >
@@ -91,7 +91,7 @@
 **技术方案**:
 
 - 修改 `frontend/index.html`：
-  - `<title>`: "VigilOps - AI-Powered Monitoring & Auto-Remediation"
+  - `<title>`: "NightMend - AI-Powered Monitoring & Auto-Remediation"
   - `<meta name="description">`: 产品一句话描述
   - `<meta property="og:title/description/image">`: Open Graph 标签
   - `<meta name="twitter:card/title/description">`: Twitter Card
@@ -165,7 +165,7 @@
 
 ### F5: Prometheus 数据源对接
 
-**问题**: 大量中小团队已有 Prometheus 部署，不会因为 VigilOps 放弃已有监控数据。竞品夜莺以 Prometheus 适配器起家。当前代码中 `backend/app/routers/prometheus.py` 仅支持**导出**指标到 Prometheus 格式，不支持**读取** Prometheus 数据。
+**问题**: 大量中小团队已有 Prometheus 部署，不会因为 NightMend 放弃已有监控数据。竞品夜莺以 Prometheus 适配器起家。当前代码中 `backend/app/routers/prometheus.py` 仅支持**导出**指标到 Prometheus 格式，不支持**读取** Prometheus 数据。
 
 **技术方案**:
 
@@ -199,7 +199,7 @@
 
 ### F6: PromQL / 自定义指标查询
 
-**问题**: PromQL 是云原生监控的事实标准查询语言。VigilOps 当前仅支持预定义的系统指标（CPU / Memory / Disk / Network），无法查询自定义业务指标。这是竞品分析中标注的「最大功能缺失」。
+**问题**: PromQL 是云原生监控的事实标准查询语言。NightMend 当前仅支持预定义的系统指标（CPU / Memory / Disk / Network），无法查询自定义业务指标。这是竞品分析中标注的「最大功能缺失」。
 
 **技术方案**:
 
@@ -268,7 +268,7 @@
 - Phase 2（K8s）: 后端 6-8 天 + Agent 5-7 天 + 前端 5-7 天
 
 **依赖**:
-- Phase 1: 现有 Docker discovery 模块 (`agent/vigilops_agent/discovery.py`)
+- Phase 1: 现有 Docker discovery 模块 (`agent/nightmend_agent/discovery.py`)
 - Phase 2: 依赖 F5（Prometheus 对接），建议通过 Prometheus 采集 K8s 指标而非直接调用 K8s API
 
 **验收标准**:
@@ -304,7 +304,7 @@
 
 - **Chart 结构**:
   ```
-  charts/vigilops/
+  charts/nightmend/
   ├── Chart.yaml
   ├── values.yaml
   ├── templates/
@@ -337,7 +337,7 @@
 **依赖**: 后端需支持多副本部署（见 F9 水平扩展）
 
 **验收标准**:
-- `helm install vigilops ./charts/vigilops` 一键部署成功
+- `helm install nightmend ./charts/nightmend` 一键部署成功
 - 支持通过 values.yaml 自定义所有关键配置
 - Chart 通过 `helm lint` 和 `helm test` 验证
 - Agent DaemonSet 自动注册到 Backend
@@ -456,7 +456,7 @@ F4: 自定义 Runbook ──→ (AI 推荐自定义 Runbook)
 
 ### 为什么自定义 Runbook 在 v0.9.2？
 
-1. **增强核心差异化**: 自动修复是 VigilOps 的三大差异化之一，但 6 个内置 Runbook 覆盖面有限
+1. **增强核心差异化**: 自动修复是 NightMend 的三大差异化之一，但 6 个内置 Runbook 覆盖面有限
 2. **用户粘性**: 自定义 Runbook 是用户投入的「沉没成本」，提高留存
 3. **社区价值**: 为未来的 Runbook 市场/分享功能打基础
 
@@ -509,7 +509,7 @@ F4: 自定义 Runbook ──→ (AI 推荐自定义 Runbook)
 | 异常检测 ML 模型 | 从规则告警升级到智能检测 | 足够的历史指标数据 |
 | OpenTelemetry 支持 | APM/链路追踪，进入可观测性赛道 | Prometheus 对接完成 |
 | 多 LLM 支持 | OpenAI / Claude / 本地模型 | AI 引擎抽象层 |
-| 独立官网 (vigilops.io) | 品牌建设 + SEO | Landing Page 验证 |
+| 独立官网 (nightmend.io) | 品牌建设 + SEO | Landing Page 验证 |
 | Design System 标准化 | 一致的 UI 体验 | UI 审计修复完成 |
 | Runbook 市场 | 社区分享修复脚本 | 自定义 Runbook + 用户基数 |
 | 多租户 | SaaS 化商业模式 | 水平扩展 + 认证体系增强 |

@@ -10,7 +10,7 @@
 依赖关系：依赖SQLAlchemy、PostgreSQL date_trunc聚合函数
 API端点：GET /trends
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from datetime import datetime, timezone, timedelta
 

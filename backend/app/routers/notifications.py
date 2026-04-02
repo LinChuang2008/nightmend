@@ -10,7 +10,7 @@
 依赖关系：依赖SQLAlchemy、JWT认证、审计服务
 API端点：GET /logs, GET /notification-channels, POST /notification-channels, PUT /notification-channels/{id}, DELETE /notification-channels/{id}
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 
 import logging

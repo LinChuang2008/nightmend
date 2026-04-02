@@ -18,7 +18,7 @@ import requests
 
 # ── 配置 ──────────────────────────────────────────────
 DEFAULT_API = "http://localhost:8001"
-DEMO_EMAIL = "demo@vigilops.io"
+DEMO_EMAIL = "demo@nightmend.io"
 DEMO_PASS = "demo123"
 
 # ── 告警场景模板 ──────────────────────────────────────
@@ -361,13 +361,13 @@ def show_groups(api_url, token):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="VigilOps 告警风暴模拟数据生成")
+    parser = argparse.ArgumentParser(description="NightMend 告警风暴模拟数据生成")
     parser.add_argument("--api-url", default=DEFAULT_API, help="后端 API 地址")
     parser.add_argument("--clean", action="store_true", help="生成前清理旧的去重记录")
     args = parser.parse_args()
 
     print("=" * 60)
-    print("  VigilOps 告警风暴模拟数据生成器")
+    print("  NightMend 告警风暴模拟数据生成器")
     print("=" * 60)
     print(f"  API: {args.api_url}")
     print(f"  账号: {DEMO_EMAIL}")

@@ -1,10 +1,10 @@
-# 🚀 Quick Start: Deploy VigilOps in 5 Minutes
+# 🚀 Quick Start: Deploy NightMend in 5 Minutes
 
 **Category: Q&A**
 
 ---
 
-Get VigilOps running locally with Docker Compose in under 5 minutes.
+Get NightMend running locally with Docker Compose in under 5 minutes.
 
 ## Prerequisites
 
@@ -17,8 +17,8 @@ Get VigilOps running locally with Docker Compose in under 5 minutes.
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 ```
 
 ### 2. Configure environment
@@ -48,11 +48,11 @@ Open http://localhost:3001 — default login is in your `.env` file.
 
 ### 5. Add your first host
 
-Navigate to **Hosts → Add Host**, or deploy the VigilOps Agent:
+Navigate to **Hosts → Add Host**, or deploy the NightMend Agent:
 
 ```bash
 # On the target server
-curl -sSL https://raw.githubusercontent.com/LinChuang2008/vigilops/main/scripts/install-agent.sh | bash
+curl -sSL https://raw.githubusercontent.com/LinChuang2008/nightmend/main/scripts/install-agent.sh | bash
 ```
 
 ## Common Issues
@@ -79,7 +79,7 @@ docker compose logs -f frontend  # Frontend build logs
 
 ## 🇨🇳 中文版
 
-### 5 分钟部署 VigilOps
+### 5 分钟部署 NightMend
 
 #### 前置条件
 - Docker 20.10+
@@ -90,8 +90,8 @@ docker compose logs -f frontend  # Frontend build logs
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 
 # 2. 配置环境变量
 cp .env.example .env

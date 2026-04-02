@@ -365,7 +365,7 @@ export default function Topology() {
   const renderChart = (data: TopologyData, mode: LayoutMode) => {
     if (!chartRef.current) return;
     if (!chartInstance.current) {
-      const savedTheme = localStorage.getItem('vigilops_theme');
+      const savedTheme = localStorage.getItem('nightmend_theme');
       chartInstance.current = echarts.init(chartRef.current, savedTheme === 'dark' ? 'dark' : undefined);
     }
     const chart = chartInstance.current;

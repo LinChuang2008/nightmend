@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复系统 - 数据模型定义
-VigilOps Remediation System - Data Model Definitions
+NightMend 自动修复系统 - 数据模型定义
+NightMend Remediation System - Data Model Definitions
 
 这个模块定义了自动修复系统中所有核心数据结构的 Pydantic 模型。
 This module defines Pydantic models for all core data structures in the remediation system.
@@ -29,7 +29,7 @@ This module defines Pydantic models for all core data structures in the remediat
 - 嵌套模型：支持复杂的数据结构组合
 - 时间处理：统一使用 UTC 时区
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 """
 from __future__ import annotations
@@ -223,9 +223,9 @@ class CommandResult(BaseModel):
 class RemediationAlert(BaseModel):
     """修复告警数据模型 (Remediation Alert Data Model)
     
-    这是自动修复系统的输入数据结构，从 VigilOps 告警系统传入的标准化告警信息。
+    这是自动修复系统的输入数据结构，从 NightMend 告警系统传入的标准化告警信息。
     This is the input data structure for the remediation system, standardized alert 
-    information passed from the VigilOps alert system.
+    information passed from the NightMend alert system.
     
     数据来源转换 (Data Source Conversion):
     从 SQLAlchemy ORM Alert 模型转换而来，保留修复系统需要的关键字段。

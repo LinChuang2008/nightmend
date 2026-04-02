@@ -20,7 +20,7 @@ Data Categories:
   - 综合健康评分（0-100分，基于多指标加权计算）
   - 错误日志统计（最近1小时错误级别日志数量）
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import asyncio
 import json

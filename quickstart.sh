@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# VigilOps 5分钟快速启动脚本
-# 目标：让新用户零配置快速体验 VigilOps
+# NightMend 5分钟快速启动脚本
+# 目标：让新用户零配置快速体验 NightMend
 # 用法：bash quickstart.sh [--no-ai] [--port-offset=100]
 
 set -euo pipefail
@@ -34,7 +34,7 @@ for arg in "$@"; do
         --dry-run)      DRY_RUN=true ;;
         --help|-h)
             cat << 'EOF'
-🚀 VigilOps 快速启动脚本
+🚀 NightMend 快速启动脚本
 
 用法: bash quickstart.sh [选项]
 
@@ -286,7 +286,7 @@ generate_env() {
     local jwt_secret
     jwt_secret=$(rand_string 64)
     local postgres_password
-    postgres_password="vigilops_$(rand_string 16)"
+    postgres_password="nightmend_$(rand_string 16)"
     
     # AI 配置
     local ai_key="$existing_ai_key"
@@ -302,14 +302,14 @@ generate_env() {
     
     # 写入配置文件
     cat > .env << EOF
-# VigilOps 快速启动配置 - 生成于 $(date)
+# NightMend 快速启动配置 - 生成于 $(date)
 # 🚀 由 quickstart.sh 自动生成，可手动调整
 
 # ---- 数据库配置 ----
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
-POSTGRES_DB=vigilops
-POSTGRES_USER=vigilops
+POSTGRES_DB=nightmend
+POSTGRES_USER=nightmend
 POSTGRES_PASSWORD=${postgres_password}
 
 # ---- Redis 配置 ----
@@ -451,7 +451,7 @@ wait_for_postgres() {
     local max_attempts=30
     local attempt=0
     
-    until docker compose exec -T postgres pg_isready -U vigilops &>/dev/null; do
+    until docker compose exec -T postgres pg_isready -U nightmend &>/dev/null; do
         sleep 2
         attempt=$((attempt + 1))
         if [ $attempt -gt $max_attempts ]; then
@@ -532,7 +532,7 @@ show_success() {
     local minutes=$((elapsed / 60))
     local seconds=$((elapsed % 60))
     
-    success "VigilOps 启动成功！"
+    success "NightMend 启动成功！"
     echo ""
     echo -e "${BOLD}🌐 访问地址${NC}"
     echo -e "   前端界面: ${CYAN}http://localhost:${FRONTEND_PORT}${NC}"
@@ -580,12 +580,12 @@ main() {
     # 标题
     echo ""
     echo -e "${BLUE}${BOLD}╔═══════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}${BOLD}║           VigilOps 快速启动              ║${NC}"
+    echo -e "${BLUE}${BOLD}║           NightMend 快速启动              ║${NC}"
     echo -e "${BLUE}${BOLD}║        开源智能运维监控平台              ║${NC}" 
     echo -e "${BLUE}${BOLD}╚═══════════════════════════════════════════╝${NC}"
     echo ""
     
-    log "=== VigilOps 快速启动开始 ==="
+    log "=== NightMend 快速启动开始 ==="
     log "参数: $*"
     log "工作目录: $PWD"
     
@@ -610,15 +610,15 @@ main() {
     show_status
     show_success
     
-    log "=== VigilOps 快速启动完成 ==="
+    log "=== NightMend 快速启动完成 ==="
 }
 
 # 检查是否在正确的目录
 if [ ! -f docker-compose.yml ] && [ ! -f docker-compose.yaml ]; then
     error "未找到 docker-compose.yml 文件"
     echo ""
-    echo "请确保在 VigilOps 项目根目录下运行此脚本："
-    echo "   cd vigilops"
+    echo "请确保在 NightMend 项目根目录下运行此脚本："
+    echo "   cd nightmend"
     echo "   bash quickstart.sh"
     echo ""
     exit 1

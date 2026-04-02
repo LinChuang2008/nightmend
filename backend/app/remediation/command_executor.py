@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复系统 - 远程命令执行器
-VigilOps Remediation System - Remote Command Executor
+NightMend 自动修复系统 - 远程命令执行器
+NightMend Remediation System - Remote Command Executor
 
 这是自动修复系统的执行引擎，负责安全地在目标主机上执行修复命令。
 This is the execution engine of the remediation system, responsible for safely 
@@ -26,7 +26,7 @@ executing remediation commands on target hosts.
 - 日志轮转和压缩
 - 网络连接重置
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 """
 from __future__ import annotations
@@ -45,8 +45,8 @@ logger = logging.getLogger(__name__)
 class CommandExecutor:
     """远程命令执行器 (Remote Command Executor)
     
-    这是 VigilOps 自动修复系统的核心执行引擎，负责安全可靠地执行修复命令。
-    This is the core execution engine of VigilOps remediation system, responsible for 
+    这是 NightMend 自动修复系统的核心执行引擎，负责安全可靠地执行修复命令。
+    This is the core execution engine of NightMend remediation system, responsible for 
     safely and reliably executing remediation commands.
     
     设计原则 (Design Principles):

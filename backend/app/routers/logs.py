@@ -10,7 +10,7 @@
 依赖关系：依赖 LogEntry 和 Host 数据模型，集成 WebSocket 通信
 API端点：GET /api/v1/logs, GET /api/v1/logs/stats, WebSocket /ws/logs
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 
 import asyncio

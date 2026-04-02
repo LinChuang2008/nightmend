@@ -1,4 +1,4 @@
-# Design System — VigilOps
+# Design System — NightMend
 
 ## Product Context
 - **What this is:** AI-powered infrastructure monitoring platform that doesn't just detect issues, but automatically diagnoses and fixes them

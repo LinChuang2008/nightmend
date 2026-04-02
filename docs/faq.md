@@ -1,6 +1,6 @@
 # 常见问题 (FAQ)
 
-> VigilOps 使用过程中的常见问题与解答。
+> NightMend 使用过程中的常见问题与解答。
 
 ## 目录
 
@@ -9,7 +9,7 @@
 - [3. 告警太少/收不到？](#3-告警太少收不到)
 - [4. AI 分析不准怎么办？](#4-ai-分析不准怎么办)
 - [5. 如何备份数据？](#5-如何备份数据)
-- [6. 如何升级 VigilOps？](#6-如何升级-vigilops)
+- [6. 如何升级 NightMend？](#6-如何升级-nightmend)
 - [7. 端口被占用怎么办？](#7-端口被占用怎么办)
 - [8. 自动修复安全吗？](#8-自动修复安全吗)
 - [9. 支持哪些数据库监控？](#9-支持哪些数据库监控)
@@ -60,7 +60,7 @@
 
 **方法二：启用通知降噪**
 
-VigilOps 内置两种降噪机制：
+NightMend 内置两种降噪机制：
 
 - **冷却期 (Cooldown)**：同一告警在冷却期内不重复通知。在通知渠道配置中设置 `cooldown` 时间（单位：秒）。
 - **静默期 (Silence)**：临时屏蔽特定告警的通知，用于维护窗口等场景。在告警列表中对特定告警设置静默。
@@ -86,7 +86,7 @@ VigilOps 内置两种降噪机制：
 
 ## 4. AI 分析不准怎么办？
 
-VigilOps 的 AI 分析基于 DeepSeek API，需要以下条件：
+NightMend 的 AI 分析基于 DeepSeek API，需要以下条件：
 
 1. **检查 AI API Key 配置**：
 
@@ -116,10 +116,10 @@ VigilOps 的 AI 分析基于 DeepSeek API，需要以下条件：
 
 ```bash
 # 使用 Docker 中的 PostgreSQL
-docker compose exec postgres pg_dump -U vigilops vigilops > backup_$(date +%Y%m%d).sql
+docker compose exec postgres pg_dump -U nightmend nightmend > backup_$(date +%Y%m%d).sql
 
 # 恢复
-docker compose exec -T postgres psql -U vigilops vigilops < backup_20260221.sql
+docker compose exec -T postgres psql -U nightmend nightmend < backup_20260221.sql
 ```
 
 ### 备份配置文件
@@ -140,11 +140,11 @@ cp docker-compose.yml docker-compose.yml.backup
 
 ---
 
-## 6. 如何升级 VigilOps？
+## 6. 如何升级 NightMend？
 
 ```bash
 # 1. 备份数据（参考上一问）
-docker compose exec postgres pg_dump -U vigilops vigilops > backup_before_upgrade.sql
+docker compose exec postgres pg_dump -U nightmend nightmend > backup_before_upgrade.sql
 
 # 2. 拉取最新代码
 git pull origin main
@@ -193,7 +193,7 @@ docker compose up -d
 
 ## 8. 自动修复安全吗？
 
-VigilOps 的自动修复系统有多重安全保障：
+NightMend 的自动修复系统有多重安全保障：
 
 | 安全机制 | 说明 |
 |---------|------|

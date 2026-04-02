@@ -10,7 +10,7 @@
 依赖关系：依赖SQLAlchemy、JWT认证、审计服务、值班排期业务服务
 API端点：CRUD for groups/schedules + current on-call lookup
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 
 from datetime import date

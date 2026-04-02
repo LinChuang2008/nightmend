@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# VigilOps PostgreSQL 恢复脚本
+# NightMend PostgreSQL 恢复脚本
 # 用法: bash scripts/restore.sh <备份文件>
 set -euo pipefail
 
@@ -10,19 +10,19 @@ fi
 
 DB_HOST="${POSTGRES_HOST:-localhost}"
 DB_PORT="${POSTGRES_PORT:-5433}"
-DB_NAME="${POSTGRES_DB:-vigilops}"
-DB_USER="${POSTGRES_USER:-vigilops}"
+DB_NAME="${POSTGRES_DB:-nightmend}"
+DB_USER="${POSTGRES_USER:-nightmend}"
 
 if [ $# -lt 1 ] || [ "$1" = "--help" ]; then
     cat <<EOF
-VigilOps PostgreSQL 恢复工具
+NightMend PostgreSQL 恢复工具
 
 用法: $0 <备份文件.sql.gz>
 
 ⚠️ 警告: 恢复操作会覆盖当前数据库中的数据！
 
 示例:
-  $0 backups/vigilops_20260225_020000.sql.gz
+  $0 backups/nightmend_20260225_020000.sql.gz
 EOF
     exit 0
 fi

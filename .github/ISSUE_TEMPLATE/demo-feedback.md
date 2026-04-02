@@ -17,7 +17,7 @@ assignees: ''
 **Was the AI diagnosis useful?**
 (What worked? What didn't? What would make it better?)
 
-**Would you try self-hosting VigilOps?**
+**Would you try self-hosting NightMend?**
 - [ ] Yes, I want to try
 - [ ] Maybe, need more info
 - [ ] No

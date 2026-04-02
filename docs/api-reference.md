@@ -1,4 +1,4 @@
-# VigilOps API Reference
+# NightMend API Reference
 
 > Auto-generated from backend router source code.
 > Base URL: `http://<host>:8001`
@@ -868,7 +868,7 @@ Streams log entries as JSON objects in real-time.
 ```json
 {
   "databases": [{
-    "id": 1, "name": "vigilops", "db_type": "postgres", "status": "healthy",
+    "id": 1, "name": "nightmend", "db_type": "postgres", "status": "healthy",
     "latest_metrics": {
       "connections_total": 50, "connections_active": 12,
       "database_size_mb": 1024, "slow_queries": 3,
@@ -1495,7 +1495,7 @@ Auto-creates MonitoredDatabase record if not exists. Triggers db_metric alert ru
 ```json
 {
   "host_id": 1,
-  "db_name": "vigilops",
+  "db_name": "nightmend",
   "db_type": "postgres",
   "connections_total": 50,
   "connections_active": 12,

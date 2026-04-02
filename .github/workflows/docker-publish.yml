@@ -8,8 +8,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/linchuang2008/vigilops-backend
-  FRONTEND_IMAGE: ghcr.io/linchuang2008/vigilops-frontend
+  BACKEND_IMAGE: ghcr.io/linchuang2008/nightmend-backend
+  FRONTEND_IMAGE: ghcr.io/linchuang2008/nightmend-frontend
 
 jobs:
   build-backend:

@@ -29,17 +29,17 @@ const font = {
 
 /* ── Comparison Data ───────────────────────────────────────── */
 const comparisonRows = (t: (key: string) => string) => [
-  { key: '1', feature: t('landing.comparison.aiAnalysis'), vigilops: true, datadog: true, grafana: false, zabbix: false },
-  { key: '2', feature: t('landing.comparison.autoRemediation'), vigilops: true, datadog: false, grafana: false, zabbix: false },
-  { key: '3', feature: t('landing.comparison.mcpIntegration'), vigilops: true, datadog: false, grafana: false, zabbix: false },
-  { key: '4', feature: t('landing.comparison.topologyVisualization'), vigilops: true, datadog: true, grafana: false, zabbix: true },
-  { key: '5', feature: t('landing.comparison.slaManagement'), vigilops: true, datadog: true, grafana: false, zabbix: true },
-  { key: '6', feature: t('landing.comparison.selfHosted'), vigilops: true, datadog: false, grafana: true, zabbix: true },
-  { key: '7', feature: t('landing.comparison.openSource'), vigilops: true, datadog: false, grafana: true, zabbix: true },
+  { key: '1', feature: t('landing.comparison.aiAnalysis'), nightmend: true, datadog: true, grafana: false, zabbix: false },
+  { key: '2', feature: t('landing.comparison.autoRemediation'), nightmend: true, datadog: false, grafana: false, zabbix: false },
+  { key: '3', feature: t('landing.comparison.mcpIntegration'), nightmend: true, datadog: false, grafana: false, zabbix: false },
+  { key: '4', feature: t('landing.comparison.topologyVisualization'), nightmend: true, datadog: true, grafana: false, zabbix: true },
+  { key: '5', feature: t('landing.comparison.slaManagement'), nightmend: true, datadog: true, grafana: false, zabbix: true },
+  { key: '6', feature: t('landing.comparison.selfHosted'), nightmend: true, datadog: false, grafana: true, zabbix: true },
+  { key: '7', feature: t('landing.comparison.openSource'), nightmend: true, datadog: false, grafana: true, zabbix: true },
 ];
 
-const vendors = ['VigilOps', 'Datadog', 'Grafana', 'Zabbix'] as const;
-const vendorKeys = ['vigilops', 'datadog', 'grafana', 'zabbix'] as const;
+const vendors = ['NightMend', 'Datadog', 'Grafana', 'Zabbix'] as const;
+const vendorKeys = ['nightmend', 'datadog', 'grafana', 'zabbix'] as const;
 
 /* ── Inline check / cross SVGs (no Ant Design icons) ──────── */
 function Check() {
@@ -99,7 +99,7 @@ export default function Landing() {
               letterSpacing: '-0.02em',
             }}
           >
-            VigilOps
+            NightMend
           </span>
           <span
             style={{
@@ -117,7 +117,7 @@ export default function Landing() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <a
-            href="https://github.com/LinChuang2008/vigilops"
+            href="https://github.com/LinChuang2008/nightmend"
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -229,7 +229,7 @@ export default function Landing() {
             {t('landing.getStarted')}
           </button>
           <a
-            href="https://github.com/LinChuang2008/vigilops/blob/main/README.md"
+            href="https://github.com/LinChuang2008/nightmend/blob/main/README.md"
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -371,12 +371,12 @@ export default function Landing() {
                       textAlign: 'center',
                       padding: '12px 16px',
                       fontWeight: 600,
-                      color: v === 'VigilOps' ? C.accent : C.muted,
+                      color: v === 'NightMend' ? C.accent : C.muted,
                       fontSize: 11,
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                       borderBottom: `1px solid ${C.border}`,
-                      fontFamily: v === 'VigilOps' ? font.mono : font.sans,
+                      fontFamily: v === 'NightMend' ? font.mono : font.sans,
                     }}
                   >
                     {v}
@@ -480,10 +480,10 @@ export default function Landing() {
         }}
       >
         <span style={{ fontSize: 12, color: C.dim }}>
-          &copy; {new Date().getFullYear()} VigilOps. {t('landing.footer')}
+          &copy; {new Date().getFullYear()} NightMend. {t('landing.footer')}
         </span>
         <a
-          href="https://github.com/LinChuang2008/vigilops"
+          href="https://github.com/LinChuang2008/nightmend"
           target="_blank"
           rel="noopener noreferrer"
           style={{ fontSize: 12, color: C.dim, textDecoration: 'none' }}

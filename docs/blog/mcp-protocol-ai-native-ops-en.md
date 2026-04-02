@@ -1,6 +1,6 @@
 # MCP Protocol Meets Operations: What AI-Native Monitoring Looks Like
 
-> VigilOps Team | February 2026
+> NightMend Team | February 2026
 
 ---
 
@@ -52,9 +52,9 @@ AI Agent: "Done. Connection pool reset. Latency is returning to normal."
 
 The AI agent isn't smarter than you. But it's faster at gathering information from multiple sources and correlating them. And for routine operations, it can handle the entire loop.
 
-## VigilOps MCP Server: 5 Tools
+## NightMend MCP Server: 5 Tools
 
-VigilOps includes a built-in MCP Server that exposes monitoring and remediation capabilities:
+NightMend includes a built-in MCP Server that exposes monitoring and remediation capabilities:
 
 ### 1. `query_alerts`
 
@@ -95,28 +95,28 @@ Query service dependency topology.
 
 ## Setting It Up
 
-### Connect an MCP Client to VigilOps
+### Connect an MCP Client to NightMend
 
-If you're using an MCP-compatible AI client (like Claude Desktop), add VigilOps as an MCP server:
+If you're using an MCP-compatible AI client (like Claude Desktop), add NightMend as an MCP server:
 
 ```json
 {
   "mcpServers": {
-    "vigilops": {
-      "url": "http://your-vigilops-server:8001/mcp",
-      "description": "VigilOps monitoring and auto-remediation"
+    "nightmend": {
+      "url": "http://your-nightmend-server:8001/mcp",
+      "description": "NightMend monitoring and auto-remediation"
     }
   }
 }
 ```
 
-### Deploy VigilOps with MCP Enabled
+### Deploy NightMend with MCP Enabled
 
-The MCP server is enabled by default when you deploy VigilOps:
+The MCP server is enabled by default when you deploy NightMend:
 
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 cp .env.example .env   # Add your DeepSeek API key
 docker compose up -d
 ```
@@ -125,7 +125,7 @@ The MCP endpoint is available at `http://localhost:8001/mcp`.
 
 ### Try the Demo
 
-Visit [https://demo.lchuangnet.com](https://demo.lchuangnet.com) (`demo@vigilops.io` / `demo123`) to see the MCP configuration and tool list in the UI.
+Visit [https://demo.lchuangnet.com](https://demo.lchuangnet.com) (`demo@nightmend.io` / `demo123`) to see the MCP configuration and tool list in the UI.
 
 ## What MCP Changes for On-Call
 
@@ -133,7 +133,7 @@ The most immediate practical impact of MCP in operations is on-call experience.
 
 **Today:** You get paged at 2 AM. You open your laptop, load Grafana, check alerts, SSH into servers, grep logs, try to figure out what's happening while half-awake. Takes 20-45 minutes.
 
-**With MCP:** You get paged at 2 AM. You open your AI assistant on your phone. "What triggered the alert?" The AI queries VigilOps via MCP, gives you a summary with root cause analysis. "Can it be auto-fixed?" The AI checks if a runbook applies. "Yes, disk_cleanup would resolve this." "Do it." Done. Takes 2 minutes.
+**With MCP:** You get paged at 2 AM. You open your AI assistant on your phone. "What triggered the alert?" The AI queries NightMend via MCP, gives you a summary with root cause analysis. "Can it be auto-fixed?" The AI checks if a runbook applies. "Yes, disk_cleanup would resolve this." "Do it." Done. Takes 2 minutes.
 
 This isn't hypothetical — it's how MCP-connected monitoring works today. The limiting factor isn't the technology; it's building trust that the AI agent's analysis and actions are reliable enough for production.
 
@@ -141,15 +141,15 @@ This isn't hypothetical — it's how MCP-connected monitoring works today. The l
 
 **MCP is still young.** The protocol is evolving, client support is still expanding, and best practices are still being established. If you adopt MCP today, expect some rough edges.
 
-**AI analysis isn't always right.** LLMs can hallucinate root causes that sound plausible but are wrong. VigilOps marks AI analysis as advisory, not authoritative. For auto-remediation, safety checks and approval workflows act as guardrails.
+**AI analysis isn't always right.** LLMs can hallucinate root causes that sound plausible but are wrong. NightMend marks AI analysis as advisory, not authoritative. For auto-remediation, safety checks and approval workflows act as guardrails.
 
 **Latency.** LLM-based analysis adds 5-15 seconds per query. For P0 incidents where seconds matter, direct human response is still faster. We skip AI analysis for the most critical alerts and notify humans immediately.
 
-**Security considerations.** Exposing your monitoring system via MCP means thinking carefully about authentication, authorization, and what actions AI agents are allowed to take. VigilOps supports configurable permissions per MCP tool.
+**Security considerations.** Exposing your monitoring system via MCP means thinking carefully about authentication, authorization, and what actions AI agents are allowed to take. NightMend supports configurable permissions per MCP tool.
 
-## Why This Matters Beyond VigilOps
+## Why This Matters Beyond NightMend
 
-Even if you don't use VigilOps, the MCP trend matters for the operations community:
+Even if you don't use NightMend, the MCP trend matters for the operations community:
 
 **Monitoring tools should become AI-accessible.** If your monitoring system only has a human UI, it can't participate in the AI agent ecosystem. Exposing capabilities via MCP (or similar protocols) makes your data and actions available to any AI system.
 
@@ -159,14 +159,14 @@ Even if you don't use VigilOps, the MCP trend matters for the operations communi
 
 ## Looking Forward
 
-We built VigilOps' MCP server because we believe monitoring tools need a new kind of interface — one designed for AI agents, not just human operators. This is early, and the implementation will improve over time.
+We built NightMend' MCP server because we believe monitoring tools need a new kind of interface — one designed for AI agents, not just human operators. This is early, and the implementation will improve over time.
 
 The broader bet: within a few years, every serious operations tool will have an MCP interface (or equivalent). The monitoring data and operational actions that are currently locked behind proprietary UIs will become programmable building blocks for AI-driven operations.
 
-Whether that future is realized by VigilOps or by other tools, we think it's worth building toward.
+Whether that future is realized by NightMend or by other tools, we think it's worth building toward.
 
-Questions or ideas? Find us on [GitHub Discussions](https://github.com/LinChuang2008/vigilops/discussions).
+Questions or ideas? Find us on [GitHub Discussions](https://github.com/LinChuang2008/nightmend/discussions).
 
 ---
 
-*VigilOps is an Apache 2.0 open source project. [GitHub](https://github.com/LinChuang2008/vigilops)*
+*NightMend is an Apache 2.0 open source project. [GitHub](https://github.com/LinChuang2008/nightmend)*

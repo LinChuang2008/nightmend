@@ -1,13 +1,13 @@
 """
-VigilOps 自动修复系统 - AI 智能诊断客户端
-VigilOps Remediation System - AI Intelligent Diagnosis Client
+NightMend 自动修复系统 - AI 智能诊断客户端
+NightMend Remediation System - AI Intelligent Diagnosis Client
 
 这个模块负责将告警信息发送给 AI 模型进行智能分析，识别问题根因并推荐修复方案。
 This module is responsible for sending alert information to AI models for intelligent analysis,
 identifying problem root causes and recommending remediation solutions.
 
 主要功能 (Key Features):
-- 复用 VigilOps 全局 AI 配置（默认 DeepSeek API）
+- 复用 NightMend 全局 AI 配置（默认 DeepSeek API）
 - 专门针对运维修复场景优化的 Prompt 工程
 - 支持多种上下文信息（系统指标、日志片段等）
 - Mock 模式支持，便于测试和开发
@@ -18,7 +18,7 @@ AI 模型要求 (AI Model Requirements):
 - 推荐使用 DeepSeek、GPT-4 等具备强逻辑推理能力的模型
 - 需要支持 JSON 格式化输出
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 """
 from __future__ import annotations
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 # AI 诊断系统提示词 - 针对运维修复场景精心设计的 Prompt 工程
 # AI Diagnosis System Prompt - Carefully designed prompt engineering for ops remediation scenarios
-DIAGNOSIS_SYSTEM_PROMPT = """You are VigilOps, an expert SRE diagnostic AI.
+DIAGNOSIS_SYSTEM_PROMPT = """You are NightMend, an expert SRE diagnostic AI.
 Given a monitoring alert and system context, produce a JSON diagnosis.
 
 Your response MUST be valid JSON with these fields:
@@ -135,8 +135,8 @@ def _parse_diagnosis_response(text: str) -> Diagnosis:
 class RemediationLLMClient:
     """修复诊断 AI 客户端 (Remediation Diagnosis AI Client)
     
-    这是 VigilOps 自动修复系统与 AI 模型交互的核心组件，负责：
-    This is the core component for VigilOps remediation system to interact with AI models, responsible for:
+    这是 NightMend 自动修复系统与 AI 模型交互的核心组件，负责：
+    This is the core component for NightMend remediation system to interact with AI models, responsible for:
     
     核心职责 (Core Responsibilities):
     1. 管理 AI API 连接和认证 (Manage AI API connections and authentication)
@@ -146,7 +146,7 @@ class RemediationLLMClient:
     5. 提供 Mock 模式支持测试 (Provide mock mode for testing)
     
     配置来源 (Configuration Source):
-    默认从 VigilOps 全局配置读取 AI 参数：
+    默认从 NightMend 全局配置读取 AI 参数：
     - API Key: settings.ai_api_key
     - API Base URL: settings.ai_api_base (默认 DeepSeek)
     - Model Name: settings.ai_model

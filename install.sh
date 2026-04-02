@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# VigilOps 一键部署脚本
-# 用法: curl -sSL https://get.vigilops.io/install.sh | bash
-# 升级: curl -sSL https://get.vigilops.io/install.sh | bash -s -- --upgrade
+# NightMend 一键部署脚本
+# 用法: curl -sSL https://get.nightmend.io/install.sh | bash
+# 升级: curl -sSL https://get.nightmend.io/install.sh | bash -s -- --upgrade
 set -euo pipefail
 
 # ── 颜色 ──────────────────────────────────────────────
@@ -14,8 +14,8 @@ die()   { err "$*"; exit 1; }
 
 # ── 参数 ──────────────────────────────────────────────
 UPGRADE=false
-INSTALL_DIR="/opt/vigilops"
-REPO_URL="https://github.com/LinChuang2008/vigilops.git"
+INSTALL_DIR="/opt/nightmend"
+REPO_URL="https://github.com/LinChuang2008/nightmend.git"
 BRANCH="main"
 
 for arg in "$@"; do
@@ -24,7 +24,7 @@ for arg in "$@"; do
     --dir=*)    INSTALL_DIR="${arg#*=}" ;;
     --branch=*) BRANCH="${arg#*=}" ;;
     --help|-h)
-      echo "Usage: install.sh [--upgrade] [--dir=/opt/vigilops] [--branch=main]"
+      echo "Usage: install.sh [--upgrade] [--dir=/opt/nightmend] [--branch=main]"
       exit 0 ;;
   esac
 done
@@ -104,7 +104,7 @@ configure() {
 
   echo ""
   echo -e "${BLUE}═══════════════════════════════════════════${NC}"
-  echo -e "${BLUE}       VigilOps 部署配置向导${NC}"
+  echo -e "${BLUE}       NightMend 部署配置向导${NC}"
   echo -e "${BLUE}═══════════════════════════════════════════${NC}"
   echo ""
 
@@ -162,14 +162,14 @@ generate_env() {
   fi
 
   cat > "$env_file" <<EOF
-# VigilOps 环境配置 - 由 install.sh 自动生成
+# NightMend 环境配置 - 由 install.sh 自动生成
 # 生成时间: $(date '+%Y-%m-%d %H:%M:%S')
 
 # ---- 数据库 ----
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
-POSTGRES_DB=vigilops
-POSTGRES_USER=vigilops
+POSTGRES_DB=nightmend
+POSTGRES_USER=nightmend
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
 # ---- Redis ----
@@ -315,7 +315,7 @@ print_result() {
 
   echo ""
   echo -e "${GREEN}═══════════════════════════════════════════${NC}"
-  echo -e "${GREEN}       VigilOps 部署完成！${NC}"
+  echo -e "${GREEN}       NightMend 部署完成！${NC}"
   echo -e "${GREEN}═══════════════════════════════════════════${NC}"
   echo ""
   echo -e "  前端访问:  ${BLUE}http://${host_ip}:${FRONTEND_PORT}${NC}"
@@ -332,7 +332,7 @@ print_result() {
   fi
   echo -e "  安装目录:  ${INSTALL_DIR}"
   echo -e "  查看日志:  docker compose -f ${INSTALL_DIR}/docker-compose.yml logs -f"
-  echo -e "  升级方法:  curl -sSL https://get.vigilops.io/install.sh | bash -s -- --upgrade"
+  echo -e "  升级方法:  curl -sSL https://get.nightmend.io/install.sh | bash -s -- --upgrade"
   echo ""
   echo -e "  ${RED}⚠ 请立即修改默认密码！${NC}"
   echo ""
@@ -340,7 +340,7 @@ print_result() {
 
 # ── 升级流程 ──────────────────────────────────────────
 do_upgrade() {
-  info "开始升级 VigilOps..."
+  info "开始升级 NightMend..."
 
   if [ ! -d "${INSTALL_DIR}/.git" ]; then
     die "未找到安装目录 ${INSTALL_DIR}，请先执行全新安装"
@@ -371,7 +371,7 @@ do_upgrade() {
 main() {
   echo ""
   echo -e "${BLUE}╔═══════════════════════════════════════════╗${NC}"
-  echo -e "${BLUE}║     VigilOps 一键部署脚本 v1.0          ║${NC}"
+  echo -e "${BLUE}║     NightMend 一键部署脚本 v1.0          ║${NC}"
   echo -e "${BLUE}║     开源运维监控平台                     ║${NC}"
   echo -e "${BLUE}╚═══════════════════════════════════════════╝${NC}"
   echo ""

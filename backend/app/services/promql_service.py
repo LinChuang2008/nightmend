@@ -2,23 +2,23 @@
 PromQL 查询引擎服务 (PromQL Query Engine Service)
 
 功能描述 (Description):
-    提供类 PromQL 查询语法支持，用于对 VigilOps 存储的主机指标数据执行灵活查询。
+    提供类 PromQL 查询语法支持，用于对 NightMend 存储的主机指标数据执行灵活查询。
     支持即时查询（Instant Query）和范围查询（Range Query），兼容 Prometheus HTTP API 的
     响应格式，方便与现有 Grafana/Dashboard 工具集成。
 
     Provides PromQL-like query syntax support for flexible querying of host metric data
-    stored by VigilOps. Supports instant queries and range queries, compatible with the
+    stored by NightMend. Supports instant queries and range queries, compatible with the
     Prometheus HTTP API response format for easy integration with existing Grafana/Dashboard tools.
 
 支持的功能 (Supported Features):
-    - 即时查询: vigilops_host_cpu_percent, vigilops_host_cpu_percent{hostname="web-01"}
-    - 范围查询: vigilops_host_cpu_percent[5m]
+    - 即时查询: nightmend_host_cpu_percent, nightmend_host_cpu_percent{hostname="web-01"}
+    - 范围查询: nightmend_host_cpu_percent[5m]
     - 标签匹配: =, !=, =~, !~ (正则)
     - 聚合函数: sum(), avg(), min(), max(), count() 支持 by(label) / without(label)
     - 范围向量函数: rate(), increase(), avg_over_time(), max_over_time(), min_over_time()
     - 基本算术: +, -, *, / (标量与向量之间)
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import re
 import logging
@@ -36,14 +36,14 @@ logger = logging.getLogger(__name__)
 # ─── 指标名称到模型字段的映射 (Metric Name to Model Field Mapping) ──────────────
 
 METRIC_FIELD_MAP: dict[str, str] = {
-    "vigilops_host_cpu_percent": "cpu_percent",
-    "vigilops_host_memory_percent": "memory_percent",
-    "vigilops_host_disk_percent": "disk_percent",
-    "vigilops_host_cpu_load_1m": "cpu_load_1",
-    "vigilops_host_cpu_load_5m": "cpu_load_5",
-    "vigilops_host_cpu_load_15m": "cpu_load_15",
-    "vigilops_host_network_bytes_sent_total": "net_bytes_sent",
-    "vigilops_host_network_bytes_received_total": "net_bytes_recv",
+    "nightmend_host_cpu_percent": "cpu_percent",
+    "nightmend_host_memory_percent": "memory_percent",
+    "nightmend_host_disk_percent": "disk_percent",
+    "nightmend_host_cpu_load_1m": "cpu_load_1",
+    "nightmend_host_cpu_load_5m": "cpu_load_5",
+    "nightmend_host_cpu_load_15m": "cpu_load_15",
+    "nightmend_host_network_bytes_sent_total": "net_bytes_sent",
+    "nightmend_host_network_bytes_received_total": "net_bytes_recv",
 }
 
 # ─── 时间解析 (Duration Parsing) ─────────────────────────────────────────────────

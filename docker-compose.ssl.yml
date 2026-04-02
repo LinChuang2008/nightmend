@@ -1,4 +1,4 @@
-# VigilOps HTTPS overlay
+# NightMend HTTPS overlay
 # Usage: docker compose -f docker-compose.yml -f docker-compose.ssl.yml up -d
 #
 # For production with Let's Encrypt:

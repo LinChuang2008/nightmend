@@ -1,4 +1,4 @@
-# VigilOps 架构设计文档
+# NightMend 架构设计文档
 
 > 开源智能运维监控平台 — AI 驱动的监控、告警、分析与自动修复
 
@@ -35,7 +35,7 @@
 ```mermaid
 graph TB
     subgraph 被监控主机
-        A[VigilOps Agent]
+        A[NightMend Agent]
     end
 
     subgraph Docker Compose
@@ -113,7 +113,7 @@ flowchart LR
 ## 4. 目录结构
 
 ```
-vigilops/
+nightmend/
 ├── backend/
 │   └── app/
 │       ├── routers/            # 24 个路由模块
@@ -194,7 +194,7 @@ vigilops/
 │           ├── Settings.tsx         # 系统设置
 │           └── Login.tsx            # 登录页
 └── agent/
-    └── vigilops_agent/         # Agent 采集进程
+    └── nightmend_agent/         # Agent 采集进程
         ├── collector.py             # 系统指标采集
         ├── checker.py               # 服务存活检测
         ├── log_collector.py         # 日志采集
@@ -501,14 +501,14 @@ Agent 以 systemd 服务运行在被监控主机上：
 
 ```bash
 # 安装
-pip install vigilops-agent
+pip install nightmend-agent
 
 # 配置
-vigilops-agent config --server http://<backend>:8001 --token <agent_token>
+nightmend-agent config --server http://<backend>:8001 --token <agent_token>
 
 # 启动
-systemctl enable vigilops-agent
-systemctl start vigilops-agent
+systemctl enable nightmend-agent
+systemctl start nightmend-agent
 ```
 
 Agent 通过 HTTP 定期向 Backend 上报采集数据，无需被监控主机开放任何入站端口。

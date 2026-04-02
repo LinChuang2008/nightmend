@@ -38,7 +38,7 @@ def get_agent_dir() -> str:
     possible_paths = [
         "/app/agent",  # Docker 容器内路径（通过 volume 映射）
         os.path.join(os.path.dirname(__file__), "..", "..", "..", "agent"),  # 相对路径
-        "/opt/vigilops/agent",  # 可选：系统安装路径
+        "/opt/nightmend/agent",  # 可选：系统安装路径
     ]
     for path in possible_paths:
         if os.path.exists(path):
@@ -138,7 +138,7 @@ async def list_agent_versions(
         "versions": [
             {
                 "version": "0.1.0",
-                "wheel_files": ["vigilops_agent-0.1.0-py3-none-any.whl"]
+                "wheel_files": ["nightmend_agent-0.1.0-py3-none-any.whl"]
             }
         ]
     }

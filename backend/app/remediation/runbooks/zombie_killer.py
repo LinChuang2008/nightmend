@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复 Runbook - 僵尸进程清理
-VigilOps Automatic Remediation Runbook - Zombie Process Cleanup
+NightMend 自动修复 Runbook - 僵尸进程清理
+NightMend Automatic Remediation Runbook - Zombie Process Cleanup
 
 这是一个僵尸进程清理脚本，用于识别和处理系统中的僵尸（zombie/defunct）进程。
 This is a zombie process cleanup script for identifying and handling zombie/defunct processes in the system.
@@ -32,7 +32,7 @@ This is a zombie process cleanup script for identifying and handling zombie/defu
 当前版本主要进行诊断，实际的进程终止操作需要谨慎处理，
 因为杀死父进程可能影响正常业务运行。
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 风险等级：LOW (诊断为主)
 """

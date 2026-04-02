@@ -12,7 +12,7 @@ import { CopyOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 
-const DISMISSED_KEY = 'vigilops-agent-banner-dismissed';
+const DISMISSED_KEY = 'nightmend-agent-banner-dismissed';
 
 interface AgentTokenInfo {
   id: string;
@@ -74,9 +74,9 @@ export default function AgentInstallBanner() {
   const serverUrl = getServerUrl();
   const tokenDisplay = token || '<YOUR_TOKEN>';
   // 使用 GitHub raw URL 提供安装脚本，避免 404 错误
-  const installCmdGithub = `curl -fsSL https://raw.githubusercontent.com/LinChuang2008/vigilops/main/scripts/install-agent.sh | VIGILOPS_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`;
+  const installCmdGithub = `curl -fsSL https://raw.githubusercontent.com/LinChuang2008/nightmend/main/scripts/install-agent.sh | NIGHTMEND_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`;
   // 本地服务器备用选项
-  const installCmdLocal = `curl -fsSL ${serverUrl}/api/v1/agent/install.sh | VIGILOPS_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`;
+  const installCmdLocal = `curl -fsSL ${serverUrl}/api/v1/agent/install.sh | NIGHTMEND_SERVER=${serverUrl} AGENT_TOKEN=${tokenDisplay} bash`;
   const [selectedCmd, setSelectedCmd] = useState('github');
   const installCmd = selectedCmd === 'github' ? installCmdGithub : installCmdLocal;
 

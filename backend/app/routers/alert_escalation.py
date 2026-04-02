@@ -10,7 +10,7 @@
 依赖关系：依赖SQLAlchemy、JWT认证、审计服务、升级引擎服务
 API端点：CRUD for escalation rules + manual escalation + statistics
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 
 from datetime import datetime, date

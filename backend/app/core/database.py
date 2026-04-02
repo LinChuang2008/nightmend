@@ -1,11 +1,11 @@
 """
 数据库连接模块 (Database Connection Module)
 
-基于 SQLAlchemy 2.0 异步模式创建数据库引擎和会话管理，为 VigilOps 平台提供数据持久化支持。
+基于 SQLAlchemy 2.0 异步模式创建数据库引擎和会话管理，为 NightMend 平台提供数据持久化支持。
 包含异步引擎创建、会话工厂配置、ORM 基类定义和依赖注入函数。
 
 Creates database engine and session management based on SQLAlchemy 2.0 async mode,
-providing data persistence support for the VigilOps platform. Includes async engine
+providing data persistence support for the NightMend platform. Includes async engine
 creation, session factory configuration, ORM base class definition, and dependency injection functions.
 """
 from sqlalchemy import create_engine

@@ -1,13 +1,13 @@
 #!/bin/bash
-# VigilOps ECS Deploy Script
+# NightMend ECS Deploy Script
 # Usage: bash deploy.sh <tarball.tar.gz>
 # Called from local Mac via: scp + ssh or direct invocation
-# Logs to /var/log/vigilops-deploy.log
+# Logs to /var/log/nightmend-deploy.log
 
 set -euo pipefail
 
-DEPLOY_DIR="/opt/vigilops"
-LOG_FILE="/var/log/vigilops-deploy.log"
+DEPLOY_DIR="/opt/nightmend"
+LOG_FILE="/var/log/nightmend-deploy.log"
 TARBALL="${1:-}"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
@@ -15,7 +15,7 @@ log() {
     echo "[${TIMESTAMP}] $*" | tee -a "$LOG_FILE"
 }
 
-log "===== VigilOps Deploy Started ====="
+log "===== NightMend Deploy Started ====="
 
 # ── Step 1: Receive and extract tarball ──────────────────────────────────────
 if [[ -n "$TARBALL" && -f "$TARBALL" ]]; then
@@ -66,4 +66,4 @@ log "Health check passed: ${HEALTH_URL}"
 log "Container status:"
 docker compose ps 2>&1 | tee -a "$LOG_FILE"
 
-log "===== VigilOps Deploy Finished at ${TIMESTAMP} ====="
+log "===== NightMend Deploy Finished at ${TIMESTAMP} ====="

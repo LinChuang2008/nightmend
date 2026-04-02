@@ -1,14 +1,14 @@
-# 📢 Welcome to VigilOps Community!
+# 📢 Welcome to NightMend Community!
 
 **Category: Announcements**
 
 ---
 
-Welcome to the VigilOps community! 🎉
+Welcome to the NightMend community! 🎉
 
-## What is VigilOps?
+## What is NightMend?
 
-VigilOps is an **open-source, AI-powered infrastructure monitoring platform** that goes beyond dashboards and alerts. It watches your systems, analyzes root causes with AI, and **automatically remediates** common issues — so your on-call team can finally sleep.
+NightMend is an **open-source, AI-powered infrastructure monitoring platform** that goes beyond dashboards and alerts. It watches your systems, analyzes root causes with AI, and **automatically remediates** common issues — so your on-call team can finally sleep.
 
 ### Key Features
 - 🤖 **AI Auto-Remediation** — 6 built-in runbooks for autonomous incident response
@@ -19,10 +19,10 @@ VigilOps is an **open-source, AI-powered infrastructure monitoring platform** th
 
 ## How to Get Involved
 
-- ⭐ **Star** the repo: [github.com/LinChuang2008/vigilops](https://github.com/LinChuang2008/vigilops)
-- 🐛 **Report bugs**: [Open an Issue](https://github.com/LinChuang2008/vigilops/issues/new)
+- ⭐ **Star** the repo: [github.com/LinChuang2008/nightmend](https://github.com/LinChuang2008/nightmend)
+- 🐛 **Report bugs**: [Open an Issue](https://github.com/LinChuang2008/nightmend/issues/new)
 - 💡 **Suggest features**: Post in the **Ideas** category
-- 🔧 **Contribute code**: Read our [Contributing Guide](https://github.com/LinChuang2008/vigilops/blob/main/CONTRIBUTING.md)
+- 🔧 **Contribute code**: Read our [Contributing Guide](https://github.com/LinChuang2008/nightmend/blob/main/CONTRIBUTING.md)
 - ❓ **Ask questions**: Post in the **Q&A** category
 
 We're building this in the open and we'd love your input!
@@ -31,9 +31,9 @@ We're building this in the open and we'd love your input!
 
 ## 🇨🇳 中文版
 
-欢迎来到 VigilOps 社区！🎉
+欢迎来到 NightMend 社区！🎉
 
-**VigilOps** 是一个开源的 AI 驱动运维监控平台。与传统监控工具不同，它不仅能发现问题、分析根因，还能**自动修复**常见故障。
+**NightMend** 是一个开源的 AI 驱动运维监控平台。与传统监控工具不同，它不仅能发现问题、分析根因，还能**自动修复**常见故障。
 
 ### 核心特性
 - 🤖 AI 自动修复 — 6 个内置 Runbook，全自动处理常见故障

@@ -1,10 +1,10 @@
 """
-VigilOps 后端应用入口模块 (VigilOps Backend Application Entry Module)
+NightMend 后端应用入口模块 (NightMend Backend Application Entry Module)
 
-VigilOps 运维监控平台的主应用入口，负责 FastAPI 应用的完整生命周期管理。
+NightMend 运维监控平台的主应用入口，负责 FastAPI 应用的完整生命周期管理。
 包含应用初始化、中间件配置、路由注册、后台任务启动等核心功能。
 
-Main application entry point for the VigilOps operations monitoring platform,
+Main application entry point for the NightMend operations monitoring platform,
 responsible for complete FastAPI application lifecycle management.
 Includes application initialization, middleware configuration, route registration, and background task startup.
 
@@ -86,10 +86,10 @@ async def lifespan(app: FastAPI):
     """
     应用生命周期管理器 (Application Lifecycle Manager)
 
-    管理 VigilOps 应用的完整生命周期，包括启动时的初始化和关闭时的清理。
+    管理 NightMend 应用的完整生命周期，包括启动时的初始化和关闭时的清理。
     负责数据库表创建、内置数据初始化、后台任务启动和资源释放。
 
-    Manages the complete lifecycle of the VigilOps application, including initialization
+    Manages the complete lifecycle of the NightMend application, including initialization
     at startup and cleanup at shutdown. Responsible for database table creation,
     built-in data initialization, background task startup, and resource cleanup.
     """
@@ -113,7 +113,7 @@ async def lifespan(app: FastAPI):
     # 初始化统一工具注册表 (Initialize Unified Tool Registry)
     from app.tools import init_tool_registry
     registry = init_tool_registry()
-    logger_init = logging.getLogger("vigilops.tools")
+    logger_init = logging.getLogger("nightmend.tools")
     logger_init.info("Tool registry initialized: %d tools registered", registry.tool_count)
 
     from app.services.data_retention import DataRetentionService
@@ -142,7 +142,7 @@ async def lifespan(app: FastAPI):
         _init_logger.warning(f"Failed to initialize data retention settings: {e}")
 
     # 启动后台定时任务 (Start background scheduled tasks)
-    logger = logging.getLogger("vigilops.tasks")
+    logger = logging.getLogger("nightmend.tasks")
 
     retention_days = int(os.environ.get("LOG_RETENTION_DAYS", "7"))
     db_retention = int(os.environ.get("DB_METRIC_RETENTION_DAYS", "30"))
@@ -205,7 +205,7 @@ async def lifespan(app: FastAPI):
 
 # 创建 FastAPI 应用实例 (Create FastAPI application instance)
 app = FastAPI(
-    title="VigilOps",
+    title="NightMend",
     description="AI-powered infrastructure monitoring platform | AI 驱动的基础设施监控平台",
     version="2026.03.14-beta.1",
     lifespan=lifespan,
@@ -318,10 +318,10 @@ async def health():
     """
     健康检查接口 (Health Check Endpoint)
     
-    验证 VigilOps 平台各个核心组件的连通性和状态，包括 API、数据库、Redis 缓存等。
+    验证 NightMend 平台各个核心组件的连通性和状态，包括 API、数据库、Redis 缓存等。
     用于负载均衡器健康检查、监控系统状态检测和运维故障排查。
     
-    Verifies connectivity and status of core VigilOps platform components,
+    Verifies connectivity and status of core NightMend platform components,
     including API, database, Redis cache, etc. Used for load balancer health checks,
     monitoring system status detection, and operational troubleshooting.
     

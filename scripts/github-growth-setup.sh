@@ -1,13 +1,13 @@
 #!/bin/bash
-# VigilOps GitHub Growth Setup Script
+# NightMend GitHub Growth Setup Script
 # Run this script when GitHub API is reachable.
 # Prerequisites: gh CLI authenticated (gh auth login)
 
 set -euo pipefail
 
-REPO="LinChuang2008/vigilops"
+REPO="LinChuang2008/nightmend"
 
-echo "=== VigilOps GitHub Growth Setup ==="
+echo "=== NightMend GitHub Growth Setup ==="
 echo ""
 
 # ---- 1. Set GitHub Topics ----
@@ -51,13 +51,13 @@ if ! gh release view v0.9.0 -R "$REPO" &>/dev/null; then
 
 ### Quick Start
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git && cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git && cd nightmend
 cp .env.example .env   # Add your DeepSeek API key
 docker compose up -d
 # Open http://localhost:3001
 ```
 
-**Full Changelog**: https://github.com/LinChuang2008/vigilops/blob/main/CHANGELOG.md
+**Full Changelog**: https://github.com/LinChuang2008/nightmend/blob/main/CHANGELOG.md
 NOTES
 )" \
     --latest=false
@@ -88,12 +88,12 @@ if ! gh release view v0.9.1 -R "$REPO" &>/dev/null; then
 
 ### Quick Start
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git && cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git && cd nightmend
 cp .env.example .env   # Add your DeepSeek API key
 docker compose up -d
 ```
 
-**Full Changelog**: https://github.com/LinChuang2008/vigilops/blob/main/CHANGELOG.md
+**Full Changelog**: https://github.com/LinChuang2008/nightmend/blob/main/CHANGELOG.md
 NOTES
 )" \
     --latest=true
@@ -117,7 +117,7 @@ gh issue create -R "$REPO" \
   --label "good first issue,enhancement" \
   --body "$(cat <<'BODY'
 ## Description
-VigilOps currently uses built-in metric queries. Adding PromQL-style query support would allow users to write custom metric expressions.
+NightMend currently uses built-in metric queries. Adding PromQL-style query support would allow users to write custom metric expressions.
 
 ## Suggested Approach
 - Add a PromQL parser in `backend/app/services/`
@@ -140,10 +140,10 @@ gh issue create -R "$REPO" \
   --label "good first issue,help wanted" \
   --body "$(cat <<'BODY'
 ## Description
-VigilOps currently supports Docker Compose deployment. A Helm Chart would make it easy to deploy on Kubernetes clusters.
+NightMend currently supports Docker Compose deployment. A Helm Chart would make it easy to deploy on Kubernetes clusters.
 
 ## Suggested Approach
-- Create `charts/vigilops/` directory with standard Helm chart structure
+- Create `charts/nightmend/` directory with standard Helm chart structure
 - Include templates for: backend Deployment, frontend Deployment, PostgreSQL StatefulSet, Redis Deployment
 - Support configurable values for resource limits, replicas, and environment variables
 - Reference: `docker-compose.yml` for service definitions
@@ -151,7 +151,7 @@ VigilOps currently supports Docker Compose deployment. A Helm Chart would make i
 ## Getting Started
 1. Review `docker-compose.yml` and `docker-compose.dev.yml`
 2. Check environment variables in `.env.example`
-3. Test with: `helm template vigilops charts/vigilops/`
+3. Test with: `helm template nightmend charts/nightmend/`
 BODY
 )"
 
@@ -161,7 +161,7 @@ gh issue create -R "$REPO" \
   --label "good first issue,enhancement" \
   --body "$(cat <<'BODY'
 ## Description
-VigilOps supports DingTalk, Feishu, WeCom, Email, and Webhook notifications. Adding Slack and Telegram would serve international users.
+NightMend supports DingTalk, Feishu, WeCom, Email, and Webhook notifications. Adding Slack and Telegram would serve international users.
 
 ## Suggested Approach
 - Add new channel types in `backend/app/services/notification_service.py`

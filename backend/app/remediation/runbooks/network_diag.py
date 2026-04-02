@@ -1,5 +1,5 @@
 """
-VigilOps 内置 Runbook - 网络连通性诊断
+NightMend 内置 Runbook - 网络连通性诊断
 """
 from ..models import RiskLevel, RunbookDefinition, RunbookStep
 

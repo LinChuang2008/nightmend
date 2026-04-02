@@ -17,7 +17,7 @@ Core responsibilities:
   - Range Query: returns metric matrix over a time range
   - Compatible with Prometheus HTTP API response format
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import logging
 from datetime import datetime, timezone
@@ -61,11 +61,11 @@ async def instant_query(
     Compatible with the Prometheus /api/v1/query endpoint response format.
 
     支持的查询模式 (Supported Query Patterns):
-    - 简单选择: vigilops_host_cpu_percent
-    - 标签过滤: vigilops_host_cpu_percent{hostname="web-01"}
-    - 聚合函数: avg(vigilops_host_cpu_percent) by(group)
-    - 范围函数: rate(vigilops_host_network_bytes_sent_total[5m])
-    - 算术运算: vigilops_host_cpu_percent * 100
+    - 简单选择: nightmend_host_cpu_percent
+    - 标签过滤: nightmend_host_cpu_percent{hostname="web-01"}
+    - 聚合函数: avg(nightmend_host_cpu_percent) by(group)
+    - 范围函数: rate(nightmend_host_network_bytes_sent_total[5m])
+    - 算术运算: nightmend_host_cpu_percent * 100
 
     Args:
         query: PromQL 表达式字符串 (PromQL expression string)
@@ -235,11 +235,11 @@ async def query_metadata(
                 "range_vector": ["rate", "increase", "avg_over_time", "max_over_time", "min_over_time"],
             },
             "examples": [
-                'vigilops_host_cpu_percent',
-                'vigilops_host_cpu_percent{hostname="web-01"}',
-                'avg(vigilops_host_cpu_percent) by(group)',
-                'rate(vigilops_host_network_bytes_sent_total[5m])',
-                'vigilops_host_memory_percent * 100',
+                'nightmend_host_cpu_percent',
+                'nightmend_host_cpu_percent{hostname="web-01"}',
+                'avg(nightmend_host_cpu_percent) by(group)',
+                'rate(nightmend_host_network_bytes_sent_total[5m])',
+                'nightmend_host_memory_percent * 100',
             ],
         },
     }

@@ -2,7 +2,7 @@
 审计日志服务 (Audit Log Service)
 
 功能描述 (Description):
-    VigilOps 统一审计日志记录引擎，提供合规性和安全性保障。
+    NightMend 统一审计日志记录引擎，提供合规性和安全性保障。
     记录所有关键操作的完整审计轨迹，支持安全审查和问题追溯。
     
 核心功能 (Core Features):
@@ -49,7 +49,7 @@ async def log_audit(
     统一审计日志记录器 (Unified Audit Log Recorder)
     
     功能描述:
-        VigilOps 系统的中心化审计日志记录接口，为所有业务模块提供统一的审计能力。
+        NightMend 系统的中心化审计日志记录接口，为所有业务模块提供统一的审计能力。
         确保关键操作的完整记录，满足合规性和安全性要求。
         
     Args:

@@ -57,7 +57,7 @@ export default function OpsMessageList({ messages, isProcessing, onConfirmComman
       <div className="cc-msglist-inner">
       {messages.length === 0 && !isProcessing && (
         <div className="cc-empty">
-          <span className="cc-empty-text">VigilOps AI 运维助手 · 输入问题开始诊断</span>
+          <span className="cc-empty-text">NightMend AI 运维助手 · 输入问题开始诊断</span>
         </div>
       )}
 

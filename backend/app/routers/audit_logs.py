@@ -21,7 +21,7 @@ Audit Categories:
   - 系统配置：update_settings
   - 其他关键操作的完整记录
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from typing import Optional
 

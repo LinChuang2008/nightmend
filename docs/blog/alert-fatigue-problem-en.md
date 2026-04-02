@@ -1,6 +1,6 @@
 # Alert Fatigue Is Real — Here's What It's Actually Costing Your Team
 
-> VigilOps Team | February 2026
+> NightMend Team | February 2026
 
 ---
 
@@ -62,13 +62,13 @@ Doesn't do: Reduce alert volume. It ensures the right person gets paged, but it 
 
 ### The Gap
 
-No mainstream open-source tool today combines: (1) alert detection, (2) AI-powered root cause analysis, and (3) automated remediation in a single package. This is the gap VigilOps is trying to fill.
+No mainstream open-source tool today combines: (1) alert detection, (2) AI-powered root cause analysis, and (3) automated remediation in a single package. This is the gap NightMend is trying to fill.
 
-## How VigilOps Approaches This
+## How NightMend Approaches This
 
-VigilOps takes a different philosophy: **instead of just telling you about problems, try to fix them.**
+NightMend takes a different philosophy: **instead of just telling you about problems, try to fix them.**
 
-When an alert fires in VigilOps:
+When an alert fires in NightMend:
 
 ```
 1. Alert triggers (standard threshold check)
@@ -104,26 +104,26 @@ Scenario: "Server web-03 disk usage at 93%."
 
 **Traditional flow:** On-call gets paged → SSHs into server → Runs `du -sh /var/*` → Identifies /var/log growing → Manually cleans old logs → Verifies disk drops → Goes back to bed. Time: 15-30 minutes.
 
-**VigilOps flow:** Alert fires → AI analyzes metrics and identifies /var/log growth → Matches `disk_cleanup` runbook → Automatically clears files older than 7 days in /tmp and rotated logs → Disk drops to 62% → Alert auto-resolves. On-call sees a "resolved automatically" record in the morning.
+**NightMend flow:** Alert fires → AI analyzes metrics and identifies /var/log growth → Matches `disk_cleanup` runbook → Automatically clears files older than 7 days in /tmp and rotated logs → Disk drops to 62% → Alert auto-resolves. On-call sees a "resolved automatically" record in the morning.
 
 ## Try It Yourself
 
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 cp .env.example .env   # Add your DeepSeek API key
 docker compose up -d
 # Open http://localhost:3001
 ```
 
-Or try the live demo: [https://demo.lchuangnet.com](https://demo.lchuangnet.com) — Login: `demo@vigilops.io` / `demo123` (read-only)
+Or try the live demo: [https://demo.lchuangnet.com](https://demo.lchuangnet.com) — Login: `demo@nightmend.io` / `demo123` (read-only)
 
 In the demo, check out:
 - The alert list — notice the AI analysis field
 - The Runbook page — see the logic of each built-in remediation
 - The audit log — see records of automated actions
 
-## Practical Advice (With or Without VigilOps)
+## Practical Advice (With or Without NightMend)
 
 Regardless of what tools you use, here are concrete steps to reduce alert fatigue:
 
@@ -145,12 +145,12 @@ If more than 10% of your alerts are P0, your tiers are wrong.
 
 ## Honest Caveats
 
-VigilOps is an early-stage project. We don't claim to "eliminate alert fatigue" — that depends on your environment, your alert rules, and your team's practices.
+NightMend is an early-stage project. We don't claim to "eliminate alert fatigue" — that depends on your environment, your alert rules, and your team's practices.
 
 What we do believe: monitoring systems should be able to handle simple, predictable issues without waking someone up. That's the direction we're building toward.
 
-If you're experiencing alert fatigue and want to experiment with AI-assisted remediation, give VigilOps a try. And if it doesn't work for your use case, we'd genuinely like to know why — [GitHub Discussions](https://github.com/LinChuang2008/vigilops/discussions).
+If you're experiencing alert fatigue and want to experiment with AI-assisted remediation, give NightMend a try. And if it doesn't work for your use case, we'd genuinely like to know why — [GitHub Discussions](https://github.com/LinChuang2008/nightmend/discussions).
 
 ---
 
-*VigilOps is an Apache 2.0 open source project. [GitHub](https://github.com/LinChuang2008/vigilops)*
+*NightMend is an Apache 2.0 open source project. [GitHub](https://github.com/LinChuang2008/nightmend)*

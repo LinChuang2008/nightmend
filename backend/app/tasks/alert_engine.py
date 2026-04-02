@@ -435,7 +435,7 @@ async def _evaluate_rule(db, redis, rule: AlertRule, host: Host, metrics: dict):
             )
 
             # 发布 Redis 事件
-            await redis.publish("vigilops:alert:new", json.dumps({
+            await redis.publish("nightmend:alert:new", json.dumps({
                 "alert_id": alert.id,
                 "rule_id": rule.id,
                 "host_id": host.id,
@@ -655,7 +655,7 @@ async def _evaluate_service_rule(db, redis, rule: AlertRule, service: Service):
                 duration_seconds=duration_seconds
             )
 
-            await redis.publish("vigilops:alert:new", json.dumps({
+            await redis.publish("nightmend:alert:new", json.dumps({
                 "alert_id": alert.id,
                 "rule_id": rule.id,
                 "host_id": service.host_id,

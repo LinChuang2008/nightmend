@@ -2,7 +2,7 @@
 通知分发服务 (Notification Distribution Service)
 
 功能描述 (Description):
-    VigilOps 统一通知分发引擎，负责将告警和修复结果通知发送到多个渠道。
+    NightMend 统一通知分发引擎，负责将告警和修复结果通知发送到多个渠道。
     实现智能降噪机制，避免告警风暴对运维人员造成干扰。
     
 支持的通知渠道 (Supported Channels):
@@ -167,12 +167,12 @@ async def send_test_notification_to_channel(channel: NotificationChannel) -> boo
         bool: 发送成功返回 True，失败返回 False
 
     测试消息内容:
-        - 标题: "VigilOps 测试通知"
+        - 标题: "NightMend 测试通知"
         - 内容: 包含渠道类型、发送时间等信息的测试消息
     """
     from datetime import datetime
 
-    test_title = "VigilOps 测试通知"
+    test_title = "NightMend 测试通知"
     test_message = f"这是一条测试通知，用于验证 {channel.name} ({channel.type}) 渠道配置是否正确。"
     test_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -261,7 +261,7 @@ async def _send_test_email(channel: NotificationChannel, variables: dict) -> boo
     body = f"""
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">
       <div style="background:#4CAF50;color:#fff;padding:16px 24px;">
-        <h2 style="margin:0;">🧪 VigilOps 测试通知</h2>
+        <h2 style="margin:0;">🧪 NightMend 测试通知</h2>
       </div>
       <div style="padding:24px;">
         <p>这是一条<strong>测试通知</strong>，用于验证邮件配置是否正确。</p>
@@ -316,7 +316,7 @@ async def _send_test_dingtalk(channel: NotificationChannel, variables: dict) -> 
         webhook_url = f"{webhook_url}{sep}timestamp={ts}&sign={sign}"
 
     body = (
-        f"## 🧪 VigilOps 测试通知\n\n"
+        f"## 🧪 NightMend 测试通知\n\n"
         f"这是一条测试通知，用于验证钉钉配置是否正确。\n\n"
         f"**渠道名称**: {channel.name}\n"
         f"**发送时间**: {variables['fired_at']}\n\n"
@@ -326,7 +326,7 @@ async def _send_test_dingtalk(channel: NotificationChannel, variables: dict) -> 
     payload = {
         "msgtype": "markdown",
         "markdown": {
-            "title": "VigilOps 测试通知",
+            "title": "NightMend 测试通知",
             "text": body,
         },
     }
@@ -361,7 +361,7 @@ async def _send_test_feishu(channel: NotificationChannel, variables: dict) -> bo
         "msg_type": "interactive",
         "card": {
             "header": {
-                "title": {"tag": "plain_text", "content": "🧪 VigilOps 测试通知"},
+                "title": {"tag": "plain_text", "content": "🧪 NightMend 测试通知"},
                 "template": "green",
             },
             "elements": [
@@ -399,7 +399,7 @@ async def _send_test_wecom(channel: NotificationChannel, variables: dict) -> boo
         return False
 
     body = (
-        f"## <font color='info'>🧪 VigilOps 测试通知</font>\n"
+        f"## <font color='info'>🧪 NightMend 测试通知</font>\n"
         f"> 这是一条测试通知，用于验证企业微信配置是否正确。\n"
         f"> **渠道名称**: {channel.name}\n"
         f"> **发送时间**: {variables['fired_at']}\n\n"
@@ -453,7 +453,7 @@ async def _send_test_slack(channel: NotificationChannel, variables: dict) -> boo
         "blocks": [
             {
                 "type": "header",
-                "text": {"type": "plain_text", "text": "🧪 VigilOps 测试通知", "emoji": True},
+                "text": {"type": "plain_text", "text": "🧪 NightMend 测试通知", "emoji": True},
             },
             {
                 "type": "section",
@@ -507,7 +507,7 @@ async def _send_test_telegram(channel: NotificationChannel, variables: dict) -> 
         return False
 
     text = (
-        f"🧪 <b>VigilOps 测试通知</b>\n\n"
+        f"🧪 <b>NightMend 测试通知</b>\n\n"
         f"这是一条测试通知，用于验证 Telegram 配置是否正确。\n\n"
         f"<b>渠道名称</b>: {channel.name}\n"
         f"<b>发送时间</b>: {variables['fired_at']}\n\n"
@@ -688,7 +688,7 @@ async def _send_remediation_to_channel(channel: NotificationChannel, body: str) 
             ts, sign = _dingtalk_sign(secret)
             sep = "&" if "?" in webhook_url else "?"
             webhook_url = f"{webhook_url}{sep}timestamp={ts}&sign={sign}"
-        payload = {"msgtype": "markdown", "markdown": {"title": "VigilOps 修复通知", "text": body}}
+        payload = {"msgtype": "markdown", "markdown": {"title": "NightMend 修复通知", "text": body}}
         async with httpx.AsyncClient(timeout=10, verify=settings.webhook_enable_ssl_verification) as client:
             await client.post(webhook_url, json=payload)
 
@@ -699,7 +699,7 @@ async def _send_remediation_to_channel(channel: NotificationChannel, body: str) 
         payload: dict = {
             "msg_type": "interactive",
             "card": {
-                "header": {"title": {"tag": "plain_text", "content": "VigilOps 修复通知"}, "template": "blue"},
+                "header": {"title": {"tag": "plain_text", "content": "NightMend 修复通知"}, "template": "blue"},
                 "elements": [{"tag": "div", "text": {"tag": "lark_md", "content": body}}],
             },
         }
@@ -728,7 +728,7 @@ async def _send_remediation_to_channel(channel: NotificationChannel, body: str) 
             return
         payload = {
             "blocks": [
-                {"type": "header", "text": {"type": "plain_text", "text": "VigilOps 修复通知", "emoji": True}},
+                {"type": "header", "text": {"type": "plain_text", "text": "NightMend 修复通知", "emoji": True}},
                 {"type": "section", "text": {"type": "mrkdwn", "text": body}},
             ],
         }
@@ -761,7 +761,7 @@ async def _send_remediation_to_channel(channel: NotificationChannel, body: str) 
         msg = MIMEMultipart("alternative")
         msg["From"] = smtp_user
         msg["To"] = ", ".join(recipients)
-        msg["Subject"] = "VigilOps 修复通知"
+        msg["Subject"] = "NightMend 修复通知"
         msg.attach(MIMEText(body, "plain", "utf-8"))
         kwargs = {"hostname": smtp_host, "port": smtp_port, "username": smtp_user, "password": smtp_password}
         if use_ssl:
@@ -1131,7 +1131,7 @@ async def send_alert_notification(
     告警通知智能分发引擎 (Intelligent Alert Notification Distribution Engine)
 
     功能描述:
-        VigilOps 核心降噪引擎，实现智能化的告警通知分发。
+        NightMend 核心降噪引擎，实现智能化的告警通知分发。
         通过静默时间窗口控制，有效避免告警风暴。
         支持三种通知类型：首次告警、持续告警、恢复通知。
 
@@ -1410,11 +1410,11 @@ async def _send_email(
 def _get_email_subject(alert: Alert, notification_type: str) -> str:
     """根据通知类型生成邮件主题。"""
     if notification_type == "recovery":
-        return f"[VigilOps 已恢复] {alert.title}"
+        return f"[NightMend 已恢复] {alert.title}"
     elif notification_type == "continuous":
-        return f"[VigilOps 持续告警] {alert.severity} - {alert.title}"
+        return f"[NightMend 持续告警] {alert.severity} - {alert.title}"
     else:  # first
-        return f"[VigilOps 告警] {alert.severity} - {alert.title}"
+        return f"[NightMend 告警] {alert.severity} - {alert.title}"
 
 
 def _default_email_html(variables: dict, notification_type: str = "first") -> str:
@@ -1422,7 +1422,7 @@ def _default_email_html(variables: dict, notification_type: str = "first") -> st
     # 根据通知类型选择颜色和标题
     if notification_type == "recovery":
         header_color = "#4CAF50"  # 绿色
-        header_text = "✅ VigilOps 告警恢复"
+        header_text = "✅ NightMend 告警恢复"
         extra_rows = f"""
           <tr><td style="padding:8px 0;font-weight:bold;">状态</td><td>已恢复</td></tr>
           <tr><td style="padding:8px 0;font-weight:bold;">持续时长</td><td>{variables.get('duration_human', '-')}</td></tr>
@@ -1430,7 +1430,7 @@ def _default_email_html(variables: dict, notification_type: str = "first") -> st
         """
     elif notification_type == "continuous":
         header_color = "#FF9800"  # 橙色
-        header_text = "🔁 VigilOps 持续告警"
+        header_text = "🔁 NightMend 持续告警"
         extra_rows = f"""
           <tr><td style="padding:8px 0;font-weight:bold;">持续时长</td><td>{variables.get('duration_human', '-')}</td></tr>
           <tr><td style="padding:8px 0;font-weight:bold;">严重级别</td><td>{variables['severity']}</td></tr>
@@ -1440,7 +1440,7 @@ def _default_email_html(variables: dict, notification_type: str = "first") -> st
         """
     else:  # first
         header_color = "#d32f2f"  # 红色
-        header_text = "⚠️ VigilOps 告警通知"
+        header_text = "⚠️ NightMend 告警通知"
         extra_rows = f"""
           <tr><td style="padding:8px 0;font-weight:bold;">严重级别</td><td>{variables['severity']}</td></tr>
           <tr><td style="padding:8px 0;font-weight:bold;">消息</td><td>{variables['message']}</td></tr>
@@ -1464,7 +1464,7 @@ def _default_email_html(variables: dict, notification_type: str = "first") -> st
         </table>
       </div>
       <div style="background:#f5f5f5;padding:12px 24px;text-align:center;color:#888;font-size:12px;">
-        VigilOps 监控平台
+        NightMend 监控平台
       </div>
     </div>
     """
@@ -1545,7 +1545,7 @@ async def _send_dingtalk(
         # 根据通知类型构建不同格式的消息
         if notification_type == "recovery":
             body = (
-                f"## ✅ VigilOps 告警恢复\n\n"
+                f"## ✅ NightMend 告警恢复\n\n"
                 f"**标题**: {variables['title']}\n\n"
                 f"**状态**: {status_text}\n\n"
                 f"**持续时长**: {duration_human}\n\n"
@@ -1557,7 +1557,7 @@ async def _send_dingtalk(
             title_prefix = "[已恢复]"
         elif notification_type == "continuous":
             body = (
-                f"## 🔁 VigilOps 持续告警\n\n"
+                f"## 🔁 NightMend 持续告警\n\n"
                 f"**标题**: {variables['title']}\n\n"
                 f"**级别**: {variables['severity']}\n\n"
                 f"**消息**: {variables['message']}\n\n"
@@ -1570,7 +1570,7 @@ async def _send_dingtalk(
             title_prefix = "[持续]"
         else:  # first
             body = (
-                f"## ⚠️ VigilOps 告警\n\n"
+                f"## ⚠️ NightMend 告警\n\n"
                 f"**标题**: {variables['title']}\n\n"
                 f"**级别**: {variables['severity']}\n\n"
                 f"**消息**: {variables['message']}\n\n"
@@ -1655,7 +1655,7 @@ async def _send_feishu(
     # 渲染内容
     if template:
         _, body = _render_template(template, variables)
-        header_title = "VigilOps 通知"
+        header_title = "NightMend 通知"
         header_color = "blue"
     else:
         notification_type = variables.get("notification_type", "first")
@@ -1673,7 +1673,7 @@ async def _send_feishu(
                 f"**公网IP**: {variables.get('public_ip', '-')}\n"
                 f"**恢复时间**: {variables.get('resolved_at', variables['fired_at'])}"
             )
-            header_title = "✅ VigilOps 告警恢复"
+            header_title = "✅ NightMend 告警恢复"
             header_color = "green"
         elif notification_type == "continuous":
             body = (
@@ -1686,7 +1686,7 @@ async def _send_feishu(
                 f"**公网IP**: {variables.get('public_ip', '-')}\n"
                 f"**触发时间**: {variables['fired_at']}"
             )
-            header_title = "🔁 VigilOps 持续告警"
+            header_title = "🔁 NightMend 持续告警"
             header_color = "orange"
         else:  # first
             body = (
@@ -1698,7 +1698,7 @@ async def _send_feishu(
                 f"**公网IP**: {variables.get('public_ip', '-')}\n"
                 f"**触发时间**: {variables['fired_at']}"
             )
-            header_title = "⚠️ VigilOps 告警"
+            header_title = "⚠️ NightMend 告警"
             header_color = "red"
 
     payload: dict = {
@@ -1753,7 +1753,7 @@ async def _send_wecom(
         # 根据通知类型构建不同格式的消息
         if notification_type == "recovery":
             body = (
-                f"## <font color='info'>✅ VigilOps 告警恢复</font>\n"
+                f"## <font color='info'>✅ NightMend 告警恢复</font>\n"
                 f"> **标题**: {variables['title']}\n"
                 f"> **状态**: {status_text}\n"
                 f"> **持续时长**: {duration_human}\n"
@@ -1764,7 +1764,7 @@ async def _send_wecom(
             )
         elif notification_type == "continuous":
             body = (
-                f"## <font color='warning'>🔁 VigilOps 持续告警</font>\n"
+                f"## <font color='warning'>🔁 NightMend 持续告警</font>\n"
                 f"> **标题**: {variables['title']}\n"
                 f"> **级别**: {variables['severity']}\n"
                 f"> **消息**: {variables['message']}\n"
@@ -1776,7 +1776,7 @@ async def _send_wecom(
             )
         else:  # first
             body = (
-                f"## <font color='warning'>⚠️ VigilOps 告警</font>\n"
+                f"## <font color='warning'>⚠️ NightMend 告警</font>\n"
                 f"> **标题**: {variables['title']}\n"
                 f"> **级别**: {variables['severity']}\n"
                 f"> **消息**: {variables['message']}\n"
@@ -1850,7 +1850,7 @@ async def _send_slack(
         # 根据通知类型选择 emoji 和标题
         if notification_type == "recovery":
             severity_emoji = "✅"
-            header_text = "VigilOps 告警恢复"
+            header_text = "NightMend 告警恢复"
             detail_text = (
                 f"*标题*: {variables['title']}\n"
                 f"*状态*: {status_text}\n"
@@ -1858,7 +1858,7 @@ async def _send_slack(
             )
         elif notification_type == "continuous":
             severity_emoji = "🔁"
-            header_text = "VigilOps 持续告警"
+            header_text = "NightMend 持续告警"
             detail_text = (
                 f"*标题*: {variables['title']}\n"
                 f"*级别*: {variables['severity']}\n"
@@ -1874,7 +1874,7 @@ async def _send_slack(
                 "info": "🔵",
             }
             severity_emoji = severity_emoji_map.get(severity, "⚠️")
-            header_text = "VigilOps 告警"
+            header_text = "NightMend 告警"
             detail_text = (
                 f"*标题*: {variables['title']}\n"
                 f"*级别*: {variables['severity']}\n"
@@ -1964,7 +1964,7 @@ async def _send_telegram(
         # 根据通知类型构建不同格式的 HTML 消息
         if notification_type == "recovery":
             text = (
-                f"✅ <b>VigilOps 告警恢复</b>\n\n"
+                f"✅ <b>NightMend 告警恢复</b>\n\n"
                 f"<b>标题</b>: {variables['title']}\n"
                 f"<b>状态</b>: {status_text}\n"
                 f"<b>持续时长</b>: {duration_human}\n"
@@ -1975,7 +1975,7 @@ async def _send_telegram(
             )
         elif notification_type == "continuous":
             text = (
-                f"🔁 <b>VigilOps 持续告警</b>\n\n"
+                f"🔁 <b>NightMend 持续告警</b>\n\n"
                 f"<b>标题</b>: {variables['title']}\n"
                 f"<b>级别</b>: {variables['severity']}\n"
                 f"<b>消息</b>: {variables['message']}\n"
@@ -1995,7 +1995,7 @@ async def _send_telegram(
             }
             severity_emoji = severity_emoji_map.get(severity, "⚠️")
             text = (
-                f"{severity_emoji} <b>VigilOps 告警</b>\n\n"
+                f"{severity_emoji} <b>NightMend 告警</b>\n\n"
                 f"<b>标题</b>: {variables['title']}\n"
                 f"<b>级别</b>: {variables['severity']}\n"
                 f"<b>消息</b>: {variables['message']}\n"

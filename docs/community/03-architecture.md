@@ -4,7 +4,7 @@
 
 ---
 
-A deep dive into how VigilOps is built and how the pieces fit together.
+A deep dive into how NightMend is built and how the pieces fit together.
 
 ## System Architecture
 

@@ -1,4 +1,4 @@
-# VigilOps 安装指南
+# NightMend 安装指南
 
 > 详细的部署配置文档，涵盖 Docker Compose 部署、手动部署、环境变量、反向代理和升级。
 
@@ -24,8 +24,8 @@
 ### 部署步骤
 
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 cp .env.example .env
 ```
 
@@ -54,15 +54,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-vigilops}
-      POSTGRES_USER: ${POSTGRES_USER:-vigilops}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vigilops_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-nightmend}
+      POSTGRES_USER: ${POSTGRES_USER:-nightmend}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nightmend_dev_password}
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vigilops}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nightmend}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -129,8 +129,8 @@ open http://localhost:3001
 |------|------|:----:|--------|
 | `POSTGRES_HOST` | PostgreSQL 主机地址 | 否 | `postgres`（Docker 内部服务名） |
 | `POSTGRES_PORT` | PostgreSQL 端口 | 否 | `5432` |
-| `POSTGRES_DB` | 数据库名 | 否 | `vigilops` |
-| `POSTGRES_USER` | 数据库用户名 | 否 | `vigilops` |
+| `POSTGRES_DB` | 数据库名 | 否 | `nightmend` |
+| `POSTGRES_USER` | 数据库用户名 | 否 | `nightmend` |
 | `POSTGRES_PASSWORD` | 数据库密码 | **是** | `change-me` |
 
 > ⚠️ 生产环境务必修改 `POSTGRES_PASSWORD`，不要使用默认值。
@@ -228,17 +228,17 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
 使用 systemd 管理后端：
 
 ```bash
-cat > /etc/systemd/system/vigilops-backend.service << 'EOF'
+cat > /etc/systemd/system/nightmend-backend.service << 'EOF'
 [Unit]
-Description=VigilOps Backend
+Description=NightMend Backend
 After=network.target postgresql.service redis.service
 
 [Service]
 Type=simple
-User=vigilops
-WorkingDirectory=/opt/vigilops/backend
-EnvironmentFile=/opt/vigilops/.env
-ExecStart=/opt/vigilops/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001
+User=nightmend
+WorkingDirectory=/opt/nightmend/backend
+EnvironmentFile=/opt/nightmend/.env
+ExecStart=/opt/nightmend/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001
 Restart=always
 RestartSec=5
 
@@ -247,7 +247,7 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now vigilops-backend
+systemctl enable --now nightmend-backend
 ```
 
 ### 前端部署
@@ -270,7 +270,7 @@ Nginx 配置示例（托管前端静态文件）：
 server {
     listen 3001;
     server_name localhost;
-    root /opt/vigilops/frontend/dist;
+    root /opt/nightmend/frontend/dist;
     index index.html;
 
     location / {
@@ -327,16 +327,16 @@ dnf install -y nginx certbot python3-certbot-nginx
 ```nginx
 server {
     listen 80;
-    server_name vigilops.example.com;
+    server_name nightmend.example.com;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name vigilops.example.com;
+    server_name nightmend.example.com;
 
-    ssl_certificate     /etc/letsencrypt/live/vigilops.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/vigilops.example.com/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/nightmend.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/nightmend.example.com/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
 
     # 前端
@@ -373,7 +373,7 @@ server {
 ### 申请 SSL 证书
 
 ```bash
-certbot --nginx -d vigilops.example.com
+certbot --nginx -d nightmend.example.com
 ```
 
 ### 自动续期
@@ -390,7 +390,7 @@ systemctl status certbot.timer
 ### Docker Compose 升级
 
 ```bash
-cd vigilops
+cd nightmend
 
 # 拉取最新代码
 git pull origin main
@@ -407,7 +407,7 @@ docker compose logs -f --tail=50
 ### 手动部署升级
 
 ```bash
-cd /opt/vigilops
+cd /opt/nightmend
 
 # 拉取最新代码
 git pull origin main
@@ -418,7 +418,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # 重启后端
-systemctl restart vigilops-backend
+systemctl restart nightmend-backend
 
 # 重新构建前端
 cd ../frontend
@@ -431,7 +431,7 @@ systemctl reload nginx
 
 ### 数据库迁移
 
-VigilOps 在启动时会自动检测并执行数据库迁移。如需手动执行：
+NightMend 在启动时会自动检测并执行数据库迁移。如需手动执行：
 
 ```bash
 # Docker 环境
@@ -477,15 +477,15 @@ frontend:
 docker compose logs -f backend
 
 # 手动部署
-journalctl -u vigilops-backend -f
+journalctl -u nightmend-backend -f
 ```
 
 **Q: 如何备份数据？**
 
 ```bash
 # 备份 PostgreSQL
-docker compose exec postgres pg_dump -U vigilops vigilops > backup_$(date +%Y%m%d).sql
+docker compose exec postgres pg_dump -U nightmend nightmend > backup_$(date +%Y%m%d).sql
 
 # 恢复
-cat backup_20260221.sql | docker compose exec -T postgres psql -U vigilops vigilops
+cat backup_20260221.sql | docker compose exec -T postgres psql -U nightmend nightmend
 ```

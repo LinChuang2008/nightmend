@@ -3,8 +3,8 @@ import sys
 from unittest.mock import MagicMock, patch
 import pytest
 
-from vigilops_agent.config import DatabaseMonitorConfig
-from vigilops_agent.db_collectors.redis import RedisCollector
+from nightmend_agent.config import DatabaseMonitorConfig
+from nightmend_agent.db_collectors.redis import RedisCollector
 
 
 def _make_cfg(**kwargs) -> DatabaseMonitorConfig:
@@ -163,7 +163,7 @@ class TestDBCollectorDispatch:
 
     def test_dispatch_redis(self):
         """collect_db_metrics 正确分派到 RedisCollector。"""
-        from vigilops_agent.db_collector import collect_db_metrics
+        from nightmend_agent.db_collector import collect_db_metrics
 
         mock_redis_lib = MagicMock()
         mock_client = MagicMock()
@@ -180,7 +180,7 @@ class TestDBCollectorDispatch:
 
     def test_dispatch_unknown_type_returns_none(self):
         """未知 type 返回 None 不崩溃。"""
-        from vigilops_agent.db_collector import collect_db_metrics
+        from nightmend_agent.db_collector import collect_db_metrics
         cfg = _make_cfg(type="unknown_database_xyz")
         result = collect_db_metrics(cfg)
         assert result is None

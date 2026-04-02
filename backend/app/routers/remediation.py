@@ -11,7 +11,7 @@
 依赖关系：依赖SQLAlchemy、JWT认证、审计服务、修复引擎
 API端点：GET /remediations, POST /remediations/{id}/approve, POST /remediations/{id}/reject, POST /remediations/trigger, GET /remediations/stats
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 
 from datetime import datetime, timezone, timedelta

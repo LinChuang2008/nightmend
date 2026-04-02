@@ -4,7 +4,7 @@
 set -euo pipefail
 
 ECS_HOST="${ECS_HOST:-root@demo.lchuangnet.com}"
-DEPLOY_DIR="${DEPLOY_DIR:-/opt/vigilops}"
+DEPLOY_DIR="${DEPLOY_DIR:-/opt/nightmend}"
 HEALTH_URL="https://demo.lchuangnet.com/health"
 HEALTH_TIMEOUT=120   # 等待健康检查最长秒数
 

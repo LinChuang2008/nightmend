@@ -13,7 +13,7 @@ API端点：GET/POST/PUT/DELETE /api/v1/server-groups, POST/DELETE /api/v1/serve
 
 History: Cycle 8 Day 2 从 topology.py 独立为专用路由，支持服务分类和拓扑管理
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, delete

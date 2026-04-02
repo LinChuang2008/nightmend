@@ -11,7 +11,7 @@
 依赖关系：依赖 User 数据模型、审计服务和安全模块
 API端点：GET /me, GET/POST/PUT/DELETE /api/v1/users, PUT /api/v1/users/{id}/password
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import json
 
@@ -224,7 +224,7 @@ async def update_user(
         - 完整审计日志记录
         
     Business Rules:
-        - demo@vigilops.io 为系统保护账号，不可编辑
+        - demo@nightmend.io 为系统保护账号，不可编辑
         - 支持部分字段更新，未提供的字段保持不变
     """
     # 查询要编辑的用户是否存在
@@ -234,7 +234,7 @@ async def update_user(
         raise HTTPException(status_code=404, detail="用户不存在")
 
     # 特殊账号保护：demo 账号不可编辑
-    if user.email == "demo@vigilops.io":
+    if user.email == "demo@nightmend.io":
         raise HTTPException(status_code=403, detail="Demo 账号不可编辑")
 
     # 获取要更新的字段，仅包含实际提供的字段（patch 语义）
@@ -305,7 +305,7 @@ async def delete_user(
         raise HTTPException(status_code=404, detail="用户不存在")
 
     # 特殊账号保护：demo 账号不可删除
-    if user.email == "demo@vigilops.io":
+    if user.email == "demo@nightmend.io":
         raise HTTPException(status_code=403, detail="Demo 账号不可删除")
 
     # 记录审计日志：删除前记录用户邮箱，便于审计追踪
@@ -360,7 +360,7 @@ async def reset_password(
         - Demo 账号特殊保护
         
     Business Rules:
-        - demo@vigilops.io 密码不可修改，保护演示环境
+        - demo@nightmend.io 密码不可修改，保护演示环境
         - 新密码立即生效，用户下次登录使用新密码
     """
     # 查询要重置密码的用户是否存在
@@ -370,7 +370,7 @@ async def reset_password(
         raise HTTPException(status_code=404, detail="用户不存在")
 
     # 特殊账号保护：demo 账号密码不可修改
-    if user.email == "demo@vigilops.io":
+    if user.email == "demo@nightmend.io":
         raise HTTPException(status_code=403, detail="Demo 账号密码不可修改")
 
     # 使用安全哈希算法存储新密码

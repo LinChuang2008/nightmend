@@ -1,9 +1,9 @@
 """测试 AbstractDBCollector 注册机制和分派逻辑。"""
 import pytest
-from vigilops_agent.db_collectors.base import AbstractDBCollector
+from nightmend_agent.db_collectors.base import AbstractDBCollector
 
 # 导入所有采集器触发注册
-import vigilops_agent.db_collectors  # noqa: F401
+import nightmend_agent.db_collectors  # noqa: F401
 
 
 def test_registry_contains_all_types():
@@ -26,8 +26,8 @@ def test_get_collector_returns_instance():
 
 def test_custom_collector_auto_registers():
     """自定义子类通过 db_type 参数自动注册。"""
-    from vigilops_agent.db_collectors.base import AbstractDBCollector
-    from vigilops_agent.config import DatabaseMonitorConfig
+    from nightmend_agent.db_collectors.base import AbstractDBCollector
+    from nightmend_agent.config import DatabaseMonitorConfig
 
     class FakeCollector(AbstractDBCollector, db_type="fakedb_test"):
         def collect(self, cfg: DatabaseMonitorConfig):

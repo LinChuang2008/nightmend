@@ -33,7 +33,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 
 const CONFIG_SNIPPET = `# alertmanager.yml
 receivers:
-  - name: 'vigilops'
+  - name: 'nightmend'
     webhook_configs:
       - url: '${window.location.origin}/api/v1/webhooks/alertmanager'
         send_resolved: true
@@ -43,7 +43,7 @@ receivers:
             credentials: 'YOUR_TOKEN_HERE'
 
 route:
-  receiver: 'vigilops'`;
+  receiver: 'nightmend'`;
 
 export default function Demo() {
   const [events, setEvents] = useState<DiagnosisEvent[]>([]);
@@ -125,7 +125,7 @@ export default function Demo() {
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <div style={{ textAlign: 'center' }}>
           <Title level={2} style={{ marginBottom: 4 }}>
-            VigilOps Prometheus 告警 AI 诊断
+            NightMend Prometheus 告警 AI 诊断
           </Title>
           <Text type="secondary">
             连接你的 AlertManager，2 分钟内看到 AI 根因分析
@@ -265,7 +265,7 @@ export default function Demo() {
             <Space>
               <Button
                 size="small"
-                href="https://github.com/LinChuang2008/vigilops/issues/new?title=Demo+Feedback&labels=feedback"
+                href="https://github.com/LinChuang2008/nightmend/issues/new?title=Demo+Feedback&labels=feedback"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -274,7 +274,7 @@ export default function Demo() {
               <Button
                 size="small"
                 type="text"
-                href="https://github.com/LinChuang2008/vigilops/issues/new?title=Demo+Feedback&labels=feedback"
+                href="https://github.com/LinChuang2008/nightmend/issues/new?title=Demo+Feedback&labels=feedback"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -286,7 +286,7 @@ export default function Demo() {
 
         <div style={{ textAlign: 'center', padding: '16px 0' }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            VigilOps — 开源 AI 运维平台 | 自托管，数据不出境
+            NightMend — 开源 AI 运维平台 | 自托管，数据不出境
           </Text>
         </div>
       </Space>

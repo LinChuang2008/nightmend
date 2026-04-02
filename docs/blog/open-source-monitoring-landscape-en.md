@@ -1,6 +1,6 @@
 # Open Source Monitoring in 2026: What's Changed and What Still Hurts
 
-> VigilOps Team | February 2026
+> NightMend Team | February 2026
 
 ---
 
@@ -35,7 +35,7 @@ The biggest shift in monitoring over the past 18 months is the injection of AI �
 
 But here's what's notable: **in the open-source world, AI-powered monitoring is essentially nonexistent.** Prometheus doesn't do AI analysis. Grafana doesn't auto-remediate. AlertManager doesn't understand context. The open-source monitoring stack remains firmly in the "detect and notify" paradigm.
 
-This gap is why we built VigilOps — but more on that later. First, let's survey the landscape.
+This gap is why we built NightMend — but more on that later. First, let's survey the landscape.
 
 ## The Players: What Each Does Best
 
@@ -84,11 +84,11 @@ Commercial tools are starting to address this — PagerDuty's Process Automation
 In the open-source world, if you want auto-remediation, your options are:
 1. Write your own scripts and wire them to AlertManager webhooks
 2. Set up Ansible/Rundeck alongside your monitoring stack (another integration to maintain)
-3. Use VigilOps (which is what we built, so take this recommendation with appropriate skepticism)
+3. Use NightMend (which is what we built, so take this recommendation with appropriate skepticism)
 
-## Where VigilOps Fits
+## Where NightMend Fits
 
-VigilOps is trying to be the first open-source monitoring platform that includes AI analysis and auto-remediation as core features, not add-ons.
+NightMend is trying to be the first open-source monitoring platform that includes AI analysis and auto-remediation as core features, not add-ons.
 
 **What it does:**
 - Full-stack monitoring (servers, services, databases, logs)
@@ -106,21 +106,21 @@ VigilOps is trying to be the first open-source monitoring platform that includes
 - 🔴 **Ecosystem:** Limited integrations compared to Prometheus/Grafana
 - 🔴 **HA:** No built-in high availability
 
-We're not positioning VigilOps as a replacement for Prometheus or Grafana. For teams that need proven, scalable metrics infrastructure, those tools are the right choice.
+We're not positioning NightMend as a replacement for Prometheus or Grafana. For teams that need proven, scalable metrics infrastructure, those tools are the right choice.
 
-VigilOps is for teams who want to experiment with what comes *after* alerting — the AI analysis and automated response that the open-source world hasn't addressed yet.
+NightMend is for teams who want to experiment with what comes *after* alerting — the AI analysis and automated response that the open-source world hasn't addressed yet.
 
 ## Trying It
 
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 cp .env.example .env   # Add DeepSeek API key
 docker compose up -d
 # Open http://localhost:3001
 ```
 
-Live demo: [https://demo.lchuangnet.com](https://demo.lchuangnet.com) — `demo@vigilops.io` / `demo123` (read-only)
+Live demo: [https://demo.lchuangnet.com](https://demo.lchuangnet.com) — `demo@nightmend.io` / `demo123` (read-only)
 
 ## Looking Ahead
 
@@ -132,8 +132,8 @@ We think the key components of next-generation monitoring are:
 2. **Automated remediation** — For predictable, scriptable issues, let the system fix them
 3. **AI agent integration** — Via protocols like MCP, letting AI assistants interact with monitoring data programmatically
 
-Whether VigilOps specifically succeeds at this is an open question — we're early. But the direction is inevitable. Monitoring systems that just show dashboards and send notifications will feel increasingly incomplete.
+Whether NightMend specifically succeeds at this is an open question — we're early. But the direction is inevitable. Monitoring systems that just show dashboards and send notifications will feel increasingly incomplete.
 
 ---
 
-*VigilOps is an Apache 2.0 open source project. [GitHub](https://github.com/LinChuang2008/vigilops)*
+*NightMend is an Apache 2.0 open source project. [GitHub](https://github.com/LinChuang2008/nightmend)*

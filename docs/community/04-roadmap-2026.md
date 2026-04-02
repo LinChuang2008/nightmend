@@ -4,7 +4,7 @@
 
 ---
 
-Here's where VigilOps has been, where it's going, and how you can shape its future.
+Here's where NightMend has been, where it's going, and how you can shape its future.
 
 ## ✅ Completed
 

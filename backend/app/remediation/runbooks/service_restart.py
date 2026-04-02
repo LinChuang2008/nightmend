@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复 Runbook - 服务重启
-VigilOps Automatic Remediation Runbook - Service Restart
+NightMend 自动修复 Runbook - 服务重启
+NightMend Automatic Remediation Runbook - Service Restart
 
 这是一个服务重启修复脚本，用于处理服务异常或停止运行的告警。
 This is a service restart remediation script for handling service failure or stopped service alerts.
@@ -31,7 +31,7 @@ This is a service restart remediation script for handling service failure or sto
 - 某些服务重启可能需要较长时间
 - 数据库等有状态服务重启需谨慎
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 风险等级：MEDIUM
 """

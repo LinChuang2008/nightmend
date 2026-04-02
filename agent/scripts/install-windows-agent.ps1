@@ -1,26 +1,26 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    One-click installer for VigilOps Agent on Windows.
-    VigilOps Agent Windows 一键安装脚本。
+    One-click installer for NightMend Agent on Windows.
+    NightMend Agent Windows 一键安装脚本。
 
 .DESCRIPTION
-    This script performs a complete installation of VigilOps Agent on Windows:
-    本脚本在 Windows 上执行 VigilOps Agent 的完整安装：
+    This script performs a complete installation of NightMend Agent on Windows:
+    本脚本在 Windows 上执行 NightMend Agent 的完整安装：
 
     1. Check Python 3.9+ availability / 检查 Python 3.9+ 是否可用
     2. Create virtual environment / 创建虚拟环境
-    3. Install vigilops-agent package / 安装 vigilops-agent 包
+    3. Install nightmend-agent package / 安装 nightmend-agent 包
     4. Create default config directory and template / 创建默认配置目录和模板
     5. Optionally install as Windows service / 可选安装为 Windows 服务
 
 .PARAMETER InstallDir
-    Installation directory. Default: C:\vigilops
-    安装目录。默认：C:\vigilops
+    Installation directory. Default: C:\nightmend
+    安装目录。默认：C:\nightmend
 
 .PARAMETER ServerUrl
-    VigilOps server URL. Default: http://localhost:8001
-    VigilOps 服务端地址。默认：http://localhost:8001
+    NightMend server URL. Default: http://localhost:8001
+    NightMend 服务端地址。默认：http://localhost:8001
 
 .PARAMETER Token
     Agent authentication token.
@@ -35,11 +35,11 @@
     如果与 -InstallService 一起设置，使用 NSSM 注册服务。
 
 .EXAMPLE
-    .\install-windows-agent.ps1 -Token "your-token-here" -ServerUrl "https://vigilops.example.com" -InstallService
+    .\install-windows-agent.ps1 -Token "your-token-here" -ServerUrl "https://nightmend.example.com" -InstallService
 #>
 
 param(
-    [string]$InstallDir = "C:\vigilops",
+    [string]$InstallDir = "C:\nightmend",
     [string]$ServerUrl = "http://localhost:8001",
     [string]$Token = "",
     [switch]$InstallService,
@@ -49,7 +49,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "VigilOps Agent - Windows One-Click Installer" -ForegroundColor Cyan
+Write-Host "NightMend Agent - Windows One-Click Installer" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -89,7 +89,7 @@ if (-not (Test-Path $venvDir)) {
 }
 
 $pipExe = Join-Path $venvDir "Scripts\pip.exe"
-$agentExe = Join-Path $venvDir "Scripts\vigilops-agent.exe"
+$agentExe = Join-Path $venvDir "Scripts\nightmend-agent.exe"
 
 if (-not (Test-Path $pipExe)) {
     Write-Error "pip not found in virtual environment. Installation may be corrupted."
@@ -99,9 +99,9 @@ if (-not (Test-Path $pipExe)) {
 Write-Host "  Virtual environment ready." -ForegroundColor Green
 
 # ---- Step 3: Install package / 安装 Agent 包 ----
-Write-Host "[3/5] Installing vigilops-agent..." -ForegroundColor Yellow
+Write-Host "[3/5] Installing nightmend-agent..." -ForegroundColor Yellow
 & $pipExe install --upgrade pip 2>&1 | Out-Null
-& $pipExe install vigilops-agent
+& $pipExe install nightmend-agent
 if ($LASTEXITCODE -ne 0) {
     Write-Warning "PyPI install failed. Trying local install from source..."
     $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -109,7 +109,7 @@ if ($LASTEXITCODE -ne 0) {
     if (Test-Path (Join-Path $projectDir "pyproject.toml")) {
         & $pipExe install $projectDir
     } else {
-        Write-Error "Failed to install vigilops-agent. Check network or provide the package."
+        Write-Error "Failed to install nightmend-agent. Check network or provide the package."
         exit 1
     }
 }
@@ -117,7 +117,7 @@ Write-Host "  Package installed." -ForegroundColor Green
 
 # ---- Step 4: Create config / 创建配置文件 ----
 Write-Host "[4/5] Setting up configuration..." -ForegroundColor Yellow
-$configDir = Join-Path $env:PROGRAMDATA "vigilops"
+$configDir = Join-Path $env:PROGRAMDATA "nightmend"
 $configFile = Join-Path $configDir "agent.yaml"
 
 if (-not (Test-Path $configDir)) {
@@ -133,7 +133,7 @@ if (-not (Test-Path $logDir)) {
 if (-not (Test-Path $configFile)) {
     # Generate default config / 生成默认配置
     $configContent = @"
-# VigilOps Agent Configuration / VigilOps Agent 配置文件
+# NightMend Agent Configuration / NightMend Agent 配置文件
 # Generated on $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 
 server:
@@ -174,7 +174,7 @@ if ($InstallService) {
     $serviceScript = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "install-windows-service.ps1"
     if (Test-Path $serviceScript) {
         $svcParams = @{
-            ServiceName  = "VigilOpsAgent"
+            ServiceName  = "NightMendAgent"
             AgentExePath = $agentExe
             ConfigPath   = $configFile
         }

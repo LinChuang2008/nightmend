@@ -1,6 +1,6 @@
-# VigilOps 快速入门
+# NightMend 快速入门
 
-> 5 分钟内启动 VigilOps，开始监控你的第一台服务器。
+> 5 分钟内启动 NightMend，开始监控你的第一台服务器。
 
 ## 目录
 
@@ -34,8 +34,8 @@ docker compose version
 
 ```bash
 # 克隆项目
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 
 # 复制环境配置
 cp .env.example .env
@@ -67,7 +67,7 @@ docker compose ps
 2. 点击 **注册**，创建第一个账号
 3. **第一个注册的用户自动成为管理员**，拥有全部权限
 
-> 💡 如需快速体验，也可使用默认演示账号：`admin` / `vigilops`（仅开发环境）
+> 💡 如需快速体验，也可使用默认演示账号：`admin` / `nightmend`（仅开发环境）
 
 ## 添加第一台监控主机
 
@@ -83,15 +83,15 @@ docker compose ps
 
 ```bash
 # 下载 Agent
-git clone https://github.com/LinChuang2008/vigilops.git /opt/vigilops
-cd /opt/vigilops/agent
+git clone https://github.com/LinChuang2008/nightmend.git /opt/nightmend
+cd /opt/nightmend/agent
 
 # 安装依赖
 pip install -r requirements.txt
 
 # 配置 Agent
-cat > /opt/vigilops/agent/.env << 'EOF'
-VIGILOPS_SERVER=http://<你的VigilOps服务器IP>:8001
+cat > /opt/nightmend/agent/.env << 'EOF'
+NIGHTMEND_SERVER=http://<你的NightMend服务器IP>:8001
 AGENT_TOKEN=<上一步复制的Token>
 EOF
 
@@ -102,30 +102,30 @@ python agent.py
 使用 systemd 管理（推荐）：
 
 ```bash
-cat > /etc/systemd/system/vigilops-agent.service << 'EOF'
+cat > /etc/systemd/system/nightmend-agent.service << 'EOF'
 [Unit]
-Description=VigilOps Agent
+Description=NightMend Agent
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/vigilops/agent
+WorkingDirectory=/opt/nightmend/agent
 ExecStart=/usr/bin/python3 agent.py
 Restart=always
 RestartSec=10
-EnvironmentFile=/opt/vigilops/agent/.env
+EnvironmentFile=/opt/nightmend/agent/.env
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now vigilops-agent
+systemctl enable --now nightmend-agent
 ```
 
 ### 第三步：验证数据
 
-1. 回到 VigilOps 前端，进入 **服务器列表**
+1. 回到 NightMend 前端，进入 **服务器列表**
 2. 新添加的主机应在 1-2 分钟内出现
 3. 点击主机名查看 CPU、内存、磁盘等监控数据
 
@@ -133,10 +133,10 @@ systemctl enable --now vigilops-agent
 
 ```bash
 # 查看 Agent 日志
-journalctl -u vigilops-agent -f
+journalctl -u nightmend-agent -f
 
 # 测试连通性
-curl -s http://<VigilOps服务器IP>:8001/api/health
+curl -s http://<NightMend服务器IP>:8001/api/health
 ```
 
 ## 下一步

@@ -330,7 +330,7 @@ async def analyze_logs_on_demand(
 
 
 # ── AI 生成 Runbook 的系统提示 ──────────────────────────────────────────────
-GENERATE_RUNBOOK_SYSTEM_PROMPT = """你是 VigilOps AI 运维自动化专家，负责根据用户的自然语言描述生成可执行的运维 Runbook。
+GENERATE_RUNBOOK_SYSTEM_PROMPT = """你是 NightMend AI 运维自动化专家，负责根据用户的自然语言描述生成可执行的运维 Runbook。
 
 生成要求：
 1. 生成的命令必须安全，禁止使用 rm -rf /、dd if=、mkfs、fdisk、fork bomb 等危险命令

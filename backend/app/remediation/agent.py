@@ -1,9 +1,9 @@
 """
-VigilOps 自动修复系统 - 核心 Agent 编排器
-VigilOps Remediation System - Core Agent Orchestrator
+NightMend 自动修复系统 - 核心 Agent 编排器
+NightMend Remediation System - Core Agent Orchestrator
 
-这是 VigilOps 自动修复系统的核心组件，负责端到端的告警处理流程：
-This is the core component of VigilOps remediation system, handling end-to-end alert processing flow:
+这是 NightMend 自动修复系统的核心组件，负责端到端的告警处理流程：
+This is the core component of NightMend remediation system, handling end-to-end alert processing flow:
 
 流程 (Flow): 
 告警 (Alert) → AI 诊断 (AI Diagnosis) → Runbook 匹配 (Runbook Matching) → 
@@ -17,7 +17,7 @@ This is the core component of VigilOps remediation system, handling end-to-end a
 - 完整的审计日志和通知系统
 - 异步执行，支持超时控制
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 """
 from __future__ import annotations
@@ -61,8 +61,8 @@ logger = logging.getLogger(__name__)
 class RemediationAgent:
     """AI 驱动的自动修复 Agent (AI-Driven Automated Remediation Agent)
     
-    这是 VigilOps 自动修复系统的核心控制器，负责协调各个子组件完成智能修复任务。
-    This is the core controller of VigilOps remediation system, coordinating various sub-components
+    这是 NightMend 自动修复系统的核心控制器，负责协调各个子组件完成智能修复任务。
+    This is the core controller of NightMend remediation system, coordinating various sub-components
     to complete intelligent remediation tasks.
     
     主要职责 (Primary Responsibilities):
@@ -586,7 +586,7 @@ class RemediationAgent:
             content += f"\n原因: {result.blocked_reason}"
 
         try:
-            asyncio.create_task(memory_client.store(content, source="vigilops-remediation"))
+            asyncio.create_task(memory_client.store(content, source="nightmend-remediation"))
         except Exception:
             logger.debug("Failed to schedule remediation experience storage")
 
@@ -606,7 +606,7 @@ class RemediationAgent:
         3. 修复失败通知：包含失败原因和建议的后续操作
         
         通知渠道 (Notification Channels):
-        复用 VigilOps 现有的 5 种通知渠道：钉钉、飞书、企微、邮件、Webhook
+        复用 NightMend 现有的 5 种通知渠道：钉钉、飞书、企微、邮件、Webhook
         
         Args:
             db: 数据库会话 (Database session)

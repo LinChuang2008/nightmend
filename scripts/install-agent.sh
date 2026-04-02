@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
-# VigilOps Agent 安装脚本
+# NightMend Agent 安装脚本
 # =============================================================================
 #
 # 用法：
-#   cd vigilops
+#   cd nightmend
 #   sudo ./scripts/install-agent.sh --server URL --token TOKEN
 #
 # 功能：
@@ -19,10 +19,10 @@ set -e
 # 常量
 # =============================================================================
 readonly SCRIPT_VERSION="2.0.0"
-readonly INSTALL_DIR="/opt/vigilops-agent"
-readonly CONFIG_DIR="/etc/vigilops"
+readonly INSTALL_DIR="/opt/nightmend-agent"
+readonly CONFIG_DIR="/etc/nightmend"
 readonly CONFIG_FILE="$CONFIG_DIR/agent.yaml"
-readonly SERVICE_NAME="vigilops-agent"
+readonly SERVICE_NAME="nightmend-agent"
 readonly VENV_DIR="$INSTALL_DIR/venv"
 readonly MIN_PYTHON="3.9"
 
@@ -35,7 +35,7 @@ readonly YELLOW='\033[1;33m'
 readonly CYAN='\033[0;36m'
 readonly NC='\033[0m'
 
-msg()  { echo -e "${GREEN}[VigilOps]${NC} $*"; }
+msg()  { echo -e "${GREEN}[NightMend]${NC} $*"; }
 info() { echo -e "${CYAN}[INFO]${NC}    $*"; }
 warn() { echo -e "${YELLOW}[WARN]${NC}    $*"; }
 err()  { echo -e "${RED}[ERROR]${NC}   $*" >&2; }
@@ -55,13 +55,13 @@ NO_DB=false
 
 show_help() {
     cat <<EOF
-VigilOps Agent 安装程序 v${SCRIPT_VERSION}
+NightMend Agent 安装程序 v${SCRIPT_VERSION}
 
 用法:
   sudo ./scripts/install-agent.sh --server URL --token TOKEN [选项]
 
 必需参数:
-  --server, -s URL       VigilOps 服务端地址 (如: http://192.168.1.100:8001)
+  --server, -s URL       NightMend 服务端地址 (如: http://192.168.1.100:8001)
   --token, -t TOKEN      Agent Token (从 设置 → Agent Tokens 获取)
 
 可选参数:
@@ -111,7 +111,7 @@ parse_args() {
 # 卸载
 # =============================================================================
 do_uninstall() {
-    msg "正在卸载 VigilOps Agent..."
+    msg "正在卸载 NightMend Agent..."
 
     systemctl stop "$SERVICE_NAME" 2>/dev/null || true
     systemctl disable "$SERVICE_NAME" 2>/dev/null || true
@@ -235,7 +235,7 @@ find_agent_dir() {
     for dir in "${candidates[@]}"; do
         local abs_dir
         abs_dir=$(cd "$dir" 2>/dev/null && pwd) || continue
-        if [[ -f "${abs_dir}/pyproject.toml" ]] && grep -q "vigilops-agent" "${abs_dir}/pyproject.toml" 2>/dev/null; then
+        if [[ -f "${abs_dir}/pyproject.toml" ]] && grep -q "nightmend-agent" "${abs_dir}/pyproject.toml" 2>/dev/null; then
             echo "$abs_dir"
             return 0
         fi
@@ -265,7 +265,7 @@ install_agent() {
     "$VENV_DIR/bin/pip" install -q --upgrade pip
 
     # 安装 agent
-    info "安装 vigilops-agent..."
+    info "安装 nightmend-agent..."
     local install_opts=()
     if $NO_DB; then
         # 不安装数据库驱动
@@ -276,11 +276,11 @@ install_agent() {
     fi
 
     # 验证安装
-    if ! "$VENV_DIR/bin/vigilops-agent" --version &>/dev/null; then
+    if ! "$VENV_DIR/bin/nightmend-agent" --version &>/dev/null; then
         die "Agent 安装验证失败"
     fi
 
-    msg "安装成功: $($VENV_DIR/bin/vigilops-agent --version 2>&1 || echo "v0.1.0")"
+    msg "安装成功: $($VENV_DIR/bin/nightmend-agent --version 2>&1 || echo "v0.1.0")"
 }
 
 # =============================================================================
@@ -306,7 +306,7 @@ generate_config() {
     fi
 
     cat > "$CONFIG_FILE" <<YAML
-# VigilOps Agent 配置文件
+# NightMend Agent 配置文件
 # 生成时间: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 server:
@@ -364,20 +364,20 @@ install_systemd_service() {
 
     cat > "/etc/systemd/system/${SERVICE_NAME}.service" <<EOF
 [Unit]
-Description=VigilOps Monitoring Agent
-Documentation=https://github.com/LinChuang2008/vigilops
+Description=NightMend Monitoring Agent
+Documentation=https://github.com/LinChuang2008/nightmend
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=root
-ExecStart=${VENV_DIR}/bin/vigilops-agent -c ${CONFIG_FILE} run
+ExecStart=${VENV_DIR}/bin/nightmend-agent -c ${CONFIG_FILE} run
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=vigilops-agent
+SyslogIdentifier=nightmend-agent
 
 # 安全加固
 NoNewprivileges=yes
@@ -406,7 +406,7 @@ EOF
 print_result() {
     echo ""
     echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}  VigilOps Agent 安装成功!${NC}"
+    echo -e "${GREEN}  NightMend Agent 安装成功!${NC}"
     echo -e "${CYAN}══════════════════════════════════════════════════${NC}"
     echo ""
     echo "  安装目录:   $INSTALL_DIR"
@@ -417,7 +417,7 @@ print_result() {
     echo "    查看状态:  systemctl status $SERVICE_NAME"
     echo "    查看日志:  journalctl -u $SERVICE_NAME -f"
     echo "    重启服务:  systemctl restart $SERVICE_NAME"
-    echo "    验证配置:  $VENV_DIR/bin/vigilops-agent check"
+    echo "    验证配置:  $VENV_DIR/bin/nightmend-agent check"
     echo ""
 }
 
@@ -427,7 +427,7 @@ print_result() {
 main() {
     echo ""
     echo -e "${CYAN}╔══════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║    VigilOps Agent 安装程序 v${SCRIPT_VERSION}            ║${NC}"
+    echo -e "${CYAN}║    NightMend Agent 安装程序 v${SCRIPT_VERSION}            ║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════════════════╝${NC}"
     echo ""
 
@@ -466,7 +466,7 @@ main() {
     # 查找 agent 目录
     local agent_dir
     if ! agent_dir=$(find_agent_dir); then
-        die "未找到 agent 目录，请确保在 vigilops 仓库目录下运行此脚本"
+        die "未找到 agent 目录，请确保在 nightmend 仓库目录下运行此脚本"
     fi
     info "Agent 目录: $agent_dir"
 

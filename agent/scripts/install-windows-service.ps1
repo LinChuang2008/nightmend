@@ -1,13 +1,13 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    Install VigilOps Agent as a Windows Service using NSSM or sc.exe.
-    使用 NSSM 或 sc.exe 将 VigilOps Agent 注册为 Windows 服务。
+    Install NightMend Agent as a Windows Service using NSSM or sc.exe.
+    使用 NSSM 或 sc.exe 将 NightMend Agent 注册为 Windows 服务。
 
 .DESCRIPTION
-    This script registers the VigilOps Agent as a Windows service so it starts
+    This script registers the NightMend Agent as a Windows service so it starts
     automatically on boot and runs in the background.
-    本脚本将 VigilOps Agent 注册为 Windows 服务，使其开机自启并在后台运行。
+    本脚本将 NightMend Agent 注册为 Windows 服务，使其开机自启并在后台运行。
 
     Preferred method: NSSM (Non-Sucking Service Manager) — handles stdout/stderr
     logging, graceful restart, and process monitoring.
@@ -18,12 +18,12 @@
     备选方式：sc.exe — 系统内置，但要求 agent 实现 Windows 服务 API。
 
 .PARAMETER ServiceName
-    The Windows service name. Default: VigilOpsAgent
-    Windows 服务名。默认：VigilOpsAgent
+    The Windows service name. Default: NightMendAgent
+    Windows 服务名。默认：NightMendAgent
 
 .PARAMETER AgentExePath
-    Path to the vigilops-agent executable (or python.exe).
-    vigilops-agent 可执行文件（或 python.exe）路径。
+    Path to the nightmend-agent executable (or python.exe).
+    nightmend-agent 可执行文件（或 python.exe）路径。
 
 .PARAMETER ConfigPath
     Path to agent.yaml config file.
@@ -34,11 +34,11 @@
     如果设置，使用 NSSM 安装服务。NSSM 必须在 PATH 中。
 
 .EXAMPLE
-    .\install-windows-service.ps1 -AgentExePath "C:\vigilops\venv\Scripts\vigilops-agent.exe" -ConfigPath "C:\ProgramData\vigilops\agent.yaml" -UseNSSM
+    .\install-windows-service.ps1 -AgentExePath "C:\nightmend\venv\Scripts\nightmend-agent.exe" -ConfigPath "C:\ProgramData\nightmend\agent.yaml" -UseNSSM
 #>
 
 param(
-    [string]$ServiceName = "VigilOpsAgent",
+    [string]$ServiceName = "NightMendAgent",
     [string]$AgentExePath = "",
     [string]$ConfigPath = "",
     [switch]$UseNSSM
@@ -48,18 +48,18 @@ $ErrorActionPreference = "Stop"
 
 # -- Resolve default paths / 解析默认路径 --
 if (-not $AgentExePath) {
-    # Try to find vigilops-agent in PATH
-    $found = Get-Command "vigilops-agent" -ErrorAction SilentlyContinue
+    # Try to find nightmend-agent in PATH
+    $found = Get-Command "nightmend-agent" -ErrorAction SilentlyContinue
     if ($found) {
         $AgentExePath = $found.Source
     } else {
-        Write-Error "Cannot find vigilops-agent in PATH. Please specify -AgentExePath."
+        Write-Error "Cannot find nightmend-agent in PATH. Please specify -AgentExePath."
         exit 1
     }
 }
 
 if (-not $ConfigPath) {
-    $ConfigPath = Join-Path $env:PROGRAMDATA "vigilops\agent.yaml"
+    $ConfigPath = Join-Path $env:PROGRAMDATA "nightmend\agent.yaml"
 }
 
 # Verify paths / 验证路径
@@ -72,7 +72,7 @@ if (-not (Test-Path $ConfigPath)) {
 }
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "VigilOps Agent Windows Service Installer" -ForegroundColor Cyan
+Write-Host "NightMend Agent Windows Service Installer" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Service Name : $ServiceName"
 Write-Host "Agent Exe    : $AgentExePath"
@@ -112,8 +112,8 @@ if ($UseNSSM) {
 
     Write-Host "Installing via NSSM..." -ForegroundColor Green
     & nssm install $ServiceName "$AgentExePath" "run -c `"$ConfigPath`""
-    & nssm set $ServiceName DisplayName "VigilOps Monitoring Agent"
-    & nssm set $ServiceName Description "VigilOps lightweight monitoring agent for system metrics, service checks, and log collection."
+    & nssm set $ServiceName DisplayName "NightMend Monitoring Agent"
+    & nssm set $ServiceName Description "NightMend lightweight monitoring agent for system metrics, service checks, and log collection."
     & nssm set $ServiceName Start SERVICE_AUTO_START
     & nssm set $ServiceName AppStopMethodSkip 0
     & nssm set $ServiceName AppStopMethodConsole 5000
@@ -121,7 +121,7 @@ if ($UseNSSM) {
     & nssm set $ServiceName AppStopMethodThreads 5000
 
     # Configure log output / 配置日志输出
-    $logDir = Join-Path $env:PROGRAMDATA "vigilops\logs"
+    $logDir = Join-Path $env:PROGRAMDATA "nightmend\logs"
     if (-not (Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir -Force | Out-Null
     }
@@ -138,9 +138,9 @@ if ($UseNSSM) {
     sc.exe create $ServiceName `
         binPath= $binPath `
         start= auto `
-        DisplayName= "VigilOps Monitoring Agent"
+        DisplayName= "NightMend Monitoring Agent"
 
-    sc.exe description $ServiceName "VigilOps lightweight monitoring agent for system metrics, service checks, and log collection."
+    sc.exe description $ServiceName "NightMend lightweight monitoring agent for system metrics, service checks, and log collection."
     # Configure failure recovery: restart after 60s / 配置故障恢复：60秒后重启
     sc.exe failure $ServiceName reset= 86400 actions= restart/60000/restart/60000/restart/60000
 

@@ -1,18 +1,18 @@
-# VigilOps 生产环境 Docker Compose
-# 由 vigilops-deploy.sh 自动生成/使用
+# NightMend 生产环境 Docker Compose
+# 由 nightmend-deploy.sh 自动生成/使用
 
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-vigilops}
-      POSTGRES_USER: ${POSTGRES_USER:-vigilops}
+      POSTGRES_DB: ${POSTGRES_DB:-nightmend}
+      POSTGRES_USER: ${POSTGRES_USER:-nightmend}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vigilops}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nightmend}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,7 +23,7 @@ services:
         max-size: "20m"
         max-file: "3"
     networks:
-      - vigilops
+      - nightmend
 
   redis:
     image: redis:7-alpine
@@ -43,7 +43,7 @@ services:
         max-size: "20m"
         max-file: "3"
     networks:
-      - vigilops
+      - nightmend
 
   backend:
     build: ../backend
@@ -53,8 +53,8 @@ services:
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-vigilops}
-      POSTGRES_USER: ${POSTGRES_USER:-vigilops}
+      POSTGRES_DB: ${POSTGRES_DB:-nightmend}
+      POSTGRES_USER: ${POSTGRES_USER:-nightmend}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -93,7 +93,7 @@ services:
         max-size: "50m"
         max-file: "5"
     networks:
-      - vigilops
+      - nightmend
 
   frontend:
     build: ../frontend
@@ -114,12 +114,12 @@ services:
         max-size: "20m"
         max-file: "3"
     networks:
-      - vigilops
+      - nightmend
 
 volumes:
   pgdata:
   redisdata:
 
 networks:
-  vigilops:
+  nightmend:
     driver: bridge

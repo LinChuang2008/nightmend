@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-REPO="LinChuang2008/vigilops"
+REPO="LinChuang2008/nightmend"
 
 echo "=== Posting GitHub Discussions ==="
 
@@ -14,8 +14,8 @@ gh api graphql -f query='
 mutation {
   createDiscussion(input: {
     repositoryId: "'$(gh repo view "$REPO" --json id -q .id)'"
-    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "vigilops") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "Announcements") | .id')'"
-    title: "Welcome to VigilOps Community!"
+    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "nightmend") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "Announcements") | .id')'"
+    title: "Welcome to NightMend Community!"
     body: "'"$(cat docs/community/01-welcome.md)"'"
   }) { discussion { url } }
 }' 2>/dev/null && echo "  Posted: Welcome" || echo "  Skipped: Welcome (may already exist or category not found)"
@@ -25,8 +25,8 @@ gh api graphql -f query='
 mutation {
   createDiscussion(input: {
     repositoryId: "'$(gh repo view "$REPO" --json id -q .id)'"
-    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "vigilops") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "Q&A" or .name == "General") | .id' | head -1)'"
-    title: "Quick Start Guide: Your First 30 Minutes with VigilOps"
+    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "nightmend") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "Q&A" or .name == "General") | .id' | head -1)'"
+    title: "Quick Start Guide: Your First 30 Minutes with NightMend"
     body: "'"$(cat docs/community/02-quick-start.md)"'"
   }) { discussion { url } }
 }' 2>/dev/null && echo "  Posted: Quick Start" || echo "  Skipped: Quick Start"
@@ -36,8 +36,8 @@ gh api graphql -f query='
 mutation {
   createDiscussion(input: {
     repositoryId: "'$(gh repo view "$REPO" --json id -q .id)'"
-    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "vigilops") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "General" or .name == "Show and tell") | .id' | head -1)'"
-    title: "Architecture Deep Dive: How VigilOps Works Under the Hood"
+    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "nightmend") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "General" or .name == "Show and tell") | .id' | head -1)'"
+    title: "Architecture Deep Dive: How NightMend Works Under the Hood"
     body: "'"$(cat docs/community/03-architecture.md)"'"
   }) { discussion { url } }
 }' 2>/dev/null && echo "  Posted: Architecture" || echo "  Skipped: Architecture"
@@ -47,20 +47,20 @@ gh api graphql -f query='
 mutation {
   createDiscussion(input: {
     repositoryId: "'$(gh repo view "$REPO" --json id -q .id)'"
-    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "vigilops") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "Announcements") | .id')'"
-    title: "VigilOps 2026 Roadmap — Help Us Prioritize"
+    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "nightmend") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "Announcements") | .id')'"
+    title: "NightMend 2026 Roadmap — Help Us Prioritize"
     body: "'"$(cat docs/community/04-roadmap-2026.md)"'"
   }) { discussion { url } }
 }' 2>/dev/null && echo "  Posted: Roadmap" || echo "  Skipped: Roadmap"
 
-# Post 5: How AI Powers VigilOps
+# Post 5: How AI Powers NightMend
 gh api graphql -f query='
 mutation {
   createDiscussion(input: {
     repositoryId: "'$(gh repo view "$REPO" --json id -q .id)'"
-    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "vigilops") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "General" or .name == "Show and tell") | .id' | head -1)'"
-    title: "How AI Powers VigilOps: From Detection to Auto-Remediation"
-    body: "'"$(cat docs/community/05-ai-powers-vigilops.md)"'"
+    categoryId: "'$(gh api graphql -f query='{ repository(owner: "LinChuang2008", name: "nightmend") { discussionCategories(first: 10) { nodes { id name } } } }' -q '.data.repository.discussionCategories.nodes[] | select(.name == "General" or .name == "Show and tell") | .id' | head -1)'"
+    title: "How AI Powers NightMend: From Detection to Auto-Remediation"
+    body: "'"$(cat docs/community/05-ai-powers-nightmend.md)"'"
   }) { discussion { url } }
 }' 2>/dev/null && echo "  Posted: AI Powers" || echo "  Skipped: AI Powers"
 

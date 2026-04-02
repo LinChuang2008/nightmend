@@ -1,8 +1,8 @@
 """
-VigilOps 自动修复系统 (VigilOps Automatic Remediation System)
+NightMend 自动修复系统 (NightMend Automatic Remediation System)
 
-这是 VigilOps 监控平台的智能自动修复模块，实现了基于 AI 的端到端故障自愈能力。
-This is the intelligent automatic remediation module of VigilOps monitoring platform, 
+这是 NightMend 监控平台的智能自动修复模块，实现了基于 AI 的端到端故障自愈能力。
+This is the intelligent automatic remediation module of NightMend monitoring platform, 
 implementing AI-based end-to-end fault self-healing capabilities.
 
 ## 系统架构 (System Architecture)
@@ -72,7 +72,7 @@ result = await agent.handle_alert(alert, db_session)
 - `AGENT_NOTIFY_ON_SUCCESS`: 成功时是否发送通知
 - `AGENT_NOTIFY_ON_FAILURE`: 失败时是否发送通知
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 许可证：内部项目
 """

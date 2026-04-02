@@ -10,7 +10,7 @@
 依赖关系：依赖SQLAlchemy、Redis缓存、JWT认证
 API端点：GET /hosts, GET /hosts/{id}, GET /hosts/{id}/metrics
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import json
 

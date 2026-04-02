@@ -1,0 +1,16 @@
+apiVersion: v2
+name: nightmend
+description: AI-powered infrastructure monitoring platform
+type: application
+version: 0.1.0
+appVersion: "2026.03.14-beta.1"
+keywords:
+  - monitoring
+  - infrastructure
+  - ai
+  - observability
+home: https://github.com/linchuang2008/nightmend
+sources:
+  - https://github.com/linchuang2008/nightmend
+maintainers:
+  - name: NightMend Team

@@ -2,7 +2,7 @@
 运维报告生成服务 (Operations Report Generation Service)
 
 功能描述 (Description):
-    VigilOps 智能报告生成引擎，自动化产出专业运维报告。
+    NightMend 智能报告生成引擎，自动化产出专业运维报告。
     通过数据汇总分析、AI驱动内容生成，为运维团队提供洞察和决策支持。
     
 核心功能 (Core Features):
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 # 报告生成AI系统提示词 (Report Generation AI System Prompt)
 # Prompt工程：专业运维报告生成器角色定义，确保输出格式和内容质量
-REPORT_SYSTEM_PROMPT = """你是 VigilOps 运维报告生成器。根据提供的监控数据，生成专业的运维报告。
+REPORT_SYSTEM_PROMPT = """你是 NightMend 运维报告生成器。根据提供的监控数据，生成专业的运维报告。
 
 报告格式要求：
 1. 使用 Markdown 格式
@@ -303,7 +303,7 @@ async def generate_report(
     运维报告生成核心引擎 (Operations Report Generation Core Engine)
     
     功能描述:
-        VigilOps运维报告生成的主控函数，协调数据收集、AI分析和报告输出。
+        NightMend运维报告生成的主控函数，协调数据收集、AI分析和报告输出。
         实现端到端的报告生成流程，支持多种报告类型和周期。
         
     Args:

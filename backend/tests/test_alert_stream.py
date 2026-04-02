@@ -54,7 +54,7 @@ class TestDiagnosisFlow:
             # Verify Redis publish was called
             mock_redis.publish.assert_called_once()
             channel, data = mock_redis.publish.call_args[0]
-            assert channel == "vigilops:alert:diagnosis"
+            assert channel == "nightmend:alert:diagnosis"
 
             event = json.loads(data)
             assert event["alertname"] == "HighCPU"

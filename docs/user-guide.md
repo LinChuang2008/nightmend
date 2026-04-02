@@ -1,4 +1,4 @@
-# VigilOps 用户使用手册
+# NightMend 用户使用手册
 
 > 版本：v1.0 | 更新日期：2026-02-21
 
@@ -43,7 +43,7 @@
 
 ## 1. 概述
 
-VigilOps 是一款开源运维监控平台，集成了 AI 智能分析与自动修复能力。核心功能包括：
+NightMend 是一款开源运维监控平台，集成了 AI 智能分析与自动修复能力。核心功能包括：
 
 - **实时监控**：服务器指标、服务状态、数据库性能的全方位监控
 - **智能告警**：支持指标阈值、日志关键字、数据库阈值三种告警规则
@@ -471,7 +471,7 @@ AI 自动生成的运维洞察，包括：
 
 1. 在钉钉群中添加自定义机器人，获取 Webhook URL
 2. 设置安全策略时选择「自定义关键词」
-3. 在 VigilOps 中新建钉钉渠道：
+3. 在 NightMend 中新建钉钉渠道：
    - 填写渠道名称
    - 粘贴 Webhook URL
    - 填写关键词（必须与钉钉机器人安全设置中的关键词一致）
@@ -479,14 +479,14 @@ AI 自动生成的运维洞察，包括：
 #### 飞书
 
 1. 在飞书群中添加自定义机器人，获取 Webhook URL
-2. 在 VigilOps 中新建飞书渠道：
+2. 在 NightMend 中新建飞书渠道：
    - 填写渠道名称
    - 粘贴 Webhook URL
 
 #### 企业微信
 
 1. 在企业微信群中添加群机器人，获取 Webhook URL
-2. 在 VigilOps 中新建企微渠道：
+2. 在 NightMend 中新建企微渠道：
    - 填写渠道名称
    - 粘贴 Webhook URL
 
@@ -506,7 +506,7 @@ AI 自动生成的运维洞察，包括：
 #### Slack
 
 1. 在 Slack 中创建 Incoming Webhook 或安装自定义应用，获取 Webhook URL
-2. 在 VigilOps 中新建 Slack 渠道：
+2. 在 NightMend 中新建 Slack 渠道：
    - 填写渠道名称
    - 粘贴 Webhook URL
 
@@ -514,7 +514,7 @@ AI 自动生成的运维洞察，包括：
 
 1. 通过 BotFather 创建 Telegram Bot，获取 Bot Token
 2. 获取目标聊天的 Chat ID
-3. 在 VigilOps 中新建 Telegram 渠道：
+3. 在 NightMend 中新建 Telegram 渠道：
    - 填写渠道名称
    - 填写 Bot Token
    - 填写 Chat ID
@@ -584,4 +584,4 @@ AI 自动生成的运维洞察，包括：
 
 ---
 
-> **反馈与支持**：如有问题或建议，请通过 GitHub Issues 提交：[github.com/LinChuang2008/vigilops](https://github.com/LinChuang2008/vigilops)
+> **反馈与支持**：如有问题或建议，请通过 GitHub Issues 提交：[github.com/LinChuang2008/nightmend](https://github.com/LinChuang2008/nightmend)

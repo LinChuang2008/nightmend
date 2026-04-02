@@ -1,5 +1,5 @@
 """
-VigilOps 内置 Runbook - Docker 资源清理
+NightMend 内置 Runbook - Docker 资源清理
 """
 from ..models import RiskLevel, RunbookDefinition, RunbookStep
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-VigilOps MCP Server CLI
+NightMend MCP Server CLI
 
-Standalone MCP server for VigilOps operational tools.
+Standalone MCP server for NightMend operational tools.
 Can be run independently or integrated with the main application.
 
 Usage:
@@ -33,7 +33,7 @@ def setup_logging():
 
 def main():
     """Main CLI entry point"""
-    parser = argparse.ArgumentParser(description='VigilOps MCP Server')
+    parser = argparse.ArgumentParser(description='NightMend MCP Server')
     parser.add_argument(
         '--host', 
         default='127.0.0.1', 
@@ -59,7 +59,7 @@ def main():
     setup_logging()
     
     logger = logging.getLogger(__name__)
-    logger.info(f"Starting VigilOps MCP Server on {args.host}:{args.port}")
+    logger.info(f"Starting NightMend MCP Server on {args.host}:{args.port}")
     
     try:
         # Check database connection

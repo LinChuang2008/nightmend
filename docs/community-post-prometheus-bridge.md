@@ -2,7 +2,7 @@
 
 ## 背景
 
-我在做一个开源运维工具 **VigilOps**，核心功能是：
+我在做一个开源运维工具 **NightMend**，核心功能是：
 
 **Prometheus AlertManager 告警触发后，AI 自动诊断根因并执行修复。**
 
@@ -22,12 +22,12 @@ Prometheus 告警响了
     → 确认恢复
 ```
 
-这中间的 **10-30 分钟**，就是 VigilOps 要自动化的部分。
+这中间的 **10-30 分钟**，就是 NightMend 要自动化的部分。
 
 ## 它怎么工作？
 
 ```
-Prometheus → AlertManager → webhook → VigilOps
+Prometheus → AlertManager → webhook → NightMend
                                         │
                                    AI 自动诊断根因
                                         │
@@ -75,10 +75,10 @@ Prometheus → AlertManager → webhook → VigilOps
 
 ## 开源地址
 
-**GitHub:** [LinChuang2008/vigilops](https://github.com/LinChuang2008/vigilops)
+**GitHub:** [LinChuang2008/nightmend](https://github.com/LinChuang2008/nightmend)
 
 如果你有兴趣试用，欢迎留言或私信我。我们可以一起调试你的告警场景。
 
 ---
 
-*VigilOps — Prometheus 负责监控，VigilOps 负责修。*
+*NightMend — Prometheus 负责监控，NightMend 负责修。*

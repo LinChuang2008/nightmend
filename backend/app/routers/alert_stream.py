@@ -5,7 +5,7 @@
 无需认证，供公开 Demo 页面使用。
 
 架构:
-    Redis SUBSCRIBE "vigilops:alert:diagnosis"
+    Redis SUBSCRIBE "nightmend:alert:diagnosis"
         → SSE event: diagnosis {JSON}
         → Browser EventSource
 """
@@ -27,11 +27,11 @@ from starlette.responses import StreamingResponse
 from app.core.config import settings
 from app.core.redis import get_redis
 
-logger = logging.getLogger("vigilops.alert_stream")
+logger = logging.getLogger("nightmend.alert_stream")
 
 router = APIRouter(prefix="/api/v1/demo", tags=["Demo"])
 
-DIAGNOSIS_CHANNEL = "vigilops:alert:diagnosis"
+DIAGNOSIS_CHANNEL = "nightmend:alert:diagnosis"
 
 _connection_count = 0
 _connection_lock = asyncio.Lock()

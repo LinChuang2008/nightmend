@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复 Runbook - 内存压力缓解
-VigilOps Automatic Remediation Runbook - Memory Pressure Relief
+NightMend 自动修复 Runbook - 内存压力缓解
+NightMend Automatic Remediation Runbook - Memory Pressure Relief
 
 这是一个内存压力缓解脚本，用于处理内存使用率过高或即将发生 OOM 的告警。
 This is a memory pressure relief script for handling high memory usage or impending OOM alerts.
@@ -39,7 +39,7 @@ This is a memory pressure relief script for handling high memory usage or impend
 - 为系统运行争取缓冲时间
 - 提供内存使用诊断信息
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 风险等级：MEDIUM
 """

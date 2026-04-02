@@ -1,30 +1,30 @@
 <div align="center">
 
-# VigilOps
+# NightMend
 
 **Your team gets 200+ alerts daily. 80% are noise. AI fixes them while you sleep.**
 
-[![Stars](https://img.shields.io/github/stars/LinChuang2008/vigilops?style=for-the-badge&logo=github&color=gold)](https://github.com/LinChuang2008/vigilops)
-[![CI](https://img.shields.io/github/actions/workflow/status/LinChuang2008/vigilops/test.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/LinChuang2008/vigilops/actions/workflows/test.yml)
-[![Docker](https://img.shields.io/github/actions/workflow/status/LinChuang2008/vigilops/docker-publish.yml?branch=main&style=for-the-badge&label=Docker&logo=docker)](https://github.com/LinChuang2008/vigilops/actions/workflows/docker-publish.yml)
-[![Version](https://img.shields.io/badge/version-v2026.03.29-blue?style=for-the-badge)](https://github.com/LinChuang2008/vigilops/releases)
+[![Stars](https://img.shields.io/github/stars/LinChuang2008/nightmend?style=for-the-badge&logo=github&color=gold)](https://github.com/LinChuang2008/nightmend)
+[![CI](https://img.shields.io/github/actions/workflow/status/LinChuang2008/nightmend/test.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/LinChuang2008/nightmend/actions/workflows/test.yml)
+[![Docker](https://img.shields.io/github/actions/workflow/status/LinChuang2008/nightmend/docker-publish.yml?branch=main&style=for-the-badge&label=Docker&logo=docker)](https://github.com/LinChuang2008/nightmend/actions/workflows/docker-publish.yml)
+[![Version](https://img.shields.io/badge/version-v2026.03.29-blue?style=for-the-badge)](https://github.com/LinChuang2008/nightmend/releases)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 
 [Live Demo](https://demo.lchuangnet.com/login) | [Install](#quickstart) | [Docs](#documentation) | [中文文档](README.zh-CN.md)
 
 <br/>
 
-![VigilOps Demo — Alert → AI Analysis → Auto-Fix in 47s](docs/screenshots/demo-animation.svg)
+![NightMend Demo — Alert → AI Analysis → Auto-Fix in 47s](docs/screenshots/demo-animation.svg)
 
 </div>
 
 ---
 
-## What Makes VigilOps Different
+## What Makes NightMend Different
 
 You've tried **Grafana + Prometheus**. You know **Datadog**. They tell you *something broke*. None of them **fix it**.
 
-VigilOps is the **first open-source AI platform** that doesn't just monitor — it **heals**:
+NightMend is the **first open-source AI platform** that doesn't just monitor — it **heals**:
 
 1. **AI Analyzes** — DeepSeek reads logs, metrics, topology to find the real cause
 2. **AI Decides** — Picks the right Runbook from 13 built-in auto-remediation scripts
@@ -37,12 +37,12 @@ VigilOps is the **first open-source AI platform** that doesn't just monitor — 
 
 ## Quickstart
 
-**Try Online** (no install): [demo.lchuangnet.com](https://demo.lchuangnet.com/login) — `demo@vigilops.io` / `demo123`
+**Try Online** (no install): [demo.lchuangnet.com](https://demo.lchuangnet.com/login) — `demo@nightmend.io` / `demo123`
 
 **Self-Host in 3 Steps:**
 
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git && cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git && cd nightmend
 cp .env.example .env                    # Optional: add DeepSeek API key for live AI
 docker compose up -d                    # Open http://localhost:3001
 ```
@@ -53,7 +53,7 @@ docker compose up -d                    # Open http://localhost:3001
 
 ## Feature Comparison
 
-| Feature | VigilOps | Nightingale | Prom+Grafana | Datadog | Zabbix |
+| Feature | NightMend | Nightingale | Prom+Grafana | Datadog | Zabbix |
 |---------|:--------:|:-----------:|:------------:|:-------:|:------:|
 | AI Root Cause Analysis | Built-in | - | - | Enterprise | - |
 | Auto-Remediation | 13 Runbooks | - | - | Enterprise | - |
@@ -92,18 +92,18 @@ Already running Prometheus? Add 3 lines to `alertmanager.yml` and get AI diagnos
 
 ```yaml
 receivers:
-  - name: 'vigilops'
+  - name: 'nightmend'
     webhook_configs:
-      - url: 'http://your-vigilops:8001/api/v1/webhooks/alertmanager'
+      - url: 'http://your-nightmend:8001/api/v1/webhooks/alertmanager'
         http_config:
           authorization:
             type: Bearer
             credentials: 'YOUR_TOKEN'
 route:
-  receiver: 'vigilops'
+  receiver: 'nightmend'
 ```
 
-**What happens**: Prometheus fires alert → VigilOps receives it → AI analyzes root cause → diagnosis appears in real-time on the Demo page via SSE.
+**What happens**: Prometheus fires alert → NightMend receives it → AI analyzes root cause → diagnosis appears in real-time on the Demo page via SSE.
 
 Two modes: **Diagnosis-only** (safe, read-only analysis) or **Auto-remediation** (AI picks and executes the right Runbook).
 
@@ -129,12 +129,12 @@ Your AI assistant (Claude Code, Cursor) queries live production data via MCP:
 
 ```bash
 # Enable in backend/.env
-VIGILOPS_MCP_ENABLED=true
-VIGILOPS_MCP_PORT=8003
-VIGILOPS_MCP_API_KEY=your-secret-token
+NIGHTMEND_MCP_ENABLED=true
+NIGHTMEND_MCP_PORT=8003
+NIGHTMEND_MCP_API_KEY=your-secret-token
 ```
 
-> **Note**: Authentication via `VIGILOPS_MCP_API_KEY` is required in production.
+> **Note**: Authentication via `NIGHTMEND_MCP_API_KEY` is required in production.
 
 **5 MCP Tools**: `get_servers_health` | `get_alerts` | `search_logs` | `analyze_incident` | `get_topology`
 
@@ -148,10 +148,10 @@ Query metrics using familiar PromQL syntax via API:
 
 ```bash
 # Instant query
-GET /api/v1/promql/query?query=vigilops_host_cpu_percent
+GET /api/v1/promql/query?query=nightmend_host_cpu_percent
 
 # Range query
-GET /api/v1/promql/query_range?query=avg(vigilops_host_cpu_percent)&start=...&end=...&step=5m
+GET /api/v1/promql/query_range?query=avg(nightmend_host_cpu_percent)&start=...&end=...&step=5m
 
 # Supported: rate(), avg(), sum(), min(), max(), count(), avg_over_time(), label matchers
 ```
@@ -162,12 +162,12 @@ Compatible with Prometheus HTTP API format for Grafana integration.
 
 ## Agent — Cross-Platform Monitoring
 
-The VigilOps Agent collects system metrics, discovers services, and monitors databases. It runs on **Linux**, **Windows/Windows Server**, and **macOS**.
+The NightMend Agent collects system metrics, discovers services, and monitors databases. It runs on **Linux**, **Windows/Windows Server**, and **macOS**.
 
 **Linux:**
 ```bash
-pip install vigilops-agent
-vigilops-agent run -c /etc/vigilops/agent.yaml
+pip install nightmend-agent
+nightmend-agent run -c /etc/nightmend/agent.yaml
 ```
 
 **Windows (PowerShell):**
@@ -239,8 +239,8 @@ cd frontend && npm install
 
 ## Community
 
-- [GitHub Discussions](https://github.com/LinChuang2008/vigilops/discussions)
-- [Report a Bug](https://github.com/LinChuang2008/vigilops/issues/new)
+- [GitHub Discussions](https://github.com/LinChuang2008/nightmend/discussions)
+- [Report a Bug](https://github.com/LinChuang2008/nightmend/issues/new)
 - Email: [lchuangnet@lchuangnet.com](mailto:lchuangnet@lchuangnet.com)
 
 ---

@@ -1,7 +1,7 @@
 """
-VigilOps 路由模块包 (VigilOps Router Module Package)
+NightMend 路由模块包 (NightMend Router Module Package)
 
-本包包含 VigilOps 后端 API 的所有路由模块，按功能域进行组织。
+本包包含 NightMend 后端 API 的所有路由模块，按功能域进行组织。
 每个路由模块负责特定功能领域的 REST API 和 WebSocket 接口。
 
 路由模块组织结构 (Router Module Organization):
@@ -51,5 +51,5 @@ API版本控制:
 当前所有API使用 v1 版本前缀 (/api/v1/)，
 为未来API版本升级预留扩展空间。
 
-Author: VigilOps Team
+Author: NightMend Team
 """

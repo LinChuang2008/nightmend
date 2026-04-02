@@ -25,7 +25,7 @@ class TestNotificationTemplates:
     async def test_create_template(self, client: AsyncClient, auth_headers):
         resp = await client.post("/api/v1/notification-templates", headers=auth_headers, json={
             "name": "Custom", "channel_type": "email",
-            "body_template": "Alert: {title}", "subject_template": "[VigilOps] {severity}",
+            "body_template": "Alert: {title}", "subject_template": "[NightMend] {severity}",
         })
         assert resp.status_code in (200, 201)
 

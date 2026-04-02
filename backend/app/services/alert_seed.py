@@ -2,7 +2,7 @@
 内置告警规则种子数据模块 (Built-in Alert Rules Seed Data Module)
 
 功能描述 (Description):
-    VigilOps 系统的预定义告警规则初始化器，确保系统启动后具备基本的监控能力。
+    NightMend 系统的预定义告警规则初始化器，确保系统启动后具备基本的监控能力。
     提供开箱即用的核心告警规则，覆盖常见的运维监控场景。
     
 核心功能 (Core Features):

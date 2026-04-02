@@ -65,7 +65,7 @@ const en = {
 
   // ========== Login ==========
   login: {
-    title: 'VigilOps',
+    title: 'NightMend',
     subtitle: 'AI-Powered Operations Monitoring Platform',
     loginTab: 'Login',
     registerTab: 'Register',
@@ -1330,7 +1330,7 @@ const en = {
 
   // ========== Quick Start Onboarding ==========
   quickStart: {
-    title: '🚀 Get Started with VigilOps',
+    title: '🚀 Get Started with NightMend',
     subtitle: 'Complete these steps to start monitoring your infrastructure',
     doNotShow: "Don't show again",
     close: 'Close',
@@ -1339,7 +1339,7 @@ const en = {
     steps: {
       installAgent: {
         title: 'Install Agent',
-        description: 'Run the one-liner install command on your target server to connect it to VigilOps.',
+        description: 'Run the one-liner install command on your target server to connect it to NightMend.',
         action: 'Go to Settings for Token',
       },
       viewHosts: {
@@ -1505,7 +1505,7 @@ const en = {
     signIn: 'Sign In',
     heroTag: 'AI-Powered Intelligent Operations',
     heroTitle: 'Let AI Guard Your Infrastructure',
-    heroDescription: 'VigilOps is an AI-powered infrastructure monitoring platform with intelligent alert analysis, automated remediation, and MCP integration for DevOps teams.',
+    heroDescription: 'NightMend is an AI-powered infrastructure monitoring platform with intelligent alert analysis, automated remediation, and MCP integration for DevOps teams.',
     getStarted: 'Get Started',
     viewDocs: 'View Docs',
     featuresTitle: 'Core Features',

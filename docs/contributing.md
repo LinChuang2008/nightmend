@@ -31,8 +31,8 @@
 ### 第一步：克隆仓库
 
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 ```
 
 ### 第二步：启动基础设施
@@ -372,4 +372,4 @@ Closes #123
 
 ---
 
-> 有更多问题？查看 [FAQ](./faq.md) 或在 [GitHub Discussions](https://github.com/LinChuang2008/vigilops/discussions) 中提问。
+> 有更多问题？查看 [FAQ](./faq.md) 或在 [GitHub Discussions](https://github.com/LinChuang2008/nightmend/discussions) 中提问。

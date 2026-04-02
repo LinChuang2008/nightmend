@@ -1,4 +1,4 @@
-# VigilOps — Project Instructions
+# NightMend — Project Instructions
 
 ## Design System
 Always read DESIGN.md before making any visual or UI decisions.

@@ -1,6 +1,6 @@
-# VigilOps 外部认证集成指南
+# NightMend 外部认证集成指南
 
-VigilOps 支持多种外部认证方式，包括 OAuth 2.0 和 LDAP/Active Directory 集成。
+NightMend 支持多种外部认证方式，包括 OAuth 2.0 和 LDAP/Active Directory 集成。
 
 ## 支持的认证提供商
 
@@ -227,7 +227,7 @@ const ldapLogin = async (email, password) => {
 
 3. **检查日志**
    ```bash
-   docker logs vigilops-backend 2>&1 | grep oauth
+   docker logs nightmend-backend 2>&1 | grep oauth
    ```
 
 #### LDAP 认证失败
@@ -248,7 +248,7 @@ const ldapLogin = async (email, password) => {
 ### 调试模式
 ```bash
 # 启用详细日志
-PYTHON_LOG_LEVEL=DEBUG docker-compose up vigilops-backend
+PYTHON_LOG_LEVEL=DEBUG docker-compose up nightmend-backend
 ```
 
 ## 完整配置示例
@@ -280,11 +280,11 @@ LDAP_PORT=389
 LDAP_USE_TLS=true
 LDAP_BASE_DN="dc=company,dc=com"
 LDAP_USER_SEARCH="sAMAccountName={}"
-LDAP_BIND_DN="cn=vigilops-service,ou=Service Accounts,dc=company,dc=com"
+LDAP_BIND_DN="cn=nightmend-service,ou=Service Accounts,dc=company,dc=com"
 LDAP_BIND_PASSWORD="service-account-password"
 
 # 其他配置...
-FRONTEND_URL="https://vigilops.company.com"
+FRONTEND_URL="https://nightmend.company.com"
 ```
 
-通过以上配置，VigilOps 可以无缝集成到企业现有的身份认证体系中，提供统一的单点登录体验。
+通过以上配置，NightMend 可以无缝集成到企业现有的身份认证体系中，提供统一的单点登录体验。

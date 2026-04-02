@@ -94,7 +94,7 @@ class TestUpdateUser:
 
     @pytest.mark.asyncio
     async def test_update_demo_forbidden(self, client, auth_headers, db_session):
-        user = User(email="demo@vigilops.io", name="Demo", hashed_password=hash_password("pass"), role="admin")
+        user = User(email="demo@nightmend.io", name="Demo", hashed_password=hash_password("pass"), role="admin")
         db_session.add(user)
         await db_session.commit()
         await db_session.refresh(user)
@@ -126,7 +126,7 @@ class TestDeleteUser:
 
     @pytest.mark.asyncio
     async def test_delete_demo_forbidden(self, client, auth_headers, db_session):
-        user = User(email="demo@vigilops.io", name="Demo", hashed_password=hash_password("pass"), role="admin")
+        user = User(email="demo@nightmend.io", name="Demo", hashed_password=hash_password("pass"), role="admin")
         db_session.add(user)
         await db_session.commit()
         await db_session.refresh(user)
@@ -153,7 +153,7 @@ class TestResetPassword:
 
     @pytest.mark.asyncio
     async def test_reset_password_demo_forbidden(self, client, auth_headers, db_session):
-        user = User(email="demo@vigilops.io", name="Demo", hashed_password=hash_password("pass"), role="admin")
+        user = User(email="demo@nightmend.io", name="Demo", hashed_password=hash_password("pass"), role="admin")
         db_session.add(user)
         await db_session.commit()
         await db_session.refresh(user)

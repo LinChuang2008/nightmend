@@ -1,7 +1,7 @@
 """
 Agent数据上报路由模块 (Agent Data Reporting Router)
 
-功能说明：提供Agent端向VigilOps平台上报各类监控数据的核心接口
+功能说明：提供Agent端向NightMend平台上报各类监控数据的核心接口
 核心职责：
   - Agent注册与主机信息管理（幂等性设计）
   - 心跳保活与在线状态维护
@@ -13,7 +13,7 @@ Agent数据上报路由模块 (Agent Data Reporting Router)
 依赖关系：依赖SQLAlchemy、Redis缓存、WebSocket广播、告警系统
 API端点：POST /register, POST /heartbeat, POST /metrics, POST /services, POST /db-metrics, POST /logs
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import os
 from datetime import datetime, timezone

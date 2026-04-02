@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to VigilOps will be documented in this file.
+All notable changes to NightMend will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
@@ -52,7 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - PromQL query support (`/api/v1/promql/query`, `/query_range`, `/metadata`)
-- Helm Chart for Kubernetes deployment (`charts/vigilops/`)
+- Helm Chart for Kubernetes deployment (`charts/nightmend/`)
 - Slack and Telegram notification channels
 - Alert service test coverage (26 new tests)
 
@@ -114,7 +114,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [0.7.0] - 2026-02-18
 
 ### Added
-- **AI Memory Integration**: VigilOps AI engine connected to Engram for fault history recall
+- **AI Memory Integration**: NightMend AI engine connected to Engram for fault history recall
 - AI analysis recalls past incidents for better root cause diagnosis
 - Resolved incidents auto-stored as operational knowledge
 - GitHub open-source materials: CONTRIBUTING.md, issue templates, PR template

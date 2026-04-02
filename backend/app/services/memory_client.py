@@ -30,7 +30,7 @@ class MemoryClient:
         self,
         query: str,
         top_k: int = 5,
-        namespace: str = "vigilops",
+        namespace: str = "nightmend",
     ) -> List[Dict[str, Any]]:
         """
         记忆召回接口 (Memory Recall Interface)
@@ -38,7 +38,7 @@ class MemoryClient:
         Args:
             query: 搜索查询文本，支持自然语言（如"CPU使用率过高"）
             top_k: 返回最相关的记忆条数，默认5条
-            namespace: 记忆命名空间，默认"vigilops"
+            namespace: 记忆命名空间，默认"nightmend"
 
         Returns:
             List[Dict[str, Any]]: 相关记忆列表，失败时返回空列表
@@ -66,22 +66,22 @@ class MemoryClient:
     async def store(
         self,
         content: str,
-        source: str = "vigilops",
+        source: str = "nightmend",
         memory_type: str = "episode",
         importance: int = 5,
         tags: Optional[List[str]] = None,
-        namespace: str = "vigilops",
+        namespace: str = "nightmend",
     ) -> bool:
         """
         记忆存储接口 (Memory Storage Interface)
 
         Args:
             content: 要存储的文本内容
-            source: 来源标识（默认"vigilops"）
+            source: 来源标识（默认"nightmend"）
             memory_type: 记忆类型 episode/fact/lesson（默认"episode"）
             importance: 重要性评分 1-10（默认5）
             tags: 标签列表，如 ["fault-pattern", "nginx"]
-            namespace: 记忆命名空间（默认"vigilops"）
+            namespace: 记忆命名空间（默认"nightmend"）
 
         Returns:
             bool: 存储是否成功

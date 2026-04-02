@@ -28,11 +28,11 @@ Stagger releases across 2 weeks for maximum reach:
    title: [article title]
    published: true
    tags: monitoring, ai, devops, opensource
-   canonical_url: https://github.com/LinChuang2008/vigilops/blob/main/docs/blog/[filename]
+   canonical_url: https://github.com/LinChuang2008/nightmend/blob/main/docs/blog/[filename]
    cover_image: [optional]
    ---
    ```
-4. Add footer: `---\n*[VigilOps](https://github.com/LinChuang2008/vigilops) is an open-source AI-powered monitoring platform. Star us on GitHub!*`
+4. Add footer: `---\n*[NightMend](https://github.com/LinChuang2008/nightmend) is an open-source AI-powered monitoring platform. Star us on GitHub!*`
 5. Publish
 
 ### Hashnode
@@ -56,8 +56,8 @@ Stagger releases across 2 weeks for maximum reach:
 5. Add footer:
    ```
    ---
-   > VigilOps 是全球首个内置 AI 自动修复的开源监控平台。
-   > GitHub: https://github.com/LinChuang2008/vigilops
+   > NightMend 是全球首个内置 AI 自动修复的开源监控平台。
+   > GitHub: https://github.com/LinChuang2008/nightmend
    > 在线演示: https://demo.lchuangnet.com
    ```
 

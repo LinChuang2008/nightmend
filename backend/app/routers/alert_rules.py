@@ -11,7 +11,7 @@
 依赖关系：依赖SQLAlchemy、JWT认证、审计服务
 API端点：GET /alert-rules, POST /alert-rules, GET /alert-rules/{id}, PUT /alert-rules/{id}, DELETE /alert-rules/{id}
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 
 from typing import Optional, List

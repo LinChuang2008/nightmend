@@ -1,4 +1,4 @@
-# VigilOps Deployment Guide / 部署指南
+# NightMend Deployment Guide / 部署指南
 
 ## System Requirements / 系统要求
 
@@ -15,8 +15,8 @@
 
 ```bash
 # Clone & install / 克隆并安装
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 ./install.sh
 ```
 
@@ -61,25 +61,25 @@ AI analysis is optional. To enable:
 
 ## Agent Installation / Agent 安装
 
-The VigilOps Agent runs on monitored servers to collect metrics and logs.
+The NightMend Agent runs on monitored servers to collect metrics and logs.
 
 ### Install Agent / 安装 Agent
 
 ```bash
 # On each monitored server / 在每台被监控服务器上
-pip install vigilops-agent  # (coming soon)
+pip install nightmend-agent  # (coming soon)
 
 # Or run directly / 或直接运行
-cd vigilops/agent
+cd nightmend/agent
 pip install -r requirements.txt
-python -m vigilops_agent \
-  --server http://YOUR_VIGILOPS_SERVER:8001 \
+python -m nightmend_agent \
+  --server http://YOUR_NIGHTMEND_SERVER:8001 \
   --token YOUR_AGENT_TOKEN
 ```
 
 ### Get Agent Token / 获取 Agent Token
 
-1. Log in to VigilOps dashboard
+1. Log in to NightMend dashboard
 2. Go to Settings → Agent Tokens
 3. Create a new token
 4. Use it in the agent configuration
@@ -87,14 +87,14 @@ python -m vigilops_agent \
 ### Systemd Service / 系统服务
 
 ```bash
-cat > /etc/systemd/system/vigilops-agent.service <<EOF
+cat > /etc/systemd/system/nightmend-agent.service <<EOF
 [Unit]
-Description=VigilOps Agent
+Description=NightMend Agent
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/vigilops-agent --server http://YOUR_SERVER:8001 --token YOUR_TOKEN
+ExecStart=/usr/local/bin/nightmend-agent --server http://YOUR_SERVER:8001 --token YOUR_TOKEN
 Restart=always
 RestartSec=10
 
@@ -102,7 +102,7 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-systemctl enable --now vigilops-agent
+systemctl enable --now nightmend-agent
 ```
 
 ## Management Commands / 管理命令
@@ -129,7 +129,7 @@ git pull
 ## Upgrade Guide / 升级指南
 
 ```bash
-cd vigilops
+cd nightmend
 git pull
 ./install.sh --upgrade
 ```
@@ -164,7 +164,7 @@ lsof -i :8001
 ```bash
 # Check postgres container / 检查数据库容器
 docker compose logs postgres
-docker compose exec postgres pg_isready -U vigilops
+docker compose exec postgres pg_isready -U nightmend
 ```
 
 ### Backend won't start / 后端无法启动
@@ -177,7 +177,7 @@ docker compose up -d backend
 
 ### Reset admin password / 重置管理员密码
 ```bash
-docker compose exec postgres psql -U vigilops -d vigilops -c \
+docker compose exec postgres psql -U nightmend -d nightmend -c \
   "UPDATE users SET hashed_password='\$2b\$12\$LJ3m4ys3gz...' WHERE username='admin';"
 ```
 

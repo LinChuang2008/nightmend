@@ -1,9 +1,9 @@
 """
-VigilOps 自动修复系统 - Runbook 定义包
-VigilOps Remediation System - Runbook Definition Package
+NightMend 自动修复系统 - Runbook 定义包
+NightMend Remediation System - Runbook Definition Package
 
-这个包包含了 VigilOps 系统内置的所有标准修复脚本（Runbook）定义。
-This package contains all built-in standard remediation script (Runbook) definitions for VigilOps system.
+这个包包含了 NightMend 系统内置的所有标准修复脚本（Runbook）定义。
+This package contains all built-in standard remediation script (Runbook) definitions for NightMend system.
 
 ## 内置 Runbook 列表 (Built-in Runbook List)
 
@@ -72,7 +72,7 @@ registry.register(DISK_CLEANUP)
 - 支持 dry-run 模式用于测试验证
 - 完整的审计日志和执行历史记录
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 最后更新：2026-02-21
 """

@@ -3,8 +3,8 @@ import sys
 from unittest.mock import MagicMock, patch
 import pytest
 
-from vigilops_agent.config import DatabaseMonitorConfig
-from vigilops_agent.db_collectors.oracle import OracleCollector
+from nightmend_agent.config import DatabaseMonitorConfig
+from nightmend_agent.db_collectors.oracle import OracleCollector
 
 
 def _make_cfg(**kwargs) -> DatabaseMonitorConfig:

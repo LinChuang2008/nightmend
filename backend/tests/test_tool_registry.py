@@ -1,5 +1,5 @@
 """
-Comprehensive tests for the VigilOps Unified OpsTool Registry.
+Comprehensive tests for the NightMend Unified OpsTool Registry.
 
 Covers:
   1. OpsTool base class (schema generation, ToolEvent creation)

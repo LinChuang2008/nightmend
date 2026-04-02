@@ -1,6 +1,6 @@
 """
-VigilOps 自动修复 Runbook - 网络连接诊断
-VigilOps Automatic Remediation Runbook - Network Connection Diagnosis
+NightMend 自动修复 Runbook - 网络连接诊断
+NightMend Automatic Remediation Runbook - Network Connection Diagnosis
 
 这是一个网络连接诊断脚本，用于分析和处理连接相关的问题。
 This is a network connection diagnosis script for analyzing and handling connection-related issues.
@@ -34,7 +34,7 @@ This is a network connection diagnosis script for analyzing and handling connect
 - 原因：虽然主要是诊断，但连接问题通常需要人工分析
 - 后续操作可能涉及服务重启或系统参数调整
 
-作者：VigilOps Team
+作者：NightMend Team
 版本：v1.0
 风险等级：LOW (诊断为主)
 """

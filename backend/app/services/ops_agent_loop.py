@@ -54,7 +54,7 @@ OPS_AI_DEFAULT_ID_KEY = "ops_ai_default_config_id"
 TOOL_EXECUTION_TIMEOUT = 300  # 工具执行超时秒数
 
 
-SYSTEM_PROMPT = """你是 VigilOps AI 运维助手，一个专业的 Linux/云原生运维专家。
+SYSTEM_PROMPT = """你是 NightMend AI 运维助手，一个专业的 Linux/云原生运维专家。
 
 你的工作方式：
 1. 理解用户描述的问题，通过工具调用收集信息

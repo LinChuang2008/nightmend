@@ -354,7 +354,7 @@ export default function AppLayout() {
           <circle cx="20" cy="21" r="11.5" fill="none" stroke="white" strokeWidth="2.2"/>
           <path d="M13 15.5L20 26.5L27 15.5" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        {(inDrawer || !collapsed) ? 'VigilOps' : ''}
+        {(inDrawer || !collapsed) ? 'NightMend' : ''}
       </div>
       <div className="app-sidebar-menu-scroll">
         <Menu

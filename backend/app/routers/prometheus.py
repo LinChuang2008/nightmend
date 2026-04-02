@@ -10,7 +10,7 @@ Prometheus 兼容性路由模块 (Prometheus Compatibility Router)
 依赖关系：依赖 SQLAlchemy、Redis 缓存
 API端点：GET /metrics (Prometheus 标准端点)
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 import hashlib
 import hmac
@@ -147,10 +147,10 @@ async def prometheus_metrics(
     Prometheus 兼容的指标暴露端点
     
     返回 Prometheus 文本格式的监控指标，包括：
-    - 主机性能指标 (vigilops_host_cpu_percent, vigilops_host_memory_percent 等)
-    - 服务状态指标 (vigilops_service_up, vigilops_service_response_time 等)
-    - 告警统计指标 (vigilops_alerts_total, vigilops_alerts_by_severity 等)
-    - 系统状态指标 (vigilops_hosts_total, vigilops_services_total 等)
+    - 主机性能指标 (nightmend_host_cpu_percent, nightmend_host_memory_percent 等)
+    - 服务状态指标 (nightmend_service_up, nightmend_service_response_time 等)
+    - 告警统计指标 (nightmend_alerts_total, nightmend_alerts_by_severity 等)
+    - 系统状态指标 (nightmend_hosts_total, nightmend_services_total 等)
     
     格式兼容 Prometheus 官方规范：https://prometheus.io/docs/instrumenting/exposition_formats/
     """
@@ -192,7 +192,7 @@ async def prometheus_metrics(
             }
             
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_host_cpu_percent",
+                "nightmend_host_cpu_percent",
                 metric['cpu_percent'] or 0,
                 labels,
                 "Host CPU usage percentage",
@@ -200,7 +200,7 @@ async def prometheus_metrics(
             ))
             
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_host_cpu_load_1m",
+                "nightmend_host_cpu_load_1m",
                 metric['cpu_load_1'] or 0,
                 labels,
                 "Host 1-minute load average",
@@ -208,7 +208,7 @@ async def prometheus_metrics(
             ))
             
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_host_cpu_load_5m",
+                "nightmend_host_cpu_load_5m",
                 metric['cpu_load_5'] or 0,
                 labels,
                 "Host 5-minute load average",
@@ -216,7 +216,7 @@ async def prometheus_metrics(
             ))
             
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_host_cpu_load_15m",
+                "nightmend_host_cpu_load_15m",
                 metric['cpu_load_15'] or 0,
                 labels,
                 "Host 15-minute load average",
@@ -225,7 +225,7 @@ async def prometheus_metrics(
             
             # 内存指标
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_host_memory_percent",
+                "nightmend_host_memory_percent",
                 metric['memory_percent'] or 0,
                 labels,
                 "Host memory usage percentage",
@@ -234,7 +234,7 @@ async def prometheus_metrics(
             
             # 磁盘指标
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_host_disk_percent",
+                "nightmend_host_disk_percent",
                 metric['disk_percent'] or 0,
                 labels,
                 "Host disk usage percentage",
@@ -243,7 +243,7 @@ async def prometheus_metrics(
             
             # 网络指标
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_host_network_bytes_sent_total",
+                "nightmend_host_network_bytes_sent_total",
                 metric['net_bytes_sent'] or 0,
                 labels,
                 "Total bytes sent over network",
@@ -251,7 +251,7 @@ async def prometheus_metrics(
             ))
             
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_host_network_bytes_received_total",
+                "nightmend_host_network_bytes_received_total",
                 metric['net_bytes_recv'] or 0,
                 labels,
                 "Total bytes received over network",
@@ -281,7 +281,7 @@ async def prometheus_metrics(
             # 服务状态 (1 = up, 0 = down)
             status_value = 1 if (latest_check and latest_check.status == 'up') else 0
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_service_up",
+                "nightmend_service_up",
                 status_value,
                 labels,
                 "Service availability (1 = up, 0 = down)",
@@ -291,7 +291,7 @@ async def prometheus_metrics(
             # 响应时间
             if latest_check and latest_check.response_time:
                 metrics_lines.append(format_prometheus_metric(
-                    "vigilops_service_response_time_seconds",
+                    "nightmend_service_response_time_seconds",
                     latest_check.response_time / 1000.0,  # 转换为秒
                     labels,
                     "Service response time in seconds",
@@ -315,7 +315,7 @@ async def prometheus_metrics(
             }
             
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_alerts_total",
+                "nightmend_alerts_total",
                 stat['count'],
                 labels,
                 "Total number of alerts by status and severity",
@@ -334,7 +334,7 @@ async def prometheus_metrics(
         
         total_hosts = sum(stat['count'] for stat in host_stats)
         metrics_lines.append(format_prometheus_metric(
-            "vigilops_hosts_total",
+            "nightmend_hosts_total",
             total_hosts,
             None,
             "Total number of monitored hosts",
@@ -343,7 +343,7 @@ async def prometheus_metrics(
         
         for stat in host_stats:
             metrics_lines.append(format_prometheus_metric(
-                "vigilops_hosts_by_status",
+                "nightmend_hosts_by_status",
                 stat['count'],
                 {"status": stat['status']},
                 "Number of hosts by status",
@@ -356,26 +356,26 @@ async def prometheus_metrics(
         total_services = services_count_result.scalar()
         
         metrics_lines.append(format_prometheus_metric(
-            "vigilops_services_total",
+            "nightmend_services_total",
             total_services,
             None,
             "Total number of monitored services",
             "gauge"
         ))
         
-        # 5. VigilOps 自身状态指标
+        # 5. NightMend 自身状态指标
         metrics_lines.append(format_prometheus_metric(
-            "vigilops_up",
+            "nightmend_up",
             1,
             {"version": "1.0.0"},
-            "VigilOps system availability",
+            "NightMend system availability",
             "gauge"
         ))
         
         # 添加时间戳
         current_timestamp = int(datetime.now(timezone.utc).timestamp() * 1000)
         metrics_lines.append(format_prometheus_metric(
-            "vigilops_last_scrape_timestamp_ms",
+            "nightmend_last_scrape_timestamp_ms",
             current_timestamp,
             None,
             "Last scrape timestamp in milliseconds",
@@ -386,10 +386,10 @@ async def prometheus_metrics(
         # 如果获取指标失败，至少返回系统不可用状态
         metrics_lines = [
             format_prometheus_metric(
-                "vigilops_up",
+                "nightmend_up",
                 0,
                 {"error": str(e)[:50]},
-                "VigilOps system availability",
+                "NightMend system availability",
                 "gauge"
             )
         ]
@@ -427,8 +427,8 @@ async def prometheus_targets(
                     "hostname": host.hostname,
                     "host_ip": host.ip_address,
                     "group": host.group_name or "default",
-                    "__meta_vigilops_host_id": str(host.id),
-                    "__meta_vigilops_host_status": host.status
+                    "__meta_nightmend_host_id": str(host.id),
+                    "__meta_nightmend_host_status": host.status
                 }
             }
             targets.append(target)
@@ -448,7 +448,7 @@ async def prometheus_targets(
                         "service_name": service.name,
                         "service_type": service.type or "unknown",
                         "host_ip": service.host,
-                        "__meta_vigilops_service_id": str(service.id)
+                        "__meta_nightmend_service_id": str(service.id)
                     }
                 }
                 targets.append(target)

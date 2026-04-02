@@ -24,7 +24,7 @@ import {
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 
-const TOUR_COMPLETED_KEY = 'vigilops_tour_completed';
+const TOUR_COMPLETED_KEY = 'nightmend_tour_completed';
 
 export function useTourControl() {
   const [tourOpen, setTourOpen] = useState(false);

@@ -12,7 +12,7 @@ async def sample_db(db_session):
     await db_session.commit()
     await db_session.refresh(h)
 
-    mdb = MonitoredDatabase(host_id=h.id, name="vigilops", db_type="postgres", status="healthy")
+    mdb = MonitoredDatabase(host_id=h.id, name="nightmend", db_type="postgres", status="healthy")
     db_session.add(mdb)
     await db_session.commit()
     await db_session.refresh(mdb)
@@ -30,7 +30,7 @@ class TestDatabases:
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] >= 1
-        assert data["databases"][0]["name"] == "vigilops"
+        assert data["databases"][0]["name"] == "nightmend"
 
     async def test_list_databases_filter_host(self, client: AsyncClient, auth_headers, sample_db):
         resp = await client.get(f"/api/v1/databases?host_id=99999", headers=auth_headers)

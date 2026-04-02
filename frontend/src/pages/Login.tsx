@@ -43,91 +43,91 @@ export default function Login() {
   /* ── inject global overrides for antd on this page ───────── */
   const pageStyles = `
     /* Antd input overrides */
-    .vigilops-login .ant-input-affix-wrapper,
-    .vigilops-login .ant-input {
+    .nightmend-login .ant-input-affix-wrapper,
+    .nightmend-login .ant-input {
       background: ${T.surface} !important;
       border-color: ${T.border} !important;
       color: ${T.textPrimary} !important;
       border-radius: ${T.radiusMd}px !important;
       font-family: ${T.fontFamily} !important;
     }
-    .vigilops-login .ant-input-affix-wrapper:hover,
-    .vigilops-login .ant-input:hover {
+    .nightmend-login .ant-input-affix-wrapper:hover,
+    .nightmend-login .ant-input:hover {
       border-color: ${T.textMuted} !important;
     }
-    .vigilops-login .ant-input-affix-wrapper:focus,
-    .vigilops-login .ant-input-affix-wrapper-focused,
-    .vigilops-login .ant-input:focus {
+    .nightmend-login .ant-input-affix-wrapper:focus,
+    .nightmend-login .ant-input-affix-wrapper-focused,
+    .nightmend-login .ant-input:focus {
       border-color: ${T.accent} !important;
       box-shadow: 0 0 0 2px rgba(16,185,129,0.15) !important;
     }
-    .vigilops-login .ant-input-affix-wrapper .ant-input-prefix {
+    .nightmend-login .ant-input-affix-wrapper .ant-input-prefix {
       color: ${T.textDim} !important;
     }
-    .vigilops-login .ant-input::placeholder {
+    .nightmend-login .ant-input::placeholder {
       color: ${T.textDim} !important;
     }
-    .vigilops-login .ant-input-password-icon {
+    .nightmend-login .ant-input-password-icon {
       color: ${T.textDim} !important;
     }
-    .vigilops-login .ant-input-password-icon:hover {
+    .nightmend-login .ant-input-password-icon:hover {
       color: ${T.textMuted} !important;
     }
 
     /* Tabs overrides */
-    .vigilops-login .ant-tabs-nav::before {
+    .nightmend-login .ant-tabs-nav::before {
       border-bottom-color: ${T.border} !important;
     }
-    .vigilops-login .ant-tabs-tab {
+    .nightmend-login .ant-tabs-tab {
       color: ${T.textMuted} !important;
       font-family: ${T.fontFamily} !important;
     }
-    .vigilops-login .ant-tabs-tab:hover {
+    .nightmend-login .ant-tabs-tab:hover {
       color: ${T.textPrimary} !important;
     }
-    .vigilops-login .ant-tabs-tab-active .ant-tabs-tab-btn {
+    .nightmend-login .ant-tabs-tab-active .ant-tabs-tab-btn {
       color: ${T.accent} !important;
     }
-    .vigilops-login .ant-tabs-ink-bar {
+    .nightmend-login .ant-tabs-ink-bar {
       background: ${T.accent} !important;
     }
 
     /* Form validation */
-    .vigilops-login .ant-form-item-explain-error {
+    .nightmend-login .ant-form-item-explain-error {
       color: ${T.error} !important;
       font-size: 12px !important;
     }
 
     /* Modal overrides */
-    .vigilops-login-modal .ant-modal-content {
+    .nightmend-login-modal .ant-modal-content {
       background: ${T.surface} !important;
       border: 1px solid ${T.border} !important;
       border-radius: ${T.radiusLg}px !important;
     }
-    .vigilops-login-modal .ant-modal-header {
+    .nightmend-login-modal .ant-modal-header {
       background: transparent !important;
       border-bottom: 1px solid ${T.border} !important;
     }
-    .vigilops-login-modal .ant-modal-title {
+    .nightmend-login-modal .ant-modal-title {
       color: ${T.textPrimary} !important;
     }
-    .vigilops-login-modal .ant-modal-close-x {
+    .nightmend-login-modal .ant-modal-close-x {
       color: ${T.textMuted} !important;
     }
-    .vigilops-login-modal .ant-modal-body {
+    .nightmend-login-modal .ant-modal-body {
       color: ${T.textMuted} !important;
     }
-    .vigilops-login-modal .ant-modal-footer .ant-btn-primary {
+    .nightmend-login-modal .ant-modal-footer .ant-btn-primary {
       background: ${T.accent} !important;
       border-color: ${T.accent} !important;
     }
   `;
 
   if (typeof document !== 'undefined') {
-    const existing = document.getElementById('vigilops-login-styles');
+    const existing = document.getElementById('nightmend-login-styles');
     if (!existing) {
       const style = document.createElement('style');
-      style.id = 'vigilops-login-styles';
+      style.id = 'nightmend-login-styles';
       style.textContent = pageStyles;
       document.head.appendChild(style);
     }
@@ -274,7 +274,7 @@ export default function Login() {
 
   return (
     <div
-      className="vigilops-login"
+      className="nightmend-login"
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -329,7 +329,7 @@ export default function Login() {
           fontSize: 24,
           letterSpacing: '-0.02em',
         }}>
-          VigilOps
+          NightMend
         </Title>
         <div style={{
           color: T.textMuted,
@@ -400,7 +400,7 @@ export default function Login() {
                       size="middle"
                       style={secondaryBtnStyle}
                       onClick={() => {
-                        loginForm.setFieldsValue({ email: 'demo@vigilops.io', password: 'demo123' });
+                        loginForm.setFieldsValue({ email: 'demo@nightmend.io', password: 'demo123' });
                         loginForm.submit();
                       }}
                     >
@@ -538,7 +538,7 @@ export default function Login() {
         onCancel={() => setForgotModalOpen(false)}
         onOk={() => setForgotModalOpen(false)}
         cancelButtonProps={{ style: { display: 'none' } }}
-        rootClassName="vigilops-login-modal"
+        rootClassName="nightmend-login-modal"
       >
         <p>{t('login.forgotPasswordContent')}</p>
       </Modal>

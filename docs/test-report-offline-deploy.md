@@ -1,9 +1,9 @@
-# VigilOps 离线部署端到端测试报告
+# NightMend 离线部署端到端测试报告
 
 - **测试日期**: 2026-02-20
 - **测试环境**: 阿里云 ECS demo.lchuangnet.com (CentOS Stream 9, 8核15GB)
 - **测试方式**: 方案 B（安全验证，不启动容器避免端口冲突）
-- **测试包**: vigilops-deploy.tar.gz (86MB)
+- **测试包**: nightmend-deploy.tar.gz (86MB)
 
 ---
 
@@ -12,8 +12,8 @@
 | # | 检查项 | 结果 | 备注 |
 |---|--------|------|------|
 | 1 | tar 包完整性 | ✅ PASS | 含 docker-compose.yml, install.sh, init.sh, backend.tar.gz, frontend.tar.gz |
-| 2 | docker load backend | ✅ PASS | vigilops-backend:latest (239MB) |
-| 3 | docker load frontend | ✅ PASS | vigilops-frontend:latest (26.2MB) |
+| 2 | docker load backend | ✅ PASS | nightmend-backend:latest (239MB) |
+| 3 | docker load frontend | ✅ PASS | nightmend-frontend:latest (26.2MB) |
 | 4 | install.sh 语法检查 | ✅ PASS | bash -n 通过 |
 | 5 | .env 文件生成 | ❌ FAIL | .env.example 未打包进 tar，无法生成 .env |
 | 6 | docker-compose.yml 离线可用 | ❌ FAIL | 仍使用 `build:` 而非 `image:`，离线环境无源码无法构建 |
@@ -28,7 +28,7 @@
 
 ### BUG-1: .env.example 未打包进部署 tar (P0 - 阻断)
 
-**描述**: vigilops-deploy.tar.gz 不含 .env.example 文件。install.sh 在无 .env.example 时仅输出 warning 继续执行，但 docker-compose.yml 的 `env_file: .env` 导致直接报错退出。
+**描述**: nightmend-deploy.tar.gz 不含 .env.example 文件。install.sh 在无 .env.example 时仅输出 warning 继续执行，但 docker-compose.yml 的 `env_file: .env` 导致直接报错退出。
 
 **复现**: 解压 tar → 运行 install.sh → `env file .env not found` 错误
 
@@ -40,7 +40,7 @@
 
 **描述**: docker-compose.yml 中 backend 和 frontend 服务使用 `build: ./backend` / `build: ./frontend`，但离线 tar 包内无源码目录，只有预构建镜像。docker compose up 会因找不到 build context 而失败。
 
-**修复**: install.sh 应将 docker-compose.yml 中的 `build:` 替换为 `image: vigilops-backend:latest` / `image: vigilops-frontend:latest`，或打包一份离线专用 docker-compose.yml。
+**修复**: install.sh 应将 docker-compose.yml 中的 `build:` 替换为 `image: nightmend-backend:latest` / `image: nightmend-frontend:latest`，或打包一份离线专用 docker-compose.yml。
 
 ---
 

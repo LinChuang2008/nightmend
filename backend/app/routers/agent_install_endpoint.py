@@ -16,7 +16,7 @@ def add_install_endpoint(router):
         """
         Agent 安装脚本下载接口 (Agent Install Script Download)
         
-        提供 VigilOps Agent 一键安装脚本，支持前端生成的安装命令。
+        提供 NightMend Agent 一键安装脚本，支持前端生成的安装命令。
         
         Returns:
             FileResponse: install-agent.sh 脚本文件

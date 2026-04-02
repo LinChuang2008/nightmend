@@ -10,7 +10,7 @@
 依赖关系：依赖 DbMetric 和 MonitoredDatabase 数据模型
 API端点：GET /api/v1/databases, GET /api/v1/databases/{id}, GET /api/v1/databases/{id}/metrics, GET /api/v1/databases/{id}/slow-queries
 
-Author: VigilOps Team
+Author: NightMend Team
 """
 from datetime import datetime, timezone, timedelta
 

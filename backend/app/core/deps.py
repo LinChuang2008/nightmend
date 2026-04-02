@@ -1,10 +1,10 @@
 """
 FastAPI 依赖项模块 (FastAPI Dependencies Module)
 
-提供 VigilOps 平台的通用依赖注入函数，包括用户认证、权限检查等。
+提供 NightMend 平台的通用依赖注入函数，包括用户认证、权限检查等。
 基于 JWT 令牌实现用户身份验证和基于角色的访问控制（RBAC）。
 
-Provides common dependency injection functions for the VigilOps platform,
+Provides common dependency injection functions for the NightMend platform,
 including user authentication and permission checks. Implements user authentication
 and Role-Based Access Control (RBAC) based on JWT tokens.
 """

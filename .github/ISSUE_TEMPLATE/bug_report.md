@@ -1,6 +1,6 @@
 ---
 name: 🐛 Bug Report
-about: Report a bug to help us improve VigilOps
+about: Report a bug to help us improve NightMend
 title: "[Bug] "
 labels: bug
 assignees: ''
@@ -30,7 +30,7 @@ If applicable, add screenshots to help explain the problem.
 
 ## Environment
 
-- **VigilOps Version:** (e.g., v0.1.0)
+- **NightMend Version:** (e.g., v0.1.0)
 - **Deployment:** Docker / Manual
 - **OS:** (e.g., Ubuntu 22.04)
 - **Browser:** (e.g., Chrome 120)

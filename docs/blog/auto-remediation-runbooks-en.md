@@ -1,6 +1,6 @@
 # Auto-Remediation: What If Your Monitoring System Could Fix Things?
 
-> VigilOps Team | February 2026
+> NightMend Team | February 2026
 
 ---
 
@@ -48,9 +48,9 @@ You can't auto-remediate everything. But you can auto-remediate the boring stuff
 
 The key insight: **start with the smallest, safest scope and expand gradually.**
 
-## How VigilOps Does It
+## How NightMend Does It
 
-VigilOps takes the approach of building remediation directly into the monitoring system, rather than bolting it on as a separate layer.
+NightMend takes the approach of building remediation directly into the monitoring system, rather than bolting it on as a separate layer.
 
 ### The Architecture
 
@@ -127,7 +127,7 @@ Every runbook execution goes through:
 
 Let's walk through a concrete scenario.
 
-**Setup:** You have VigilOps monitoring 10 servers. One of them, `app-02`, runs a Python web application that occasionally leaks memory.
+**Setup:** You have NightMend monitoring 10 servers. One of them, `app-02`, runs a Python web application that occasionally leaks memory.
 
 **What happens:**
 
@@ -153,11 +153,11 @@ Without auto-remediation, this would have been a page at 8:23 AM, 15 minutes of 
 
 ## Getting Started
 
-### Deploy VigilOps
+### Deploy NightMend
 
 ```bash
-git clone https://github.com/LinChuang2008/vigilops.git
-cd vigilops
+git clone https://github.com/LinChuang2008/nightmend.git
+cd nightmend
 cp .env.example .env    # Add DeepSeek API key
 docker compose up -d
 ```
@@ -166,7 +166,7 @@ Open `http://localhost:3001` and explore the Runbook section to see how each bui
 
 ### Try the Demo
 
-[https://demo.lchuangnet.com](https://demo.lchuangnet.com) — `demo@vigilops.io` / `demo123` (read-only)
+[https://demo.lchuangnet.com](https://demo.lchuangnet.com) — `demo@nightmend.io` / `demo123` (read-only)
 
 In the demo, navigate to:
 - **Runbooks** — See the 6 built-in runbooks with their logic and parameters
@@ -184,17 +184,17 @@ In the demo, navigate to:
 **Not a good fit (yet):**
 - Large-scale production with strict compliance requirements
 - Environments needing HA/multi-node monitoring
-- Teams that need 100+ integrations (VigilOps ecosystem is still limited)
+- Teams that need 100+ integrations (NightMend ecosystem is still limited)
 - Anyone expecting a mature, battle-tested platform (we're early stage — honest)
 
 ## The Bigger Picture
 
 Auto-remediation isn't about replacing ops engineers. It's about letting them focus on work that actually requires human judgment — architecture decisions, capacity planning, reliability engineering — instead of restarting services and clearing disk space at 3 AM.
 
-The fact that < 1% of enterprises have achieved autonomous remediation tells us that the tooling gap is real. We don't claim VigilOps closes that gap entirely — we're too early for that. But we think building remediation directly into an open-source monitoring system, with AI to connect alerts to actions, is a step in the right direction.
+The fact that < 1% of enterprises have achieved autonomous remediation tells us that the tooling gap is real. We don't claim NightMend closes that gap entirely — we're too early for that. But we think building remediation directly into an open-source monitoring system, with AI to connect alerts to actions, is a step in the right direction.
 
-If this resonates, try it out and let us know what you think: [GitHub Discussions](https://github.com/LinChuang2008/vigilops/discussions).
+If this resonates, try it out and let us know what you think: [GitHub Discussions](https://github.com/LinChuang2008/nightmend/discussions).
 
 ---
 
-*VigilOps is an Apache 2.0 open source project. [GitHub](https://github.com/LinChuang2008/vigilops)*
+*NightMend is an Apache 2.0 open source project. [GitHub](https://github.com/LinChuang2008/nightmend)*

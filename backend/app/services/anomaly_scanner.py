@@ -2,7 +2,7 @@
 AI异常扫描服务 (AI Anomaly Scanning Service)
 
 功能描述 (Description):
-    VigilOps 智能异常检测服务，实现主动式运维监控。
+    NightMend 智能异常检测服务，实现主动式运维监控。
     定期自动扫描系统日志，识别潜在问题，提前预警异常情况。
     
 核心功能 (Core Features):

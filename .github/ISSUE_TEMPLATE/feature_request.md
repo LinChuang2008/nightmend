@@ -1,6 +1,6 @@
 ---
 name: 💡 Feature Request
-about: Suggest an idea for VigilOps
+about: Suggest an idea for NightMend
 title: "[Feature] "
 labels: enhancement
 assignees: ''

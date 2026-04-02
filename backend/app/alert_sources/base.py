@@ -44,7 +44,7 @@ class AlertSourceAdapter(ABC):
 
     实现三个方法即可接入新的告警源:
     1. parse()            — 解析原始 webhook payload
-    2. map_to_host()      — 将告警中的主机标识映射到 VigilOps Host
+    2. map_to_host()      — 将告警中的主机标识映射到 NightMend Host
     3. to_remediation_alert() — 转换为 RemediationAlert 供修复管道使用
     """
 
@@ -58,7 +58,7 @@ class AlertSourceAdapter(ABC):
 
     @abstractmethod
     async def map_to_host(self, alert: IncomingAlert, db: AsyncSession) -> Optional[Host]:
-        """将告警中的主机标识（IP/hostname）映射到 VigilOps Host 记录。
+        """将告警中的主机标识（IP/hostname）映射到 NightMend Host 记录。
 
         返回 None 表示未找到匹配的 Host。
         """

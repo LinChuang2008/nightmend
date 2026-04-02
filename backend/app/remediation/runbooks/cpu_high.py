@@ -1,5 +1,5 @@
 """
-VigilOps 内置 Runbook - CPU 使用率过高排查
+NightMend 内置 Runbook - CPU 使用率过高排查
 """
 from ..models import RiskLevel, RunbookDefinition, RunbookStep
 

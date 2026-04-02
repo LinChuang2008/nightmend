@@ -1,5 +1,5 @@
 """
-VigilOps 测试基础配置
+NightMend 测试基础配置
 
 提供 SQLite in-memory 异步数据库、mock Redis、FastAPI TestClient 等通用 fixture。
 所有测试使用隔离的 SQLite 数据库，不依赖外部 PostgreSQL/Redis。
