@@ -22,12 +22,12 @@ from app.models.ops_session import OpsSession
 from app.models.ops_message import OpsMessage
 from app.models.setting import Setting
 from app.models.host import Host
-from app.models.host_metric import HostMetric
-from app.models.alert import Alert
-from app.models.log_entry import LogEntry
 from app.models.ai_operation_log import AIOperationLog
 from app.services.approval_service import ApprovalService
-from app.services.ops_skill_loader import load_skill, list_skills
+from app.tools import tool_registry
+from app.tools.base import ToolEventType
+from app.tools.context import ToolContext
+from app.tools.safety import SafetyChecker
 
 logger = logging.getLogger(__name__)
 
@@ -49,161 +49,9 @@ OPS_AI_EXTRA_CONTEXT_KEY = "ops_ai_extra_context"
 OPS_AI_CONFIGS_V2_KEY = "ops_ai_configs_v2"
 OPS_AI_DEFAULT_ID_KEY = "ops_ai_default_config_id"
 
-# ─── Tool Schemas ──────────────────────────────────────────────────────────────
-
-TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "list_hosts",
-            "description": "获取当前在线主机列表，包含主机名、IP、状态、分组信息。用于推断用户意图中的目标主机。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "status": {"type": "string", "enum": ["online", "offline", "all"], "default": "online"}
-                },
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_host_metrics",
-            "description": "获取指定主机的最新性能指标（CPU、内存、磁盘、网络）。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "host_id": {"type": "integer", "description": "主机 ID"}
-                },
-                "required": ["host_id"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_alerts",
-            "description": "查询活跃告警列表。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "host_id": {"type": "integer", "description": "按主机过滤，不填则查全部"},
-                    "severity": {"type": "string", "enum": ["critical", "warning", "info"]},
-                    "limit": {"type": "integer", "default": 20},
-                },
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "search_logs",
-            "description": "搜索指定主机的日志。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "host_id": {"type": "integer"},
-                    "keyword": {"type": "string", "description": "搜索关键词"},
-                    "level": {"type": "string", "enum": ["ERROR", "WARN", "INFO", "DEBUG"]},
-                    "hours_back": {"type": "integer", "default": 1},
-                    "limit": {"type": "integer", "default": 50},
-                },
-                "required": ["host_id", "keyword"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "execute_command",
-            "description": "在目标主机上执行 shell 命令进行诊断。命令将发送给用户确认后才会执行，请在 reason 中说明执行目的。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "command": {"type": "string", "description": "要执行的 shell 命令"},
-                    "host_id": {"type": "integer", "description": "目标主机 ID"},
-                    "timeout": {"type": "integer", "description": "超时秒数", "default": 120},
-                    "reason": {"type": "string", "description": "执行此命令的诊断目的"},
-                },
-                "required": ["command", "host_id"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "ask_user",
-            "description": "向用户提问以获取更多信息。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "question": {"type": "string"},
-                    "input_type": {"type": "string", "enum": ["radio", "checkbox", "text"]},
-                    "options": {"type": "array", "items": {"type": "string"}, "description": "radio/checkbox 时必填"},
-                },
-                "required": ["question", "input_type"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "update_todo",
-            "description": "更新排障任务清单，让用户了解当前进度。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "todos": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "string"},
-                                "text": {"type": "string"},
-                                "status": {"type": "string", "enum": ["pending", "in_progress", "done"]},
-                            },
-                            "required": ["id", "text", "status"],
-                        },
-                    }
-                },
-                "required": ["todos"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "load_skill",
-            "description": "加载运维技能知识库，获取特定中间件的排障流程和命令模板。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "skill_name": {
-                        "type": "string",
-                        "enum": ["mysql-troubleshoot", "nginx-troubleshoot", "redis-troubleshoot",
-                                 "linux-performance", "docker-troubleshoot"],
-                    }
-                },
-                "required": ["skill_name"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "provide_conclusion",
-            "description": "输出最终排障结论，结束本轮诊断循环。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "conclusion": {"type": "string", "description": "排障结论和建议"},
-                    "resolved": {"type": "boolean", "description": "问题是否已解决"},
-                },
-                "required": ["conclusion"],
-            },
-        },
-    },
-]
+# ─── Tool Schemas（从 ToolRegistry 动态生成）─────────────────────────────────
+# 旧的硬编码 TOOLS 列表已移除，改用 tool_registry.get_openai_schemas()
+TOOL_EXECUTION_TIMEOUT = 300  # 工具执行超时秒数
 
 
 SYSTEM_PROMPT = """你是 VigilOps AI 运维助手，一个专业的 Linux/云原生运维专家。
@@ -238,6 +86,8 @@ class OpsAgentLoop:
         self._approval_service = ApprovalService(self._update_message_content)
         # 同一 session 全局串行推理锁（跨多个 WebSocket 连接也生效）
         self._run_lock = asyncio.Lock()
+        # 统一安全层（延迟初始化，等 Redis 可用）
+        self._safety_checker: SafetyChecker | None = None
 
     # ─── 公开接口 ──────────────────────────────────────────────────────────────
 
@@ -429,356 +279,141 @@ class OpsAgentLoop:
 
     # ─── 工具执行 ──────────────────────────────────────────────────────────────
 
+    async def _get_safety_checker(self) -> SafetyChecker:
+        """延迟初始化 SafetyChecker（需要 Redis 连接）。"""
+        if self._safety_checker is None:
+            redis = await get_redis()
+            self._safety_checker = SafetyChecker(redis=redis)
+        return self._safety_checker
+
+    def _get_tools_schema(self) -> list[dict]:
+        """从 ToolRegistry 动态获取工具 schema 列表。"""
+        return tool_registry.get_openai_schemas()
+
     async def _execute_tool(
         self, tool_name: str, arguments: dict, msg_id: str, tool_call_id: str
     ):
         """
-        执行工具调用（async generator）。
+        通过 ToolRegistry 调度工具执行（async generator）。
+        自动包装审计日志 + 执行遥测。
         yield 普通事件 dict，最后 yield {"__type": "__result", "result": ..., "stop": bool}
         """
-        should_stop = False
+        tool = tool_registry.get(tool_name)
+        if not tool:
+            result = {"error": f"Unknown tool: {tool_name}"}
+            yield {"event": "tool_error", "message_id": msg_id,
+                   "tool_name": tool_name, "error": result["error"]}
+            yield {"__type": "__result", "result": result, "stop": False}
+            return
+
+        # 构建 ToolContext
+        redis = await get_redis()
+        safety_checker = await self._get_safety_checker()
+        ctx = ToolContext(
+            session_id=self.session_id,
+            user_id=self.user_id,
+            db_session_factory=AsyncSessionLocal,
+            redis=redis,
+            safety_checker=safety_checker,
+            approval_service=self._approval_service,
+            save_message=self._save_message,
+            context_messages=self._context,
+            caller="ops_assistant",
+        )
+
+        # 执行工具（带超时保护 + 审计日志 + 遥测）
+        start_time = datetime.now(timezone.utc)
         result = None
+        should_stop = False
+        has_result = False
+        error_msg = None
 
         try:
-            if tool_name == "list_hosts":
-                result = await self._tool_list_hosts(arguments)
+            async for event in asyncio.wait_for(
+                self._consume_tool_events(tool, arguments, ctx, msg_id),
+                timeout=TOOL_EXECUTION_TIMEOUT,
+            ):
+                if event.get("__type") == "__result":
+                    result = event["result"]
+                    should_stop = event.get("stop", False)
+                    has_result = True
+                else:
+                    yield event
 
-            elif tool_name == "get_host_metrics":
-                result = await self._tool_get_host_metrics(arguments)
-
-            elif tool_name == "get_alerts":
-                result = await self._tool_get_alerts(arguments)
-
-            elif tool_name == "search_logs":
-                result = await self._tool_search_logs(arguments)
-
-            elif tool_name == "execute_command":
-                # async generator：先 yield command_request，再等待确认
-                async for item in self._tool_execute_command(arguments, msg_id):
-                    if item.get("__type") == "__result":
-                        result = item["result"]
-                    else:
-                        yield item
-
-            elif tool_name == "ask_user":
-                # async generator：先 yield ask_user 事件，再等待回答
-                async for item in self._tool_ask_user(arguments, msg_id):
-                    if item.get("__type") == "__result":
-                        result = item["result"]
-                    else:
-                        yield item
-
-            elif tool_name == "update_todo":
-                result = arguments
-                yield {"event": "todo_update", "todos": arguments.get("todos", [])}
-                await self._save_message("assistant", "todo_update", arguments)
-
-            elif tool_name == "load_skill":
-                result = await self._tool_load_skill(arguments, msg_id)
-
-            elif tool_name == "provide_conclusion":
-                result = arguments
-                should_stop = True
-                await self._save_message("assistant", "text", {"text": arguments.get("conclusion", "")})
-
-            else:
-                result = {"error": f"Unknown tool: {tool_name}"}
+        except asyncio.TimeoutError:
+            error_msg = f"工具 {tool_name} 执行超时（{TOOL_EXECUTION_TIMEOUT}秒）"
+            logger.error(error_msg)
+            result = {"error": error_msg}
+            yield {"event": "tool_error", "message_id": msg_id,
+                   "tool_name": tool_name, "error": error_msg}
 
         except Exception as e:
+            error_msg = str(e)
             logger.error(f"Tool {tool_name} failed: {e}", exc_info=True)
-            result = {"error": str(e)}
+            result = {"error": error_msg}
             yield {"event": "tool_error", "message_id": msg_id,
-                   "tool_name": tool_name, "error": str(e)}
+                   "tool_name": tool_name, "error": error_msg}
+
+        # 兜底：如果工具未 yield RESULT，补一个空结果
+        if not has_result and result is None:
+            result = {"error": "Tool did not produce a result"}
+
+        # 遥测：记录工具执行指标
+        duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+        try:
+            async with AsyncSessionLocal() as db:
+                log = AIOperationLog(
+                    user_id=self.user_id,
+                    session_id=self.session_id,
+                    request_id=tool_call_id,
+                    host_id=arguments.get("host_id"),
+                    host_name=arguments.get("host_name", ""),
+                    command=f"tool:{tool_name}",
+                    reason=json.dumps(arguments, ensure_ascii=False)[:500],
+                    exit_code=0 if error_msg is None else -1,
+                    duration_ms=duration_ms,
+                    status="success" if error_msg is None else "failed",
+                )
+                db.add(log)
+                await db.commit()
+        except Exception:
+            logger.warning("Failed to write tool telemetry for %s", tool_name, exc_info=True)
 
         yield {"__type": "__result", "result": result, "stop": should_stop}
 
-    async def _tool_list_hosts(self, args: dict) -> dict:
-        status_filter = args.get("status", "online")
-        query = select(Host)
-        if status_filter != "all":
-            query = query.where(Host.status == status_filter)
-        async with AsyncSessionLocal() as db:
-            result = await db.execute(query.limit(50))
-            hosts = result.scalars().all()
-            return {
-                "hosts": [
-                    {
-                        "id": h.id,
-                        "hostname": h.hostname,
-                        "display_name": h.display_name,
-                        "ip": h.display_ip,
-                        "status": h.status,
-                        "group_name": h.group_name,
-                        "tags": h.tags,
-                    }
-                    for h in hosts
-                ]
-            }
+    async def _consume_tool_events(self, tool, arguments, ctx, msg_id):
+        """消费工具的 ToolEvent 流，转换为前端事件格式。"""
+        async for event in tool.execute(arguments, ctx):
+            if event.type == ToolEventType.RESULT:
+                yield {"__type": "__result", "result": event.data, "stop": event.stop}
+            elif event.type == ToolEventType.APPROVAL_REQUEST:
+                yield {"event": event.data.get("event_name", "command_request"), **event.data}
+            elif event.type == ToolEventType.TODO_UPDATE:
+                yield {"event": "todo_update", **event.data}
+            elif event.type == ToolEventType.SKILL_LOADED:
+                # 注入技能内容到对话上下文
+                if ctx.context_messages is not None:
+                    ctx.context_messages.append({
+                        "role": "system",
+                        "content": (
+                            f"【已加载技能：{event.data.get('skill_name', '')}】\n\n"
+                            f"{event.data.get('content', '')}"
+                        ),
+                    })
+                yield {"event": "skill_loaded", "message_id": msg_id, **event.data}
+            elif event.type == ToolEventType.PROGRESS:
+                yield {"event": event.data.get("event_name", "progress"), **event.data}
+            elif event.type == ToolEventType.TEXT:
+                yield {"event": "text_delta", "delta": event.data.get("text", "")}
 
-    async def _tool_get_host_metrics(self, args: dict) -> dict:
-        host_id = args["host_id"]
-        async with AsyncSessionLocal() as db:
-            result = await db.execute(
-                select(HostMetric)
-                .where(HostMetric.host_id == host_id)
-                .order_by(HostMetric.recorded_at.desc())
-                .limit(1)
-            )
-            metric = result.scalar_one_or_none()
-        if not metric:
-            return {"error": f"No metrics found for host_id={host_id}"}
-        return {
-            "host_id": host_id,
-            "cpu_percent": metric.cpu_percent,
-            "memory_percent": metric.memory_percent,
-            "disk_percent": metric.disk_percent,
-            "cpu_load_1": metric.cpu_load_1,
-            "cpu_load_5": metric.cpu_load_5,
-            "recorded_at": metric.recorded_at.isoformat(),
-        }
+    # ─── 旧的 _tool_* 方法已迁移到 app/tools/builtins/ ──────────────────────
 
-    async def _tool_get_alerts(self, args: dict) -> dict:
-        query = select(Alert).where(Alert.status == "firing")
-        if args.get("host_id"):
-            query = query.where(Alert.host_id == args["host_id"])
-        if args.get("severity"):
-            query = query.where(Alert.severity == args["severity"])
-        async with AsyncSessionLocal() as db:
-            result = await db.execute(query.order_by(Alert.fired_at.desc()).limit(args.get("limit", 20)))
-            alerts = result.scalars().all()
-            return {
-                "alerts": [
-                    {
-                        "id": a.id,
-                        "title": a.title,
-                        "severity": a.severity,
-                        "status": a.status,
-                        "message": a.message,
-                        "fired_at": a.fired_at.isoformat(),
-                        "host_id": a.host_id,
-                    }
-                    for a in alerts
-                ]
-            }
-
-    async def _tool_search_logs(self, args: dict) -> dict:
-        from datetime import timedelta
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=args.get("hours_back", 1))
-        query = (
-            select(LogEntry)
-            .where(LogEntry.host_id == args["host_id"])
-            .where(LogEntry.timestamp > cutoff)
-            .where(LogEntry.message.contains(args["keyword"]))
-        )
-        if args.get("level"):
-            query = query.where(LogEntry.level == args["level"])
-        async with AsyncSessionLocal() as db:
-            result = await db.execute(query.order_by(LogEntry.timestamp.desc()).limit(args.get("limit", 50)))
-            logs = result.scalars().all()
-            return {
-                "logs": [
-                    {
-                        "timestamp": l.timestamp.isoformat(),
-                        "level": l.level,
-                        "service": l.service,
-                        "message": l.message,
-                    }
-                    for l in logs
-                ],
-                "count": len(logs),
-            }
-
-    # 危险命令黑名单 — 阻止 AI 生成的可能造成不可逆损害的命令
-    _DANGEROUS_COMMAND_PATTERNS = [
-        r'\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?/',       # rm -rf /
-        r'\bdd\s+if=',                                  # dd if=/dev/zero
-        r'\bmkfs\b',                                    # mkfs (format disk)
-        r'\bshutdown\b',                                # shutdown
-        r'\breboot\b',                                  # reboot
-        r'\binit\s+[06]\b',                             # init 0/6
-        r'\bhalt\b',                                    # halt
-        r'\bpoweroff\b',                                # poweroff
-        r'>\s*/dev/sd[a-z]',                            # write to raw disk
-        r'\bchmod\s+(-[a-zA-Z]*\s+)?777\s+/',          # chmod 777 /
-        r'\bchown\s+(-[a-zA-Z]*\s+)?root.*/',          # chown root /
-        r':\(\)\s*\{\s*:\|:\s*&\s*\}\s*;',             # fork bomb
-        r'\bcurl\b.*\|\s*(ba)?sh',                      # curl | bash
-        r'\bwget\b.*\|\s*(ba)?sh',                      # wget | bash
-    ]
-
-    @staticmethod
-    def _is_dangerous_command(command: str) -> str | None:
-        """检查命令是否匹配危险模式，返回匹配的模式描述或 None。"""
-        import re
-        for pattern in OpsAgentLoop._DANGEROUS_COMMAND_PATTERNS:
-            if re.search(pattern, command, re.IGNORECASE):
-                return pattern
-        return None
-
-    async def _tool_execute_command(self, args: dict, msg_id: str):
-        """发送命令确认请求（async generator），先 yield command_request 事件，再等待用户确认。"""
-        command = args["command"]
-        host_id = args["host_id"]
-        timeout = args.get("timeout", 120)
-        reason = args.get("reason", "")
-
-        # 安全检查：拦截危险命令
-        danger = self._is_dangerous_command(command)
-        if danger:
-            logger.warning("Blocked dangerous command: %s (pattern: %s)", command, danger)
-            yield {"event": "command_blocked", "message_id": msg_id,
-                   "command": command, "reason": f"命令被安全策略拦截（匹配危险模式）"}
-            yield {"__type": "__result", "result": {
-                "error": f"安全策略拦截：此命令匹配危险模式，已被自动阻止。请使用更安全的替代方案。",
-                "blocked_pattern": danger,
-            }}
-            return
-
-        # 获取主机名
-        async with AsyncSessionLocal() as db:
-            result = await db.execute(select(Host).where(Host.id == host_id))
-            host = result.scalar_one_or_none()
-        host_name = host.display_hostname if host else f"host-{host_id}"
-
-        # 持久化 command_request 消息
-        await self._save_message("assistant", "command_request", {
-            "command": command, "host_id": host_id, "host_name": host_name,
-            "timeout": timeout, "reason": reason, "status": "pending",
-        }, message_id=msg_id)
-        await self._approval_service.register(msg_id, "command_request")
-
-        # ★ 先 yield 事件推送给前端，前端才能显示确认弹窗
-        yield {"event": "command_request", "message_id": msg_id,
-               "command": command, "host_id": host_id, "host_name": host_name,
-               "timeout": timeout, "reason": reason}
-
-        # 等待用户确认（60 秒超时）
-        reply = await self._approval_service.wait_for_reply(
-            msg_id,
-            timeout=COMMAND_CONFIRM_TIMEOUT,
-            timeout_action="expired",
-        )
-        action = reply.get("action", "reject")
-
-        if action == "confirm":
-            redis = await get_redis()
-            request_id = msg_id
-            await redis.set(f"cmd_req_session:{request_id}", self.session_id, ex=timeout + 60)
-            payload = json.dumps({
-                "type": "exec_command",
-                "request_id": request_id,
-                "command": command,
-                "timeout": timeout,
-            })
-            await redis.publish(f"cmd_to_agent:{host_id}", payload)
-            await self._write_audit_log(host_id, command)
-
-            cmd_result = await self._wait_command_result(request_id, timeout + 10)
-            await self._write_ai_operation_log(
-                host_id=host_id,
-                host_name=host_name,
-                command=command,
-                reason=reason,
-                request_id=request_id,
-                cmd_result=cmd_result,
-            )
-            await self._save_message("tool", "command_result", {
-                "request_id": request_id,
-                "exit_code": cmd_result.get("exit_code", -1),
-                "duration_ms": cmd_result.get("duration_ms", 0),
-                "stdout": cmd_result.get("stdout", ""),
-                "stderr": cmd_result.get("stderr", ""),
-            })
-            yield {"event": "command_result", "message_id": msg_id,
-                   "exit_code": cmd_result.get("exit_code", -1),
-                   "duration_ms": cmd_result.get("duration_ms", 0)}
-            yield {"__type": "__result", "result": cmd_result}
-
-        elif action == "reject":
-            yield {"event": "command_expired", "message_id": msg_id, "reason": "rejected"}
-            yield {"__type": "__result", "result": {"error": "用户拒绝执行此命令", "action": "rejected"}}
-        else:
-            yield {"event": "command_expired", "message_id": msg_id, "reason": "timeout"}
-            yield {"__type": "__result", "result": {"error": "命令确认超时，已自动取消", "action": "expired"}}
-
-    async def _wait_command_result(self, request_id: str, timeout: int) -> dict:
-        """订阅 Redis channel 等待命令执行结果，带硬超时防止永久阻塞。"""
-        redis = await get_redis()
-        channel = f"cmd_result:{self.session_id}"
-        pubsub = redis.pubsub()
-        await pubsub.subscribe(channel)
-        try:
-            deadline = asyncio.get_event_loop().time() + timeout
-            while True:
-                remaining = deadline - asyncio.get_event_loop().time()
-                if remaining <= 0:
-                    logger.warning(f"Command result timeout ({timeout}s) for request {request_id}")
-                    break
-                try:
-                    # get_message 带超时轮询，不会永久阻塞
-                    message = await asyncio.wait_for(
-                        pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0),
-                        timeout=min(remaining, 5.0),
-                    )
-                except asyncio.TimeoutError:
-                    continue
-                if message is None:
-                    continue
-                try:
-                    data = json.loads(message["data"])
-                    if data.get("request_id") == request_id:
-                        return data
-                except Exception:
-                    continue
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            pass
-        finally:
-            await pubsub.unsubscribe(channel)
-            await pubsub.close()
-        return {"error": "command result timeout", "exit_code": -1, "stdout": "", "stderr": "timeout"}
-
-    async def _tool_ask_user(self, args: dict, msg_id: str):
-        """向用户提问（async generator），先 yield ask_user 事件，再等待回答。"""
-        await self._save_message("assistant", "ask_user", {
-            "question": args["question"],
-            "input_type": args["input_type"],
-            "options": args.get("options", []),
-            "status": "pending",
-            "answer": None,
-        }, message_id=msg_id)
-        await self._approval_service.register(msg_id, "ask_user")
-
-        # ★ 先 yield 事件推送给前端
-        yield {"event": "ask_user", "message_id": msg_id,
-               "question": args["question"],
-               "input_type": args["input_type"],
-               "options": args.get("options", [])}
-
-        # 等待用户回答（5 分钟超时）
-        reply = await self._approval_service.wait_for_reply(
-            msg_id,
-            timeout=300,
-            timeout_action="expired",
-        )
-        answer = reply.get("answer", "") or ""
-
-        yield {"__type": "__result", "result": {"answer": answer}}
-
-    async def _tool_load_skill(self, args: dict, msg_id: str) -> dict:
-        skill_name = args["skill_name"]
-        content = load_skill(skill_name)
-        if not content:
-            return {"error": f"Skill '{skill_name}' not found"}
-        await self._save_message("assistant", "skill_load", {
-            "skill_name": skill_name,
-            "description": f"已加载 {skill_name} 技能知识库",
-        })
-        return {
-            "skill_name": skill_name,
-            "loaded": True,
-            "content_length": len(content),
-            "skill_content": content,
-        }
+    # ─── 上下文压缩（保留） ────────────────────────────────────────────────────
+    # 注意：以下旧代码块已删除，用占位标记。实际的 _tool_* 方法在 git 历史中可查。
+    # _tool_get_host_metrics, _tool_get_alerts, _tool_search_logs,
+    # _DANGEROUS_COMMAND_PATTERNS, _is_dangerous_command, _tool_execute_command,
+    # _wait_command_result, _tool_ask_user, _tool_load_skill
+    # 全部迁移到 app/tools/builtins/ 目录下的独立模块。
 
     # ─── 上下文压缩 ────────────────────────────────────────────────────────────
 
@@ -875,7 +510,7 @@ class OpsAgentLoop:
         payload = {
             "model": runtime_cfg["model"],
             "messages": safe_messages,
-            "tools": TOOLS,
+            "tools": self._get_tools_schema(),
             "tool_choice": "auto",
             "stream": True,
             "temperature": 0.3,

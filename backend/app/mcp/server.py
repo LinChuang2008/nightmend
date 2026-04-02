@@ -29,6 +29,8 @@ from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
 from app.core.database import SessionLocal
+from app.core.database import async_session as AsyncSessionLocal
+from app.core.redis import get_redis
 from app.models.host import Host
 from app.models.alert import Alert, AlertRule
 from app.models.log_entry import LogEntry
@@ -38,6 +40,10 @@ from app.models.host_metric import HostMetric
 from app.models.user import User
 from app.models.ops_session import OpsSession
 from app.services.ops_agent_loop import get_or_create_loop, remove_loop
+from app.tools import tool_registry
+from app.tools.base import ToolEventType
+from app.tools.context import ToolContext
+from app.tools.safety import SafetyChecker
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +138,103 @@ def _host_to_dict(host: Host) -> dict:
         "ip": host.display_ip,
         "status": host.status,
     }
+
+
+# ─── Auto-registration from unified ToolRegistry ────────────────────────────
+# Tools defined in app/tools/builtins/ and app/tools/runbooks/ are auto-registered
+# here so MCP clients get the same capabilities as the Ops Assistant.
+
+
+def register_tools_from_registry(server: FastMCP) -> int:
+    """Auto-register all tools from the unified ToolRegistry as MCP tools.
+
+    Returns the number of tools successfully registered.
+    Handles the case where the registry has 0 tools (e.g. startup timing).
+    """
+    tools = tool_registry.list_tools()
+    if not tools:
+        logger.warning(
+            "ToolRegistry has 0 tools — registry may not be initialized yet. "
+            "Call init_tool_registry() before register_tools_from_registry()."
+        )
+        return 0
+
+    count = 0
+    for tool in tools:
+        try:
+            _register_mcp_tool(server, tool)
+            logger.info("MCP: registered tool '%s' from ToolRegistry", tool.name)
+            count += 1
+        except Exception:
+            logger.warning(
+                "MCP: failed to register tool '%s', skipping",
+                tool.name,
+                exc_info=True,
+            )
+    logger.info("MCP: %d/%d registry tools registered", count, len(tools))
+    return count
+
+
+def _register_mcp_tool(server: FastMCP, tool) -> None:
+    """Register a single OpsTool as an MCP tool using the closure pattern.
+
+    The handler runs the async tool.execute() via _run_async_sync() because
+    MCP tool handlers may be invoked in a sync context.
+    """
+
+    # Use a default-arg closure to capture the current `tool` value
+    async def _async_handler(tool=tool, **kwargs):
+        """Async inner handler — executes the OpsTool and collects RESULT events."""
+        # MCP mode: tools requiring approval are auto-rejected (safety first)
+        if tool.requires_approval:
+            return {
+                "error": (
+                    f"Tool '{tool.name}' requires user confirmation and is not "
+                    "available in MCP mode."
+                )
+            }
+
+        redis = await get_redis()
+        ctx = ToolContext(
+            session_id=f"mcp-{uuid.uuid4()}",
+            user_id=0,  # MCP has no interactive user; tools use service context
+            db_session_factory=AsyncSessionLocal,
+            redis=redis,
+            safety_checker=SafetyChecker(redis=redis),
+            caller="mcp",
+        )
+
+        results: list[dict] = []
+        try:
+            async for event in tool.execute(kwargs, ctx):
+                if event.type == ToolEventType.RESULT:
+                    results.append(event.data)
+        except Exception as exc:
+            logger.error("MCP tool '%s' execution error: %s", tool.name, exc)
+            return {"error": str(exc)}
+
+        return results[-1] if results else {}
+
+    def handler(tool=tool, **kwargs):
+        """Sync wrapper — bridges MCP's sync call convention to our async tools."""
+        # TODO: Phase 2 — migrate MCP server to fully async and remove
+        # _run_async_sync() hack. For now, this is necessary because FastMCP
+        # may invoke tool handlers in a sync context.
+        return _run_async_sync(_async_handler(tool=tool, **kwargs))
+
+    # Attach metadata so FastMCP can introspect the tool
+    handler.__name__ = tool.name
+    handler.__doc__ = tool.description
+
+    server.tool(name=tool.name, description=tool.description)(handler)
+
+
+# ─── Legacy manual MCP tools ────────────────────────────────────────────────
+# The tools below were hand-written before the unified ToolRegistry existed.
+# They can be REMOVED once the registry-based registration above is validated
+# in production and confirmed to cover all use cases.
+# Until then, they serve as a fallback with richer MCP-specific formatting
+# (e.g. batch metric queries, topology dependencies).
 
 
 @mcp_server.tool()
@@ -609,6 +712,15 @@ def start_mcp_server(host: str = "127.0.0.1", port: int = 8003):
     import uvicorn
     import asyncio
     from starlette.responses import JSONResponse
+    from app.tools import init_tool_registry
+
+    # Ensure the ToolRegistry is populated before registering MCP tools.
+    # If init_tool_registry() was already called at app startup, the registry
+    # already has tools — skip re-discovery to avoid duplicate ValueError.
+    if tool_registry.tool_count == 0:
+        init_tool_registry()
+    registered = register_tools_from_registry(mcp_server)
+    logger.info("MCP: %d tools auto-registered from ToolRegistry", registered)
 
     api_key = settings.vigilops_mcp_api_key
     logger.info(f"Starting VigilOps MCP Server on {host}:{port}")
@@ -663,4 +775,4 @@ if __name__ == "__main__":
 
 
 # Export the server instance
-__all__ = ["mcp_server", "start_mcp_server", "stop_mcp_server"]
+__all__ = ["mcp_server", "start_mcp_server", "stop_mcp_server", "register_tools_from_registry"]

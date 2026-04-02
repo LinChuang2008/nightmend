@@ -31,6 +31,7 @@ class RemediationLog(Base):
     __tablename__ = "remediation_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)  # 主键 ID (Primary Key ID)
+    session_id: Mapped[Optional[str]] = mapped_column(String(36), index=True, nullable=True)  # 修复会话 ID，用于关联同一修复流程的多条记录 (Remediation Session ID for correlating records in the same remediation flow)
     alert_id: Mapped[int] = mapped_column(Integer, index=True, nullable=False)  # 触发告警 ID (Triggering Alert ID)
     host_id: Mapped[Optional[int]] = mapped_column(Integer, index=True, nullable=True)  # 目标主机 ID (Target Host ID)
     status: Mapped[str] = mapped_column(
