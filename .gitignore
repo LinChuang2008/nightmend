@@ -1,5 +1,6 @@
 # Environment
 .env
+backend/.env
 
 # Python
 __pycache__/

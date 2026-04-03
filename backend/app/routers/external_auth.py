@@ -412,10 +412,14 @@ async def _find_or_create_oauth_user(db: AsyncSession, provider: str, user_info:
     if not email:
         raise Exception("无法获取用户邮箱")
     
+    # 使用 advisory lock 防止首用户竞态条件，锁必须在查询用户数之前获取
+    from sqlalchemy import text
+    await db.execute(text("SELECT pg_advisory_xact_lock(8007)"))  # 全局用户创建锁
+
     # 查找现有用户
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    
+
     if user:
         # 更新用户信息
         if user_info.get("name"):
@@ -425,9 +429,6 @@ async def _find_or_create_oauth_user(db: AsyncSession, provider: str, user_info:
         return user
     else:
         # 创建新用户
-        # 检查是否是第一个用户（自动设为管理员），使用 advisory lock 防止竞态条件
-        from sqlalchemy import text
-        await db.execute(text("SELECT pg_advisory_xact_lock(8007)"))  # 全局用户创建锁
         count_result = await db.execute(select(func.count(User.id)))
         user_count = count_result.scalar()
 
@@ -520,10 +521,14 @@ async def _find_or_create_ldap_user(db: AsyncSession, user_info: Dict[str, Any])
     if not email:
         raise Exception("无法获取用户邮箱")
     
+    # 使用 advisory lock 防止首用户竞态条件，锁必须在查询用户数之前获取
+    from sqlalchemy import text
+    await db.execute(text("SELECT pg_advisory_xact_lock(8007)"))  # 全局用户创建锁
+
     # 查找现有用户
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    
+
     if user:
         # 更新用户信息
         if user_info.get("name"):
@@ -533,9 +538,6 @@ async def _find_or_create_ldap_user(db: AsyncSession, user_info: Dict[str, Any])
         return user
     else:
         # 创建新用户
-        # 检查是否是第一个用户（自动设为管理员），使用 advisory lock 防止竞态条件
-        from sqlalchemy import text
-        await db.execute(text("SELECT pg_advisory_xact_lock(8007)"))  # 全局用户创建锁
         count_result = await db.execute(select(func.count(User.id)))
         user_count = count_result.scalar()
 
@@ -546,7 +548,7 @@ async def _find_or_create_ldap_user(db: AsyncSession, user_info: Dict[str, Any])
             role="admin" if user_count == 0 else "viewer",
             is_active=True
         )
-        
+
         db.add(new_user)
         await db.commit()
         await db.refresh(new_user)

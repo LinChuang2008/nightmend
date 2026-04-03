@@ -347,7 +347,7 @@ class ClickHouseLogBackend(LogBackend):
             if level:
                 level_list = [l.strip().upper() for l in level.split(",") if l.strip()]
                 conditions.append("level IN ({param_levels:Array(String)})")
-                params["param_levels"] = "[" + ",".join(f"'{l}'" for l in level_list) + "]"
+                params["param_levels"] = level_list
             if start_time:
                 conditions.append("timestamp >= {param_start:String}")
                 params["param_start"] = start_time.strftime('%Y-%m-%d %H:%M:%S')
@@ -358,7 +358,7 @@ class ClickHouseLogBackend(LogBackend):
             where_clause = " AND ".join(conditions) if conditions else "1=1"
 
             # 整数参数先转换确保安全
-            safe_page_size = int(page_size)
+            safe_page_size = min(int(page_size), 1000)
             safe_offset = (int(page) - 1) * safe_page_size
 
             # 获取总数

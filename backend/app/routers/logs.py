@@ -17,6 +17,8 @@ import asyncio
 import json
 from datetime import datetime
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -112,7 +114,7 @@ async def search_logs(
     q: str | None = Query(None, description="Full-text search keyword"),
     host_id: int | None = Query(None),
     service: str | None = Query(None),
-    level: str | None = Query(None, description="Comma-separated levels, e.g. ERROR,WARN"),
+    level: str | None = Query(None, pattern="^[A-Za-z,]+$", description="Comma-separated levels, e.g. ERROR,WARN"),
     start_time: datetime | None = Query(None),
     end_time: datetime | None = Query(None),
     page: int = Query(1, ge=1),
@@ -178,7 +180,7 @@ async def search_logs(
 async def log_stats(
     host_id: int | None = Query(None),
     service: str | None = Query(None),
-    period: str = Query("1h", description="Time bucket: 1h or 1d"),
+    period: Literal["1h", "1d"] = Query("1h", description="Time bucket: 1h or 1d"),
     start_time: datetime | None = Query(None),
     end_time: datetime | None = Query(None),
     _user: User = Depends(get_current_user),

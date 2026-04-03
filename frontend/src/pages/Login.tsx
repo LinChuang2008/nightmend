@@ -178,7 +178,6 @@ export default function Login() {
       // Cookie 由后端 set-cookie 自动写入，仅缓存非敏感显示信息
       const { data: user } = await authService.me();
       localStorage.setItem('user_name', user.name);
-      localStorage.setItem('user_role', user.role);
       messageApi.success(t('login.loginSuccess'));
       navigate('/dashboard');
     } catch (e: unknown) {
@@ -196,7 +195,6 @@ export default function Login() {
       await authService.register(values);
       const { data: user } = await authService.me();
       localStorage.setItem('user_name', user.name);
-      localStorage.setItem('user_role', user.role);
       messageApi.success(t('login.registerSuccess'));
       navigate('/dashboard');
     } catch (e: unknown) {
@@ -213,7 +211,18 @@ export default function Login() {
       const response = await fetch(`/api/v1/auth/oauth/${provider}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const { redirect_url } = await response.json();
-      window.location.href = redirect_url;
+      // Validate OAuth redirect URL
+      try {
+        const url = new URL(redirect_url);
+        const currentOrigin = window.location.origin;
+        if (url.origin !== currentOrigin) {
+          messageApi.error('Invalid redirect URL');
+          return;
+        }
+        window.location.href = redirect_url;
+      } catch {
+        messageApi.error('Invalid redirect URL');
+      }
     } catch (error) {
       messageApi.error(`${t('login.oauthFailed')}: ${provider}`);
     }
@@ -240,7 +249,6 @@ export default function Login() {
       // 获取用户信息
       const { data: user } = await authService.me();
       localStorage.setItem('user_name', user.name);
-      localStorage.setItem('user_role', user.role);
       messageApi.success(t('login.ldapLoginSuccess'));
       navigate('/dashboard');
     } catch (e: any) {

@@ -3,7 +3,7 @@
  * 配置 Ant Design 主题与国际化，定义全局路由结构
  * 所有需要认证的页面由 AuthGuard 守卫保护，嵌套在 AppLayout 布局内
  */
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ConfigProvider, App as AntApp, theme as antTheme, Spin } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
@@ -51,7 +51,19 @@ const RunbookManagement = lazy(() => import('./pages/RunbookManagement'));
 const viewerAllowedPrefixes = ['/', '/dashboard', '/hosts', '/servers', '/services', '/topology', '/logs', '/databases', '/alerts', '/ops', '/remediations', '/runbooks', '/multi-server', '/service-groups', '/on-call', '/sla', '/ai-operation-logs', '/landing', '/demo'];
 function RoleGuard({ children }: { children: React.ReactElement }) {
   const location = useLocation();
-  const role = localStorage.getItem('user_role') || 'viewer';
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/v1/auth/me', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((user) => { if (!cancelled) setRole(user.role || 'viewer'); })
+      .catch(() => { if (!cancelled) setRole('viewer'); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (role === null) return <Spin size="large" />;
+
   const path = location.pathname;
   if (role === 'viewer') {
     const allowed = viewerAllowedPrefixes.some((p) => p === '/' ? path === '/' : path.startsWith(p));
