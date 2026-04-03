@@ -82,7 +82,7 @@ services:
       REDIS_PORT: 6379
       POSTGRES_PORT: 5432
       TZ: Asia/Shanghai
-    command: ["/bin/sh", "-c", "PYTHONPATH=/app alembic upgrade head && PYTHONPATH=/app uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips '*' --access-log"]
+    command: ["/bin/sh", "/app/scripts/startup.sh"]
     depends_on:
       postgres:
         condition: service_healthy

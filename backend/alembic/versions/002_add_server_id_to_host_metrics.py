@@ -16,6 +16,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    conn = op.get_bind()
+    result = conn.execute(
+        sa.text(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'host_metrics')"
+        )
+    )
+    if not result.scalar():
+        return
+    result2 = conn.execute(
+        sa.text(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'host_metrics' AND column_name = 'server_id')"
+        )
+    )
+    if result2.scalar():
+        return
     op.add_column(
         "host_metrics",
         sa.Column("server_id", sa.Integer(), nullable=True, index=True),
