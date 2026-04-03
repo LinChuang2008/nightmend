@@ -143,15 +143,19 @@ export default function QuickStartGuide() {
   if (open && !expanded) {
     return (
       <Tooltip title={t('quickStart.title')} placement="left">
-        <FloatButton
-          icon={<QuestionCircleOutlined />}
+        <Button
           type="primary"
+          shape="circle"
+          icon={<QuestionCircleOutlined />}
+          size="large"
           style={{
             position: 'fixed',
             right: 24,
             top: '50%',
             transform: 'translateY(-50%)',
             zIndex: 1000,
+            width: 48,
+            height: 48,
           }}
           onClick={handleToggleExpand}
         />
