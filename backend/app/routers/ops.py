@@ -253,9 +253,23 @@ async def create_session(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    reusable = await _cleanup_empty_sessions(db, current_user.id)
-    if reusable:
-        return reusable
+    # 清理该用户残留的空白草稿（无标题、无消息），避免堆积。
+    # POST /sessions 是用户显式动作（含首次进入页面或点击"新建会话"），
+    # 必须总是返回一个全新的会话，且尊重 body.title。
+    empty_message_exists = exists(
+        select(1).where(OpsMessage.session_id == OpsSession.id)
+    )
+    stale_drafts = await db.execute(
+        select(OpsSession).where(
+            OpsSession.user_id == current_user.id,
+            OpsSession.status == "active",
+            or_(OpsSession.title.is_(None), OpsSession.title == ""),
+            ~empty_message_exists,
+        )
+    )
+    for draft in stale_drafts.scalars().all():
+        await db.delete(draft)
+        remove_loop(draft.id)
 
     session = OpsSession(
         id=str(uuid.uuid4()),

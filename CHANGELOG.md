@@ -4,6 +4,19 @@ All notable changes to NightMend will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2026.04.08] - 2026-04-08
+
+### Fixed
+- AI 运维助手"新建会话"按钮点击无效：`POST /api/v1/ops/sessions` 之前会复用已有空白草稿，导致用户每次点击都拿到同一个 session id 且 `title` 被静默丢弃。改为总是创建新会话并清理残留空白草稿。
+- AI 运维助手在数据库无在线主机时进入死循环：主机选择控件被 `hosts.length > 0` 守卫整段隐藏，但发送仍要求 `selectedHostId`，用户找不到任何选择主机的入口。改为始终渲染该行，空状态时提示"暂无在线主机 — 请先到 主机管理 添加并启动 Agent"并提供跳转链接。
+
+### Added
+- 4 个 ops session 路由回归测试 (`backend/tests/test_ops_session_routes.py`)：
+  - 连续创建会话返回不同 id
+  - `body.title` 持久化
+  - 空白草稿清理
+  - 带 title / 带消息的会话不被误删
+
 ## [2026.03.29] - 2026-03-29
 
 ### Added
