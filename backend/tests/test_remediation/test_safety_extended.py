@@ -9,7 +9,6 @@
   5. 熔断保护（CircuitBreaker）
 """
 import time
-from unittest.mock import patch
 
 import pytest
 

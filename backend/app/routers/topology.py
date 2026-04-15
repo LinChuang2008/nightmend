@@ -19,7 +19,7 @@ import re
 import json
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, text, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,9 +38,7 @@ from app.models.server_service import ServerService
 from app.models.nginx_upstream import NginxUpstream
 from app.schemas.topology import (
     ServerCreate, ServerResponse, ServerSummary,
-    ServiceGroupCreate, ServiceGroupResponse, ServiceGroupDetail,
-    ServerServiceCreate, ServerServiceResponse, ServerServiceDetail,
-    NginxUpstreamCreate, NginxUpstreamResponse, TopologyEdge,
+    ServerServiceResponse, NginxUpstreamResponse, TopologyEdge,
 )
 
 router = APIRouter(prefix="/api/v1/topology", tags=["topology"])

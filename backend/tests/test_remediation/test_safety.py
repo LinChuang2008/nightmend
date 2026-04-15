@@ -1,5 +1,4 @@
 """安全模块单元测试。"""
-import pytest
 
 from app.remediation.safety import (
     CircuitBreaker,

@@ -6,17 +6,10 @@ Agent 更新管理模块。
 - 下载 wheel 包
 - 触发 Agent 更新
 """
-import asyncio
 import logging
 import os
 import subprocess
-import tempfile
-import shutil
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.agent_token import AgentToken

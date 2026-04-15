@@ -21,11 +21,9 @@ import hashlib
 import hmac
 import json
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.alert_sources.base import IncomingAlert
@@ -34,7 +32,6 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.redis import get_redis
 from app.models.alert import Alert
-from app.models.remediation_log import RemediationLog
 from app.remediation.agent import RemediationAgent
 from app.routers.alert_stream import DIAGNOSIS_CHANNEL
 from app.services.ai_engine import AIEngine

@@ -15,7 +15,7 @@ import json
 import logging
 import operator as op
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from sqlalchemy import select, and_
 

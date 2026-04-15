@@ -7,7 +7,7 @@
 """
 import asyncio
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
 from app.core.database import async_session

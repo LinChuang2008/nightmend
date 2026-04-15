@@ -6,7 +6,7 @@ MCP 模式下 approval_service 和 save_message 为 None。
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Optional
 
 if TYPE_CHECKING:
@@ -31,3 +31,4 @@ class ToolContext:
     save_message: Optional[Callable] = None
     context_messages: Optional[list[dict]] = None
     caller: str = "ops_assistant"  # "ops_assistant" | "mcp" | "remediation"
+    auto_approve: bool = False  # Demo 模式下自动批准命令执行

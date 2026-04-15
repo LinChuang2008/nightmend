@@ -119,29 +119,61 @@ class ExecuteCommandTool(OpsTool):
                 "timeout": timeout, "reason": reason, "status": "pending",
             }, message_id=msg_id)
 
-        await context.approval_service.register(msg_id, "command_request")
+        # Demo 模式下自动批准命令（仅限安全诊断命令白名单）
+        _DEMO_SAFE_COMMANDS = {"df", "du", "ls", "ps", "free", "top", "uptime", "cat", "head",
+                               "tail", "journalctl", "systemctl status", "find", "wc", "stat",
+                               "netstat", "ss", "ip", "hostname", "uname", "whoami", "date"}
+        if context.auto_approve:
+            cmd_base = command.strip().split()[0] if command.strip() else ""
+            cmd_prefix = " ".join(command.strip().split()[:2]) if command.strip() else ""
+            if cmd_base not in _DEMO_SAFE_COMMANDS and cmd_prefix not in _DEMO_SAFE_COMMANDS:
+                logger.warning("Demo auto_approve blocked unsafe command: %s", command[:200])
+                action = "reject"
+            else:
+                action = "confirm"
+            # 更新消息状态为已确认
+            if context.save_message is not None:
+                await context.save_message("assistant", "command_request", {
+                    "command": command, "host_id": host_id, "host_name": host_name,
+                    "timeout": timeout, "reason": reason, "status": "confirmed",
+                }, message_id=msg_id)
+            yield ToolEvent(
+                type=ToolEventType.APPROVAL_REQUEST,
+                data={
+                    "event": "command_request",
+                    "message_id": msg_id,
+                    "command": command,
+                    "host_id": host_id,
+                    "host_name": host_name,
+                    "timeout": timeout,
+                    "reason": reason,
+                    "auto_approved": True,
+                },
+            )
+        else:
+            await context.approval_service.register(msg_id, "command_request")
 
-        # 向前端推送确认请求
-        yield ToolEvent(
-            type=ToolEventType.APPROVAL_REQUEST,
-            data={
-                "event": "command_request",
-                "message_id": msg_id,
-                "command": command,
-                "host_id": host_id,
-                "host_name": host_name,
-                "timeout": timeout,
-                "reason": reason,
-            },
-        )
+            # 向前端推送确认请求
+            yield ToolEvent(
+                type=ToolEventType.APPROVAL_REQUEST,
+                data={
+                    "event": "command_request",
+                    "message_id": msg_id,
+                    "command": command,
+                    "host_id": host_id,
+                    "host_name": host_name,
+                    "timeout": timeout,
+                    "reason": reason,
+                },
+            )
 
-        # 等待用户确认
-        reply = await context.approval_service.wait_for_reply(
-            msg_id,
-            timeout=COMMAND_CONFIRM_TIMEOUT,
-            timeout_action="expired",
-        )
-        action = reply.get("action", "reject")
+            # 等待用户确认
+            reply = await context.approval_service.wait_for_reply(
+                msg_id,
+                timeout=COMMAND_CONFIRM_TIMEOUT,
+                timeout_action="expired",
+            )
+            action = reply.get("action", "reject")
 
         if action == "confirm":
             request_id = msg_id

@@ -15,12 +15,9 @@ API端点：POST /register, POST /heartbeat, POST /metrics, POST /services, POST
 
 Author: NightMend Team
 """
-import os
 from datetime import datetime, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -768,7 +765,6 @@ async def _check_log_keyword_alerts(logs: list, db: AsyncSession):
 # =============================================================================
 
 from fastapi import WebSocket, WebSocketDisconnect
-from datetime import datetime
 import asyncio
 import hashlib
 import hmac

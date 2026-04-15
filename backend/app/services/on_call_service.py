@@ -7,7 +7,7 @@
 Provides core business logic for on-call schedules, including on-call personnel lookup,
 schedule conflict detection, and notification routing.
 """
-from datetime import date, datetime
+from datetime import date
 from typing import Optional, List
 
 from sqlalchemy import select, and_, or_

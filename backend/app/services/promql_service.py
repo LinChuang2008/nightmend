@@ -23,7 +23,7 @@ Author: NightMend Team
 import re
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession

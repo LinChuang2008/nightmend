@@ -168,6 +168,12 @@ async def lifespan(app: FastAPI):
         from app.tasks.remediation_listener import remediation_listener_loop
         task_factories["remediation_listener"] = lambda: remediation_listener_loop()
 
+    # Autopilot Demo 流程（仅在 DEMO_MODE=true 时启动）
+    if app_settings.demo_mode:
+        from app.services.demo_orchestrator import run_demo_flow
+        task_factories["demo_autopilot"] = lambda: run_demo_flow()
+        logger.info("Demo mode enabled — Autopilot Demo will start automatically")
+
     # 启动所有任务
     for name, factory in task_factories.items():
         background_tasks[name] = asyncio.create_task(factory(), name=name)
@@ -252,7 +258,6 @@ else:
         "https://demo.lchuangnet.com",
         "https://lchuangnet.com",
         "https://www.lchuangnet.com",
-        "http://139.196.210.68:3001",
     ]
     if _frontend_url and _frontend_url not in allowed_origins:
         allowed_origins.append(_frontend_url)
@@ -310,6 +315,10 @@ app.include_router(custom_runbooks.router)  # 自定义 Runbook 管理 (Custom R
 app.include_router(promql.router)  # PromQL 查询 (PromQL Query Engine)
 app.include_router(webhooks.router)  # 外部告警源 Webhook (External Alert Source Webhooks)
 app.include_router(alert_stream.router)  # 告警诊断 SSE 流 (Alert Diagnosis SSE Stream)
+
+# Demo 路由（始终注册，内部检查 DEMO_MODE）
+from app.routers import demo
+app.include_router(demo.router)  # Autopilot Demo 状态 (Autopilot Demo Status)
 
 
 @app.get("/health")

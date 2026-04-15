@@ -2,7 +2,6 @@
 Agent Install Script Endpoint
 为 agent.py 添加安装脚本端点的扩展模块
 """
-import os
 from pathlib import Path
 from fastapi import HTTPException
 from fastapi.responses import FileResponse

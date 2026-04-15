@@ -1,5 +1,4 @@
 """系统设置路由测试。"""
-import pytest
 from httpx import AsyncClient
 
 

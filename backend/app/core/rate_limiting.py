@@ -13,10 +13,9 @@ frequency control to prevent abuse and DDoS attacks.
 - 普通级别：常规业务 API (Normal: regular business API)
 - 宽松级别：静态资源、健康检查 (Relaxed: static resources, health check)
 """
-import hashlib
 import json
 import time
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, Tuple
 
 from fastapi import Request, HTTPException, status
 from starlette.middleware.base import BaseHTTPMiddleware

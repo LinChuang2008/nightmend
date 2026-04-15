@@ -7,13 +7,13 @@ AI 反馈管理 API
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select, and_, func, desc, asc
+from sqlalchemy import select, func, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
-from app.models.ai_feedback import AIFeedback, AIFeedbackSummary
+from app.models.ai_feedback import AIFeedback
 from app.schemas.ai_feedback import (
     AIFeedbackCreate,
     AIFeedbackUpdate,

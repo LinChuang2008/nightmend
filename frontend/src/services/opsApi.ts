@@ -130,4 +130,15 @@ export const opsApi = {
 
   importAIConfig: (config: Record<string, unknown>, feature_key?: string, name?: string) =>
     api.post<OpsAIConfig>('/ops/ai-configs/import', { config, feature_key, name }).then((r) => r.data),
+
+  // Demo API
+  getDemoStatus: () =>
+    api.get<{
+      demo_mode: boolean;
+      phase?: string;
+      session_id?: string | null;
+      host_id?: number | null;
+      alert_id?: number | null;
+      elapsed_s?: number;
+    }>('/demo/status').then((r) => r.data),
 };

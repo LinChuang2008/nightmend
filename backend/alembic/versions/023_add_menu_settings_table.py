@@ -6,8 +6,6 @@ Revises: 022_add_ops_tables
 Create Date: 2026-03-20
 """
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 
 revision = "023_add_menu_settings_table"
 down_revision = "022_add_ops_tables"

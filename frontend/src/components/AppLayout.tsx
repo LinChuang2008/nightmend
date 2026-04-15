@@ -5,9 +5,10 @@
  * 所有需要认证的页面均嵌套在此布局内，通过 React Router 的 <Outlet /> 渲染子路由。
  * 支持移动端响应式设计，在小屏幕上使用抽屉式侧边栏。
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useResponsive } from '../hooks/useResponsive';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { opsApi } from '../services/opsApi';
 import { Layout, Menu, Button, theme, Avatar, Dropdown, Drawer, Popover, Checkbox, Space, Divider, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
@@ -191,6 +192,8 @@ export default function AppLayout() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   /** 菜单展开的 SubMenu keys */
   const [menuOpenKeys, setMenuOpenKeys] = useState<string[]>([]);
+  /** Demo 模式告警条 */
+  const [demoAlert, setDemoAlert] = useState<{ visible: boolean; message: string }>({ visible: false, message: '' });
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -209,6 +212,30 @@ export default function AppLayout() {
     i18n.changeLanguage(lang);
     localStorage.setItem('language', lang);
   };
+
+  // Demo 模式：轮询状态，故障注入时显示告警条并自动跳转
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    let redirectTimer: ReturnType<typeof setTimeout>;
+    opsApi.getDemoStatus().then((status) => {
+      if (!status.demo_mode) return;
+      timer = setInterval(() => {
+        opsApi.getDemoStatus().then((s) => {
+          if ((s.phase === 'injecting' || s.phase === 'diagnosing') && !demoAlert.visible) {
+            setDemoAlert({ visible: true, message: '⚠ Critical Alert: disk_percent 96.2% on demo-nginx-01' });
+            // 3 秒后自动跳转到 OpsAssistant
+            if (location.pathname !== '/ops') {
+              redirectTimer = setTimeout(() => navigate('/ops'), 3000);
+            }
+          }
+          if (s.phase === 'complete' || s.phase === 'idle') {
+            setDemoAlert({ visible: false, message: '' });
+          }
+        }).catch(() => {});
+      }, 3000);
+    }).catch(() => {});
+    return () => { if (timer) clearInterval(timer); if (redirectTimer) clearTimeout(redirectTimer); };
+  }, []);
 
   /** 移动端自动折叠侧边栏 */
   useEffect(() => {
@@ -408,6 +435,32 @@ export default function AppLayout() {
           overflow: 'hidden',
         }}
       >
+        {/* Demo 模式全局告警条 */}
+        {demoAlert.visible && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              borderBottom: '1px solid rgba(239, 68, 68, 0.3)',
+              padding: '8px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '13px',
+              color: '#fca5a5',
+              flexShrink: 0,
+            }}
+          >
+            <span>{demoAlert.message}</span>
+            <span
+              style={{ cursor: 'pointer', color: '#10B981', fontSize: '12px' }}
+              onClick={() => { navigate('/ops'); setDemoAlert({ visible: false, message: '' }); }}
+            >
+              查看详情 →
+            </span>
+          </div>
+        )}
         <Header style={{
           padding: isMobile ? '0 16px' : '0 24px',
           background: colorBgContainer,

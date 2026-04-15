@@ -959,7 +959,7 @@ async def _get_default_template(db: AsyncSession, channel_type: str):
     template = result.scalar_one_or_none()
     if template:
         # 写入缓存（使用 "all" 类型的缓存键）
-        cache_key_all = f"notification:template:all"
+        cache_key_all = "notification:template:all"
         template_dict = {
             "id": template.id,
             "name": template.name,

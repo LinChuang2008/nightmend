@@ -21,11 +21,9 @@ import threading
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, Optional, Any
 
 from fastmcp import FastMCP
-from pydantic import BaseModel
-from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
 from app.core.database import SessionLocal

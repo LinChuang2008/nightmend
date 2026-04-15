@@ -14,6 +14,7 @@ Author: NightMend Team
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import Optional, List
 
 import json
@@ -504,7 +505,7 @@ async def test_channel(
         else:
             return {
                 "success": False,
-                "message": f"测试通知发送失败，请检查配置",
+                "message": "测试通知发送失败，请检查配置",
                 "channel_type": channel.type,
                 "channel_name": channel.name
             }

@@ -8,7 +8,7 @@ Defines the system user table structure, including email, password hash,
 role permissions, and other fields. Provides user authentication,
 permission management, and account management functions for the system.
 """
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import String, Boolean, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship

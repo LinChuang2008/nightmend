@@ -18,6 +18,8 @@ const DEFAULT_CONTEXT_WINDOW = 128000;
 export default function OpsAssistant() {
   const [sessions, setSessions] = useState<OpsSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
+  const [demoPhase, setDemoPhase] = useState<string>('idle');
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -38,6 +40,28 @@ export default function OpsAssistant() {
   const currentSessionIdRef = useRef<string | null>(null);
   useEffect(() => { currentSessionIdRef.current = currentSessionId; }, [currentSessionId]);
   const { containerRef, resetScroll } = useAutoScroll([messages, isProcessing]);
+
+  // Demo 模式检测和轮询
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    opsApi.getDemoStatus().then((status) => {
+      if (status.demo_mode) {
+        setDemoMode(true);
+        setDemoPhase(status.phase || 'idle');
+        // 轮询 demo 状态
+        timer = setInterval(() => {
+          opsApi.getDemoStatus().then((s) => {
+            setDemoPhase(s.phase || 'idle');
+            // 自动选择 demo session
+            if (s.session_id && s.session_id !== currentSessionIdRef.current) {
+              setCurrentSessionId(s.session_id);
+            }
+          }).catch(() => {});
+        }, 3000);
+      }
+    }).catch(() => {});
+    return () => { if (timer) clearInterval(timer); };
+  }, []);
 
   useEffect(() => {
     api.get('/hosts?status=online&limit=100')
@@ -331,6 +355,15 @@ export default function OpsAssistant() {
           <span className="cc-topbar-model">
             {currentSession?.title ? `/${currentSession.title}` : '/nightmend-ai-ops'}
           </span>
+          {demoMode && (
+            <span style={{
+              background: '#065f46', color: '#10B981', padding: '2px 8px',
+              borderRadius: '3px', fontSize: '10px', fontWeight: 600,
+              letterSpacing: '0.5px', marginLeft: '8px',
+            }}>
+              DEMO {demoPhase !== 'idle' && demoPhase !== 'complete' ? `· ${demoPhase}` : ''}
+            </span>
+          )}
         </div>
 
         <OpsMessageList

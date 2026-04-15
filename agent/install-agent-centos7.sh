@@ -72,6 +72,13 @@ YUM_BACKUP_DIR="/etc/yum.repos.d.bak.vigilops-$(date +%Y%m%d%H%M%S)"
 cp -r /etc/yum.repos.d "$YUM_BACKUP_DIR"
 log_info "已备份到: $YUM_BACKUP_DIR"
 
+# 恢复 yum 源函数（需在步骤 2 之前定义，供错误处理使用）
+restore_yum() {
+    rm -f /etc/yum.repos.d/*.repo
+    cp -r "$YUM_BACKUP_DIR"/* /etc/yum.repos.d/
+    log_info "yum 源已恢复"
+}
+
 echo ""
 
 ################################################################################

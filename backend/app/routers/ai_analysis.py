@@ -20,11 +20,6 @@ from app.models.host import Host
 from app.models.user import User
 from app.services.llm_client import chat_completion, LLMClientError
 from app.schemas.ai_insight import (
-    AIInsightResponse,
-    AnalyzeLogsRequest,
-    AnalyzeLogsResponse,
-    ChatRequest,
-    ChatResponse,
     GenerateRunbookRequest,
     GenerateRunbookResponse,
 )
