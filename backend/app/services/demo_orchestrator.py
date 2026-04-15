@@ -11,7 +11,6 @@ import uuid
 from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import async_session as AsyncSessionLocal
@@ -19,7 +18,7 @@ from app.core.redis import get_redis
 
 logger = logging.getLogger("nightmend.demo")
 
-# Demo 状态（进程内单例）
+# Demo 状态（进程内单例 + Redis 共享，兼容多 worker）
 _demo_state = {
     "phase": "idle",        # idle | seeding | exploring | injecting | diagnosing | complete
     "session_id": None,
@@ -28,12 +27,46 @@ _demo_state = {
     "started_at": None,
 }
 
+_DEMO_STATE_KEY = "nightmend:demo:state"
 
-def get_demo_status() -> dict:
-    """返回当前 Demo 阶段和相关 ID。"""
-    state = dict(_demo_state)
-    if state["started_at"]:
-        elapsed = (datetime.now(timezone.utc) - state["started_at"]).total_seconds()
+
+async def _sync_state_to_redis():
+    """将进程内 demo 状态同步到 Redis，供其他 worker 读取。"""
+    try:
+        redis = await get_redis()
+        data = {k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in _demo_state.items()}
+        await redis.set(_DEMO_STATE_KEY, json.dumps(data), ex=3600)
+    except Exception:
+        pass
+
+
+async def _read_state_from_redis() -> dict | None:
+    """从 Redis 读取共享 demo 状态。"""
+    try:
+        redis = await get_redis()
+        raw = await redis.get(_DEMO_STATE_KEY)
+        if raw:
+            return json.loads(raw)
+    except Exception:
+        pass
+    return None
+
+
+async def _update_demo_state(**kwargs):
+    """更新进程内状态并同步到 Redis。"""
+    _demo_state.update(kwargs)
+    await _sync_state_to_redis()
+
+
+async def get_demo_status() -> dict:
+    """返回当前 Demo 阶段和相关 ID（优先从 Redis 读取，兼容多 worker）。"""
+    redis_state = await _read_state_from_redis()
+    state = redis_state if redis_state else dict(_demo_state)
+    started_at = state.get("started_at")
+    if started_at:
+        if isinstance(started_at, str):
+            started_at = datetime.fromisoformat(started_at)
+        elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
         state["elapsed_s"] = round(elapsed, 1)
     else:
         state["elapsed_s"] = 0
@@ -52,7 +85,7 @@ async def seed_demo_data():
     from app.models.service_dependency import ServiceDependency
     from app.models.host_metric import HostMetric
 
-    _demo_state["phase"] = "seeding"
+    await _update_demo_state(phase="seeding")
     logger.info("Demo: seeding sample data...")
 
     async with AsyncSessionLocal() as db:
@@ -62,7 +95,7 @@ async def seed_demo_data():
         )
         if existing.scalar_one_or_none():
             logger.info("Demo: sample data already exists, skipping seed")
-            _demo_state["phase"] = "exploring"
+            await _update_demo_state(phase="exploring")
             return
 
         # 创建 3 台 demo 主机
@@ -88,7 +121,7 @@ async def seed_demo_data():
         await db.flush()
 
         # 记住主机 ID
-        _demo_state["host_id"] = hosts[0].id
+        await _update_demo_state(host_id=hosts[0].id)
         demo_host_ids = [h.id for h in hosts]
 
         # 为每台主机添加正常 metrics
@@ -173,7 +206,7 @@ async def seed_demo_data():
         })
         await redis.set(f"metrics:latest:{hid}", normal_metrics, ex=3600)
 
-    _demo_state["phase"] = "exploring"
+    await _update_demo_state(phase="exploring")
     logger.info("Demo: seed complete, entering exploration phase")
 
 
@@ -182,7 +215,7 @@ async def inject_fault():
     注入故障：将 demo-nginx-01 的磁盘使用率设为 96%。
     alert_engine 下一次循环会检测到并触发告警。
     """
-    _demo_state["phase"] = "injecting"
+    await _update_demo_state(phase="injecting")
     host_id = _demo_state["host_id"]
     if not host_id:
         logger.error("Demo: no host_id, cannot inject fault")
@@ -231,11 +264,9 @@ async def start_auto_diagnosis(alert_id: int):
     由 alert_engine 触发告警后调用。
     """
     from app.models.ops_session import OpsSession
-    from app.models.ops_message import OpsMessage
     from app.models.user import User
 
-    _demo_state["phase"] = "diagnosing"
-    _demo_state["alert_id"] = alert_id
+    await _update_demo_state(phase="diagnosing", alert_id=alert_id)
     host_id = _demo_state["host_id"]
 
     logger.info("Demo: starting auto-diagnosis for alert %d on host %d", alert_id, host_id)
@@ -268,7 +299,7 @@ async def start_auto_diagnosis(alert_id: int):
         db.add(session)
         await db.commit()
 
-        _demo_state["session_id"] = session_id
+        await _update_demo_state(session_id=session_id)
 
     # 发布 session 创建事件，通知前端
     redis = await get_redis()
@@ -306,7 +337,7 @@ async def _run_diagnosis(session_id: str, user_id: int, host_id: int):
             # 将事件推送到 WebSocket channel，前端自动接收
             await redis.publish(ws_channel, json.dumps(event, default=str))
 
-        _demo_state["phase"] = "complete"
+        await _update_demo_state(phase="complete")
         logger.info("Demo: diagnosis complete for session %s", session_id)
 
         # 发布完成事件
@@ -317,7 +348,7 @@ async def _run_diagnosis(session_id: str, user_id: int, host_id: int):
 
     except Exception as e:
         logger.error("Demo: diagnosis failed: %s", e, exc_info=True)
-        _demo_state["phase"] = "error"
+        await _update_demo_state(phase="error")
 
 
 async def _find_demo_alert() -> int | None:
@@ -342,7 +373,7 @@ async def run_demo_flow():
     Demo 主流程：seed → 等待 → 注入故障 → 触发告警引擎。
     在 main.py lifespan 中作为后台任务启动。
     """
-    _demo_state["started_at"] = datetime.now(timezone.utc)
+    await _update_demo_state(started_at=datetime.now(timezone.utc))
 
     try:
         # Step 1: Seed data
@@ -374,8 +405,8 @@ async def run_demo_flow():
                 await start_auto_diagnosis(alert_id)
             else:
                 logger.error("Demo: fault injection did not trigger alert after retry")
-                _demo_state["phase"] = "error"
+                await _update_demo_state(phase="error")
 
     except Exception as e:
         logger.error("Demo: flow failed: %s", e, exc_info=True)
-        _demo_state["phase"] = "error"
+        await _update_demo_state(phase="error")

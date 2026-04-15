@@ -265,6 +265,8 @@ async def create_session(
             OpsSession.status == "active",
             or_(OpsSession.title.is_(None), OpsSession.title == ""),
             ~empty_message_exists,
+            # 跳过最近 60 秒内更新过的 session，避免删除正在推理中的会话
+            OpsSession.updated_at < (datetime.now(timezone.utc) - timedelta(seconds=60)),
         )
     )
     for draft in stale_drafts.scalars().all():

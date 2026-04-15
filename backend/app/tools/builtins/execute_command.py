@@ -119,9 +119,18 @@ class ExecuteCommandTool(OpsTool):
                 "timeout": timeout, "reason": reason, "status": "pending",
             }, message_id=msg_id)
 
-        # Demo 模式下自动批准命令
+        # Demo 模式下自动批准命令（仅限安全诊断命令白名单）
+        _DEMO_SAFE_COMMANDS = {"df", "du", "ls", "ps", "free", "top", "uptime", "cat", "head",
+                               "tail", "journalctl", "systemctl status", "find", "wc", "stat",
+                               "netstat", "ss", "ip", "hostname", "uname", "whoami", "date"}
         if context.auto_approve:
-            action = "confirm"
+            cmd_base = command.strip().split()[0] if command.strip() else ""
+            cmd_prefix = " ".join(command.strip().split()[:2]) if command.strip() else ""
+            if cmd_base not in _DEMO_SAFE_COMMANDS and cmd_prefix not in _DEMO_SAFE_COMMANDS:
+                logger.warning("Demo auto_approve blocked unsafe command: %s", command[:200])
+                action = "reject"
+            else:
+                action = "confirm"
             # 更新消息状态为已确认
             if context.save_message is not None:
                 await context.save_message("assistant", "command_request", {

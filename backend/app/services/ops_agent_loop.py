@@ -13,7 +13,6 @@ from typing import AsyncIterator, Optional
 
 import httpx
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.redis import get_redis
@@ -330,12 +329,12 @@ class OpsAgentLoop:
 
         patched = dict(arguments or {})
         old_host_id = patched.get("host_id")
-        if old_host_id != target_host_id:
+        # 仅在 LLM 未指定 host_id 时应用默认目标，避免静默覆盖 LLM 意图
+        if old_host_id is None:
             patched["host_id"] = target_host_id
             logger.info(
-                "Override tool host_id by turn target: tool=%s old=%s new=%s session=%s",
+                "Apply default host_id for tool: tool=%s host_id=%s session=%s",
                 tool_name,
-                old_host_id,
                 target_host_id,
                 self.session_id,
             )
@@ -616,7 +615,7 @@ class OpsAgentLoop:
             nonlocal usage_completion_tokens
             nonlocal usage_total_tokens
             try:
-                async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=15.0), verify=False) as client:
+                async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=15.0)) as client:
                     async with client.stream("POST", url, json=payload, headers=headers) as resp:
                         if resp.status_code != 200:
                             error_body = await resp.aread()
@@ -862,7 +861,7 @@ class OpsAgentLoop:
                 "enabled": True,
                 "max_tokens": int(runtime_cfg.get("deep_thinking_max_tokens") or 0),
             }
-        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
