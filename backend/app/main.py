@@ -258,7 +258,6 @@ else:
         "https://demo.lchuangnet.com",
         "https://lchuangnet.com",
         "https://www.lchuangnet.com",
-        "http://139.196.210.68:3001",
     ]
     if _frontend_url and _frontend_url not in allowed_origins:
         allowed_origins.append(_frontend_url)

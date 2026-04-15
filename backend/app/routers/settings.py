@@ -22,12 +22,12 @@ Author: NightMend Team
 
 import json
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_operator_user, get_admin_user
+from app.core.deps import get_operator_user, get_admin_user
 from app.models.setting import Setting
 from app.models.user import User
 from app.services.audit import log_audit
