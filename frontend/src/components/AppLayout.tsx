@@ -47,6 +47,7 @@ import {
 } from '@ant-design/icons';
 import QuickStartGuide from './QuickStartGuide';
 import GuidedTour, { useTourControl } from './GuidedTour';
+import { Logo } from './Logo';
 import { menuSettingsApi } from '../services/menuSettings';
 
 const { Header, Sider, Content } = Layout;
@@ -336,25 +337,24 @@ export default function AppLayout() {
   /** 渲染菜单内容 */
   const renderMenuContent = (inDrawer = false) => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* 品牌标识区域 */}
-      <div style={{
-        height: 64,
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: inDrawer ? (isDark ? '#fff' : 'inherit') : '#fff',
-        fontSize: (inDrawer || !collapsed) ? 20 : 16,
-        fontWeight: 'bold',
-        letterSpacing: 2,
-        borderBottom: inDrawer ? `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#f0f0f0'}` : undefined,
-      }}>
-        <svg width={collapsed && !inDrawer ? 28 : 24} height={collapsed && !inDrawer ? 28 : 24} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: (inDrawer || !collapsed) ? 8 : 0, flexShrink: 0 }}>
-          <rect width="40" height="40" rx="8" fill="#1677ff"/>
-          <circle cx="20" cy="21" r="11.5" fill="none" stroke="white" strokeWidth="2.2"/>
-          <path d="M13 15.5L20 26.5L27 15.5" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        {(inDrawer || !collapsed) ? 'NightMend' : ''}
+      {/* 品牌标识区域 —— 使用统一的 <Logo /> 组件（方向 H 盾牌）*/}
+      <div
+        style={{
+          height: 64,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: (inDrawer || !collapsed) ? 'flex-start' : 'center',
+          paddingLeft: (inDrawer || !collapsed) ? 20 : 0,
+          paddingRight: (inDrawer || !collapsed) ? 12 : 0,
+          borderBottom: inDrawer ? `1px solid rgba(255,255,255,0.08)` : undefined,
+        }}
+      >
+        {(inDrawer || !collapsed) ? (
+          <Logo variant="wordmark" size={22} />
+        ) : (
+          <Logo variant="icon" size={28} />
+        )}
       </div>
       <div className="app-sidebar-menu-scroll">
         <Menu
