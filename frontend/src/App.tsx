@@ -57,7 +57,19 @@ function RoleGuard({ children }: { children: React.ReactElement }) {
     let cancelled = false;
     fetch('/api/v1/auth/me', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((user) => { if (!cancelled) setRole(user.role || 'viewer'); })
+      .then((user) => {
+        if (cancelled) return;
+        const r = user.role || 'viewer';
+        setRole(r);
+        // 自愈：把 role 回写 localStorage，让 AppLayout 的菜单过滤正确工作
+        // （即便 Login 时没写入 / 老会话 / OAuth 回跳 都能兜住）
+        if (localStorage.getItem('user_role') !== r) {
+          localStorage.setItem('user_role', r);
+        }
+        if (user.name && localStorage.getItem('user_name') !== user.name) {
+          localStorage.setItem('user_name', user.name);
+        }
+      })
       .catch(() => { if (!cancelled) setRole('viewer'); });
     return () => { cancelled = true; };
   }, []);

@@ -180,6 +180,8 @@ export default function Login() {
       // Cookie 由后端 set-cookie 自动写入，仅缓存非敏感显示信息
       const { data: user } = await authService.me();
       localStorage.setItem('user_name', user.name);
+      // user_role 用于 AppLayout 过滤菜单（admin 可见 全部 / member / viewer 层级）
+      localStorage.setItem('user_role', user.role || 'viewer');
       messageApi.success(t('login.loginSuccess'));
       navigate('/dashboard');
     } catch (e: unknown) {
@@ -197,6 +199,7 @@ export default function Login() {
       await authService.register(values);
       const { data: user } = await authService.me();
       localStorage.setItem('user_name', user.name);
+      localStorage.setItem('user_role', user.role || 'viewer');
       messageApi.success(t('login.registerSuccess'));
       navigate('/dashboard');
     } catch (e: unknown) {
@@ -251,6 +254,7 @@ export default function Login() {
       // 获取用户信息
       const { data: user } = await authService.me();
       localStorage.setItem('user_name', user.name);
+      localStorage.setItem('user_role', user.role || 'viewer');
       messageApi.success(t('login.ldapLoginSuccess'));
       navigate('/dashboard');
     } catch (e: any) {
