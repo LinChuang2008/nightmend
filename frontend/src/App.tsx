@@ -84,17 +84,33 @@ function HomeRedirect() {
 const antdLocaleMap: Record<string, typeof zhCN> = { zh: zhCN, en: enUS };
 
 function AppInner() {
-  const { isDark } = useTheme();
+  // isDark 不再消费（DESIGN.md 规定 dark 唯一）；保留 ThemeProvider 仅为存量组件向后兼容
+  useTheme();
   const { i18n } = useTranslation();
   const antdLocale = antdLocaleMap[i18n.language] || zhCN;
   return (
     <ConfigProvider
       locale={antdLocale}
       theme={{
-        algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+        // 始终跑 dark algorithm —— DESIGN.md 规定 dark 为唯一主题
+        algorithm: antTheme.darkAlgorithm,
         token: {
-          colorPrimary: '#1677ff',
+          colorPrimary: '#10B981',              // emerald —— 品牌主色
+          colorInfo: '#3b82f6',
+          colorSuccess: '#10B981',              // health is the brand
+          colorWarning: '#f59e0b',
+          colorError: '#ef4444',
+          colorBgBase: '#0a0a0f',
+          colorBgContainer: '#141419',
+          colorBgElevated: '#1a1a21',
+          colorBorder: '#27272a',
+          colorText: '#e4e4e7',
+          colorTextSecondary: '#71717a',
+          colorTextTertiary: '#52525b',
           borderRadius: 6,
+          borderRadiusLG: 8,
+          borderRadiusSM: 4,
+          fontFamily: "'Geist', 'Geist Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         },
       }}
     >
