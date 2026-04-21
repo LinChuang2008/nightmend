@@ -37,12 +37,36 @@ scrape_configs:
         labels:
           component: backend
 
-  # file_sd 占位：Milestone 3 让 NightMend 输出 targets.json 描述被监控主机。
-  # - job_name: nightmend_hosts
-  #   file_sd_configs:
-  #     - files:
-  #         - /etc/prometheus/targets/hosts.json
-  #       refresh_interval: 30s
+  # NightMend 动态服务发现 — 主机级 node_exporter 抓取
+  # NightMend 后端定期把 Host 表导出到 hosts.json，Prom 每 30s 重读。
+  - job_name: nightmend_hosts
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/hosts.json
+        refresh_interval: 30s
+    relabel_configs:
+      # 把 hostname 提成 instance 标签，和既有 __name__ 体系对齐
+      - source_labels: [hostname]
+        target_label: instance
+
+  # NightMend 动态服务发现 — 服务级 blackbox probe
+  # 需要 blackbox_exporter 配合；默认 probe_module 已由 NightMend 打入 label。
+  - job_name: nightmend_services
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/services.json
+        refresh_interval: 30s
+    metrics_path: /probe
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [probe_module]
+        target_label: __param_module
+      - source_labels: [service_name]
+        target_label: instance
+      # 需要有 blackbox_exporter service 时才启用；profile 关闭即 scrape 失败被忽略
+      - target_label: __address__
+        replacement: blackbox:9115
 
 # Alertmanager 对接占位：Milestone 2 启用。
 # alerting:

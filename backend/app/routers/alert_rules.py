@@ -29,6 +29,7 @@ from app.models.alert_group import AlertDeduplication
 from app.models.user import User
 from app.schemas.alert import AlertRuleCreate, AlertRuleUpdate, AlertRuleResponse
 from app.services.audit import log_audit
+from app.services.prom_file_sd import sync_file_sd
 from app.services.prom_rules_sync import sync_rules_to_prometheus
 
 import logging
@@ -293,6 +294,25 @@ async def sync_prom_rules_manually(
     """
     stats = await sync_rules_to_prometheus(db, reload_sidecar=True)
     await log_audit(db, _user.id, "prom_rules_sync", "alert_rule", 0,
+                    json.dumps(stats),
+                    request.client.host if request.client else None)
+    return {"status": "ok", **stats}
+
+
+@router.post("/prometheus/file-sd-sync")
+async def sync_file_sd_manually(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_operator_user),
+):
+    """
+    手动全量导出 Host / Service 到 Prometheus file_sd targets。
+
+    日常运行由 prom_file_sd 后台任务每 60s 触发；
+    此端点用于：Host 大批导入后立刻推送、targets 目录被清空后快速恢复、诊断。
+    """
+    stats = await sync_file_sd(db)
+    await log_audit(db, _user.id, "prom_file_sd_sync", "alert_rule", 0,
                     json.dumps(stats),
                     request.client.host if request.client else None)
     return {"status": "ok", **stats}

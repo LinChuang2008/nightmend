@@ -168,6 +168,11 @@ async def lifespan(app: FastAPI):
         from app.tasks.remediation_listener import remediation_listener_loop
         task_factories["remediation_listener"] = lambda: remediation_listener_loop()
 
+    # Prometheus file_sd 同步任务（仅在启用 sidecar 时）
+    if app_settings.prometheus_remote_enabled:
+        from app.tasks.prom_file_sd_task import prom_file_sd_loop
+        task_factories["prom_file_sd"] = lambda: prom_file_sd_loop()
+
     # 启动所有任务
     for name, factory in task_factories.items():
         background_tasks[name] = asyncio.create_task(factory(), name=name)
