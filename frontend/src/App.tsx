@@ -96,16 +96,20 @@ function HomeRedirect() {
 const antdLocaleMap: Record<string, typeof zhCN> = { zh: zhCN, en: enUS };
 
 function AppInner() {
-  const { isDark } = useTheme();
+  // DESIGN.md 规定 dark 唯一，isDark 不再消费
+  useTheme();
   const { i18n } = useTranslation();
   const antdLocale = antdLocaleMap[i18n.language] || zhCN;
   return (
     <ConfigProvider
       locale={antdLocale}
       theme={{
-        algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+        // 强制 dark algorithm —— DESIGN.md 规定 dark 为唯一主题
+        algorithm: antTheme.darkAlgorithm,
         token: {
-          colorPrimary: '#1677ff',
+          // 唯一品牌色：emerald；borderRadius 保持紧凑；其他 token 全交给 darkAlgorithm 计算
+          colorPrimary: '#10B981',
+          colorSuccess: '#10B981',
           borderRadius: 6,
         },
       }}

@@ -185,13 +185,27 @@ function buildMenuItems(t: (key: string) => string) {
  * 包含可折叠侧边栏、顶部导航栏（用户头像与退出登录）、以及子路由内容区域。
  * 在移动端使用抽屉式侧边栏以优化用户体验。
  */
+const SIDEBAR_COLLAPSED_KEY = 'nightmend_sidebar_collapsed';
+
 export default function AppLayout() {
-  /** 侧边栏折叠状态 */
-  const [collapsed, setCollapsed] = useState(false);
+  /** 侧边栏折叠状态
+   *  - 默认收起（监控工具优先给主内容区更多空间）
+   *  - 用户偏好持久化：从 localStorage 读取上次选择
+   */
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    // 初次使用（无存储）默认 true；明确设过 false 则尊重用户选择
+    return stored === null ? true : stored === 'true';
+  });
   /** 移动端抽屉打开状态 */
   const [drawerVisible, setDrawerVisible] = useState(false);
   /** 菜单展开的 SubMenu keys */
   const [menuOpenKeys, setMenuOpenKeys] = useState<string[]>([]);
+
+  // 每次折叠状态变更，持久化
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+  }, [collapsed]);
   
   const navigate = useNavigate();
   const location = useLocation();
