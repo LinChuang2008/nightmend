@@ -15,18 +15,15 @@ Supports:
 - Silent aggregation mode: send notification only on recovery
 """
 import hashlib
-import json
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from app.models.alert import Alert, AlertRule
+from app.models.alert import AlertRule
 from app.models.alert_group import AlertDeduplication
-from app.models.setting import Setting
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +164,7 @@ class AlertDeduplicationService:
 
             result["should_send_notification"] = True
             result["notification_type"] = "first"
-            result["message"] = f"首次告警，发送通知"
+            result["message"] = "首次告警，发送通知"
 
             self.db.commit()
             logger.info(f"First alert triggered: {alert_title}")

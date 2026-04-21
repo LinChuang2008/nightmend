@@ -11,7 +11,7 @@ import asyncio
 import logging
 from datetime import datetime
 
-from app.core.database import async_session, SessionLocal
+from app.core.database import SessionLocal
 from app.services.alert_deduplication import AlertDeduplicationService
 
 logger = logging.getLogger(__name__)

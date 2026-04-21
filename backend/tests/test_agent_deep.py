@@ -2,8 +2,6 @@
 import hashlib
 import hmac
 import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
 
 from app.core.config import settings
 from app.models.agent_token import AgentToken

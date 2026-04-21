@@ -1,6 +1,4 @@
 """异常扫描服务测试。"""
-import pytest
-from unittest.mock import AsyncMock, patch
 
 
 class TestAnomalyScanner:

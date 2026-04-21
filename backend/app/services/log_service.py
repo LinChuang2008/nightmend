@@ -11,7 +11,6 @@
 4. 数据迁移和同步
 """
 
-import asyncio
 import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
@@ -24,11 +23,9 @@ from app.core.log_backend import (
     LogBackend, 
     LogBackendFactory, 
     LogBackendType,
-    PostgreSQLLogBackend,
-    ClickHouseLogBackend
+    PostgreSQLLogBackend
 )
 from app.models.log_entry import LogEntry
-from app.models.host import Host
 from app.services.log_broadcaster import log_broadcaster
 
 logger = logging.getLogger(__name__)

@@ -9,7 +9,7 @@ Core functions: Check suppression status, create suppression rules, manage suppr
 """
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 
 from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -2,7 +2,6 @@
 import pytest
 from httpx import AsyncClient
 from app.models.alert import Alert, AlertRule
-from datetime import datetime, timezone
 
 
 @pytest.fixture

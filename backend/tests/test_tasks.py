@@ -1,12 +1,10 @@
 """后台任务全覆盖测试 — alert_engine, cleanup, offline_detector, report_scheduler。"""
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, patch, MagicMock
-import json
+from unittest.mock import AsyncMock, patch
 
 from app.models.host import Host
 from app.models.alert import Alert, AlertRule
-from app.models.host_metric import HostMetric
 from app.models.log_entry import LogEntry
 from app.models.db_metric import DbMetric, MonitoredDatabase
 from app.models.report import Report
@@ -198,8 +196,7 @@ class TestDbMetricCleanup:
     @pytest.mark.asyncio
     async def test_cleanup_old_metrics(self, db_session):
         """Old metrics beyond retention should be deleted."""
-        from app.tasks.db_metric_cleanup import db_metric_cleanup_loop
-        from sqlalchemy import delete, select
+        from sqlalchemy import delete
 
         # Create host and monitored db
         h = Host(hostname="clean-h", status="online", agent_token_id=1)

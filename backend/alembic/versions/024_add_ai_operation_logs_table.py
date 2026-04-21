@@ -6,7 +6,6 @@ Revises: 023_add_menu_settings_table
 Create Date: 2026-03-20
 """
 from alembic import op
-import sqlalchemy as sa
 
 revision = "024_add_ai_operation_logs_table"
 down_revision = "023_add_menu_settings_table"

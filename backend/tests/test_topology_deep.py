@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.models.service import Service
 from app.models.service_dependency import ServiceDependency
-from app.models.topology_layout import TopologyLayout
 
 
 class TestTopologyGet:

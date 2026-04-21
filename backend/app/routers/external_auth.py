@@ -12,13 +12,12 @@ API端点：GET /oauth/{provider}, POST /oauth/callback, POST /ldap/login
 
 Author: NightMend Team
 """
-import asyncio
 import logging
 import secrets
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +27,7 @@ from app.core.database import get_db
 from app.core.security import create_access_token, create_refresh_token
 from app.core.config import settings
 from app.models.user import User
-from app.schemas.auth import TokenResponse, UserResponse
+from app.schemas.auth import TokenResponse
 from app.services.audit import log_audit
 from app.services.auth_session import generate_session_id, set_active_session
 

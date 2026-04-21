@@ -258,7 +258,6 @@ class TestRemediationGating:
         """When remediation disabled and no host match, diagnosis still runs."""
         from app.routers.webhooks import _process_alert
         from app.alert_sources.base import IncomingAlert
-        from datetime import datetime, timezone
         from unittest.mock import patch, AsyncMock
 
         incoming = IncomingAlert(
@@ -292,7 +291,6 @@ class TestRemediationGating:
         """When remediation enabled and no host match, alert is skipped (existing behavior)."""
         from app.routers.webhooks import _process_alert
         from app.alert_sources.base import IncomingAlert
-        from datetime import datetime, timezone
         from unittest.mock import patch, AsyncMock
 
         incoming = IncomingAlert(

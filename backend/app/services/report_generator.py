@@ -38,7 +38,7 @@ from app.models.host_metric import HostMetric
 from app.models.service import Service
 from app.models.alert import Alert
 from app.models.log_entry import LogEntry
-from app.models.db_metric import MonitoredDatabase, DbMetric
+from app.models.db_metric import MonitoredDatabase
 from app.models.report import Report
 from app.services.llm_client import chat_completion
 

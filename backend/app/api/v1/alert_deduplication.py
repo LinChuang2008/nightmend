@@ -10,7 +10,7 @@
 Provides configuration management and statistics APIs for alert deduplication and aggregation.
 """
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field

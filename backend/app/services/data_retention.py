@@ -9,7 +9,7 @@ Supports configurable retention period settings, batch-wise safe deletion, and c
 """
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Optional
+from typing import Dict
 
 from sqlalchemy.orm import Session
 

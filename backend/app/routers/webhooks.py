@@ -19,13 +19,12 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.alert_sources.base import IncomingAlert
@@ -34,7 +33,6 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.redis import get_redis
 from app.models.alert import Alert
-from app.models.remediation_log import RemediationLog
 from app.remediation.agent import RemediationAgent
 from app.routers.alert_stream import DIAGNOSIS_CHANNEL
 from app.services.ai_engine import AIEngine
@@ -48,6 +46,49 @@ _prometheus_adapter = PrometheusAdapter()
 
 # 去重 TTL (秒)
 _DEDUP_TTL = 300  # 5 min
+
+
+def _parse_allowed_networks(raw: str) -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    """把 CIDR/IP 配置字串解析为 ip_network 列表，裸 IP 视作 /32 或 /128。"""
+    networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = []
+    for item in raw.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            networks.append(ipaddress.ip_network(item, strict=False))
+        except ValueError:
+            logger.warning(f"Invalid webhook IP whitelist entry: {item!r}")
+    return networks
+
+
+def _extract_client_ip(request: Request) -> str | None:
+    """获取客户端 IP；若 webhook_trust_forwarded 开启则取 X-Forwarded-For 首段。"""
+    if settings.webhook_trust_forwarded:
+        fwd = request.headers.get("x-forwarded-for", "")
+        if fwd:
+            return fwd.split(",")[0].strip() or None
+    return request.client.host if request.client else None
+
+
+def _enforce_ip_whitelist(request: Request) -> None:
+    """webhook IP 白名单校验；配置为空则跳过（向后兼容开发环境）。"""
+    raw = settings.alertmanager_webhook_allowed_ips
+    if not raw:
+        return
+    allowed = _parse_allowed_networks(raw)
+    if not allowed:
+        return
+    client_ip = _extract_client_ip(request)
+    if not client_ip:
+        raise HTTPException(status_code=403, detail="Client IP unavailable")
+    try:
+        addr = ipaddress.ip_address(client_ip)
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Invalid client IP")
+    if not any(addr in net for net in allowed):
+        logger.warning(f"Webhook IP rejected: {client_ip}")
+        raise HTTPException(status_code=403, detail="Client IP not allowed")
 
 
 async def _verify_webhook_token(authorization: str = Header(default="")) -> str:
@@ -201,6 +242,8 @@ async def receive_alertmanager_webhook(
     _token: str = Depends(_verify_webhook_token),
     db: AsyncSession = Depends(get_db),
 ):
+    # IP 白名单在 token 校验之后执行，防止把 IP 配置错误暴露给未认证调用者
+    _enforce_ip_whitelist(request)
     """接收 Prometheus AlertManager webhook 回调。
 
     解析告警 → 映射 Host → 触发 AI 诊断和修复。

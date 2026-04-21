@@ -33,7 +33,7 @@ class TestDatabases:
         assert data["databases"][0]["name"] == "nightmend"
 
     async def test_list_databases_filter_host(self, client: AsyncClient, auth_headers, sample_db):
-        resp = await client.get(f"/api/v1/databases?host_id=99999", headers=auth_headers)
+        resp = await client.get("/api/v1/databases?host_id=99999", headers=auth_headers)
         assert resp.json()["total"] == 0
 
     async def test_get_database(self, client: AsyncClient, auth_headers, sample_db):

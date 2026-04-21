@@ -1,6 +1,6 @@
 """Remediation REST API 测试（mock DB）。"""
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from httpx import AsyncClient, ASGITransport

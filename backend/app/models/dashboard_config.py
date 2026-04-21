@@ -7,7 +7,7 @@ Dashboard 配置模型
 - 布局配置持久化保存
 - 预设布局模板
 """
-from sqlalchemy import Column, String, Integer, Boolean, Text, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base

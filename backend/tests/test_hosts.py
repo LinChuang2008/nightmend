@@ -3,7 +3,6 @@ import pytest
 from httpx import AsyncClient
 from app.models.host import Host
 from app.models.host_metric import HostMetric
-from datetime import datetime, timezone
 
 
 @pytest.fixture

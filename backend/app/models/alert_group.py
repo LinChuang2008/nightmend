@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import String, Integer, DateTime, Text, JSON, Boolean, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import ForeignKey
 
 from app.core.database import Base

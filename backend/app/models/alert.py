@@ -11,7 +11,7 @@ trigger conditions, cooldown settings, and alert event lifecycle management.
 from datetime import datetime, time
 from typing import Optional
 
-from sqlalchemy import String, Integer, Float, DateTime, Boolean, Text, JSON, Time, func, ARRAY
+from sqlalchemy import String, Integer, Float, DateTime, Boolean, Text, JSON, Time, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
