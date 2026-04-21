@@ -55,11 +55,11 @@ export default memo(function TrendCharts({ trends }: TrendChartsProps) {
       markLineData.push({
         type: 'average',
         name: t('dashboard.avgLabel'),
-        lineStyle: { color: '#1677ff', type: 'dotted', width: 1.5 },
+        lineStyle: { color: '#10B981', type: 'dotted', width: 1.5 },
         label: {
           formatter: t('dashboard.avgLabel'),
           position: 'insideEndTop',
-          color: '#1677ff',
+          color: '#10B981',
           fontSize: 10,
         },
       });
@@ -121,7 +121,7 @@ export default memo(function TrendCharts({ trends }: TrendChartsProps) {
       <Col xs={24} sm={12} md={6}>
         <Card styles={{ body: { padding: '12px' } }}>
           <ReactECharts
-            option={makeOption(cpuTrend, '#1677ff', t('dashboard.cpuTrendFull'), {
+            option={makeOption(cpuTrend, '#10B981', t('dashboard.cpuTrendFull'), {
               thresholdY: 80,
               thresholdLabel: t('dashboard.thresholdLabel'),
             })}

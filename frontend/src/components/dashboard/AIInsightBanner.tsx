@@ -46,14 +46,14 @@ export default function AIInsightBanner({ insight, loading = false, onViewDetail
       }
     : null;
 
-  // 无数据且非加载中：压缩为单行空状态提示
+  // 无数据且非加载中：压缩为单行空状态提示 —— 去渐变，遵守 DESIGN.md
   if (!insight && !loading) {
     return (
       <div
         style={{
-          background: 'linear-gradient(135deg, #0d1b2a 0%, #1a2940 100%)',
-          borderRadius: 12,
-          border: '1px solid rgba(54, 207, 201, 0.15)',
+          background: 'var(--nm-surface, #141419)',
+          borderRadius: 'var(--nm-radius-md, 6px)',
+          border: '1px solid var(--nm-border, #27272a)',
           padding: '14px 20px',
           height: '100%',
           boxSizing: 'border-box',
@@ -64,15 +64,15 @@ export default function AIInsightBanner({ insight, loading = false, onViewDetail
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <RobotOutlined style={{ color: '#36cfc9', fontSize: 20, opacity: 0.7 }} />
-          <Text style={{ color: 'rgba(138, 180, 204, 0.8)', fontSize: 14 }}>
+          <RobotOutlined style={{ color: 'var(--nm-accent, #10B981)', fontSize: 20 }} />
+          <Text style={{ color: 'var(--nm-text-muted, #71717a)', fontSize: 14 }}>
             {t('dashboard.aiNoData', '暂无 AI 洞察数据')}
           </Text>
         </div>
         <Button
           type="link"
           size="small"
-          style={{ color: '#36cfc9', padding: 0, fontSize: 13, height: 'auto', opacity: 0.8 }}
+          style={{ color: 'var(--nm-accent, #10B981)', padding: 0, fontSize: 13, height: 'auto' }}
           onClick={onViewDetail}
           icon={<ArrowRightOutlined />}
         >
@@ -86,57 +86,30 @@ export default function AIInsightBanner({ insight, loading = false, onViewDetail
     <>
       <div
         style={{
-          background: 'linear-gradient(135deg, #0d1b2a 0%, #1a2940 50%, #0d2235 100%)',
-          borderRadius: 12,
-          border: '1px solid rgba(54, 207, 201, 0.2)',
+          background: 'var(--nm-surface, #141419)',
+          borderRadius: 'var(--nm-radius-md, 6px)',
+          border: '1px solid var(--nm-border, #27272a)',
           padding: '20px 24px',
           position: 'relative',
-          overflow: 'hidden',
           height: '100%',
           boxSizing: 'border-box',
         }}
       >
-        {/* 右侧装饰波纹圆圈 */}
-        <div
-          style={{
-            position: 'absolute',
-            right: 24,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: 80,
-            height: 80,
-            borderRadius: '50%',
-            border: '2px solid rgba(54, 207, 201, 0.18)',
-            animation: 'aiPulse 2.5s ease-in-out infinite',
-            pointerEvents: 'none',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            right: 34,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: 60,
-            height: 60,
-            borderRadius: '50%',
-            border: '2px solid rgba(54, 207, 201, 0.1)',
-            pointerEvents: 'none',
-          }}
-        />
+        {/* 装饰性波纹圆圈已移除（DESIGN.md: no decorative elements）*/}
 
-        {/* 主内容 */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingRight: 80 }}>
-          <RobotOutlined style={{ color: '#36cfc9', fontSize: 28, marginTop: 2, flexShrink: 0 }} />
+        {/* 主内容 —— 对齐 DESIGN.md token */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <RobotOutlined style={{ color: 'var(--nm-accent, #10B981)', fontSize: 28, marginTop: 2, flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <Text
               style={{
                 fontSize: 11,
-                color: '#36cfc9',
+                color: 'var(--nm-accent, #10B981)',
                 letterSpacing: 2,
                 display: 'block',
                 marginBottom: 6,
                 textTransform: 'uppercase',
+                fontFamily: 'var(--nm-font-mono, ui-monospace, monospace)',
               }}
             >
               {t('dashboard.aiInsightTitle')}
@@ -144,7 +117,7 @@ export default function AIInsightBanner({ insight, loading = false, onViewDetail
             <Text
               style={{
                 fontSize: 15,
-                color: loading ? '#8ab4cc' : '#e8f4f8',
+                color: loading ? 'var(--nm-text-muted, #71717a)' : 'var(--nm-text, #e4e4e7)',
                 fontWeight: 500,
                 display: 'block',
                 overflow: 'hidden',
@@ -162,14 +135,14 @@ export default function AIInsightBanner({ insight, loading = false, onViewDetail
             <div
               style={{
                 marginTop: 10,
-                borderTop: '1px solid rgba(54, 207, 201, 0.15)',
+                borderTop: '1px solid var(--nm-border, #27272a)',
                 paddingTop: 8,
               }}
             >
               <Button
                 type="link"
                 size="small"
-                style={{ color: '#36cfc9', padding: 0, fontSize: 13, height: 'auto' }}
+                style={{ color: 'var(--nm-accent, #10B981)', padding: 0, fontSize: 13, height: 'auto' }}
                 onClick={() => insight && setDetailOpen(true)}
                 disabled={!insight}
               >
@@ -178,14 +151,6 @@ export default function AIInsightBanner({ insight, loading = false, onViewDetail
             </div>
           </div>
         </div>
-
-        <style>{`
-          @keyframes aiPulse {
-            0%   { box-shadow: 0 0 0 0 rgba(54, 207, 201, 0.4); }
-            70%  { box-shadow: 0 0 0 12px rgba(54, 207, 201, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(54, 207, 201, 0); }
-          }
-        `}</style>
       </div>
 
       <AIInsightDetailModal
