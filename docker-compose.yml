@@ -57,6 +57,35 @@ services:
     profiles:
       - clickhouse
 
+  # Prometheus sidecar — NightMend 的 TSDB + PromQL 引擎后端 (可选)
+  # 启用方式: docker compose --profile prometheus up -d
+  # 开启后，backend 若设置 PROMETHEUS_REMOTE_ENABLED=true，promql 查询会转发到这里。
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    environment:
+      TZ: Asia/Shanghai
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+      - --web.enable-lifecycle         # 支持 POST /-/reload 热加载规则
+      - --web.listen-address=:9090
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - ./prometheus/targets:/etc/prometheus/targets:ro
+      - prometheusdata:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - prometheus
+
   # Grafana Loki 日志聚合 (Grafana Loki Log Aggregation) - 可选
   loki:
     image: grafana/loki:2.9.0
@@ -137,3 +166,4 @@ volumes:
   redisdata:
   clickhousedata:
   lokidata:
+  prometheusdata:
