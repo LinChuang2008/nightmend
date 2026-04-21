@@ -14,6 +14,19 @@
   border-right: 1px solid var(--nm-border);
 }
 
+/* Ant dark Menu 默认给 .ant-menu 塞 rgb(0,21,41) 蓝黑色背景、给
+   .ant-menu-sub 塞更深的 rgb(0,12,23) —— 和 sider 的 --nm-surface
+   (#141419) 不一致，视觉上分成两层颜色。
+   把 Menu 背景透明化，继承 sider 的 surface token 让整块对齐。
+   只改 background，不碰 layout / padding / height，安全。 */
+.app-sidebar .ant-menu,
+.app-sidebar .ant-menu-sub,
+.app-sidebar .ant-menu-inline,
+.ant-drawer-body .ant-menu,
+.ant-drawer-body .ant-menu-sub {
+  background: transparent !important;
+}
+
 .ant-layout-header {
   background: var(--nm-surface) !important;
   border-bottom: 1px solid var(--nm-border);
