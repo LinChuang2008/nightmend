@@ -87,6 +87,31 @@ services:
     profiles:
       - prometheus
 
+  # Alertmanager — Prometheus 告警分组/去重/抑制，回投 NightMend webhook (可选)
+  # 启用方式: docker compose --profile prometheus up -d alertmanager
+  # 闭环：Prom rule fire → AM → /api/v1/webhooks/alertmanager → AI 诊断 + runbook
+  alertmanager:
+    build: ./alertmanager
+    environment:
+      TZ: Asia/Shanghai
+      NIGHTMEND_WEBHOOK_URL: ${NIGHTMEND_WEBHOOK_URL:-http://backend:8000/api/v1/webhooks/alertmanager}
+      # 必须非空；由 alertmanager/entrypoint.sh 在容器启动时强制校验
+      ALERTMANAGER_WEBHOOK_TOKEN: ${ALERTMANAGER_WEBHOOK_TOKEN:-}
+    ports:
+      - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - alertmanagerdata:/alertmanager
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - backend
+    restart: unless-stopped
+    profiles:
+      - prometheus
+
   # Grafana Loki 日志聚合 (Grafana Loki Log Aggregation) - 可选
   loki:
     image: grafana/loki:2.9.0
@@ -168,3 +193,4 @@ volumes:
   clickhousedata:
   lokidata:
   prometheusdata:
+  alertmanagerdata:

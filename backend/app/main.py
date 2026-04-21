@@ -77,6 +77,7 @@ from app.routers import custom_runbooks
 from app.routers import promql
 from app.routers import webhooks
 from app.routers import prom_remote_write  # noqa: E402  (main.py 存量 E402 debt 规避)
+from app.routers import alertmanager_silences  # noqa: E402
 from app.routers import alert_stream
 from app.api.v1 import data_retention
 from app.api.v1 import alert_deduplication
@@ -316,6 +317,7 @@ app.include_router(custom_runbooks.router)  # 自定义 Runbook 管理 (Custom R
 app.include_router(promql.router)  # PromQL 查询 (PromQL Query Engine)
 app.include_router(webhooks.router)  # 外部告警源 Webhook (External Alert Source Webhooks)
 app.include_router(prom_remote_write.router)  # Prometheus Remote Write 接收器 (Prometheus Remote Write Receiver)
+app.include_router(alertmanager_silences.router)  # Alertmanager Silence 反向路由 (Alertmanager Silence Reverse Routing)
 app.include_router(alert_stream.router)  # 告警诊断 SSE 流 (Alert Diagnosis SSE Stream)
 
 
