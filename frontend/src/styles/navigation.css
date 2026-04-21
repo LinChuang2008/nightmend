@@ -1,0 +1,57 @@
+/**
+ * 导航壳补丁 —— Phase 3 收尾
+ *
+ * 原则（吸取之前 3 次失败教训）：
+ *   - 不碰 .ant-menu-item 通用布局
+ *   - 只覆盖 .ant-menu-item-selected 的视觉装饰（bg/color/shadow）
+ *   - 用 box-shadow inset 做右侧竖线，不用 ::after（避免和 Ant 原生冲突）
+ *   - 不设置 height / width / margin / padding（布局完全交给 Ant）
+ */
+
+/* ── Sider 外壳 + Header 底色 ───────────────────────────── */
+.app-sidebar.ant-layout-sider {
+  background: var(--nm-surface);
+  border-right: 1px solid var(--nm-border);
+}
+
+.ant-layout-header {
+  background: var(--nm-surface) !important;
+  border-bottom: 1px solid var(--nm-border);
+}
+
+/* Header 文字类 button 统一：默认 muted，hover 升到主文字色 */
+.ant-layout-header .ant-btn-text {
+  color: var(--nm-text-muted);
+  transition: color 150ms ease-out, background-color 150ms ease-out;
+}
+.ant-layout-header .ant-btn-text:hover {
+  color: var(--nm-text) !important;
+  background: var(--nm-surface-hover) !important;
+}
+
+/* Header 右侧头像区：emerald dim 底 + 品牌色 icon */
+.ant-layout-header .ant-avatar {
+  background: var(--nm-accent-dim) !important;
+  color: var(--nm-accent) !important;
+}
+
+/* ── 激活项：右侧 2px emerald inset 竖线 —— DESIGN.md 核心规则 ── */
+/* 仅对 selected 状态生效，不影响 hover / default / submenu-title，
+   用 box-shadow inset 避免和 Ant 原生 ::after 打架导致截断 bug */
+.app-sidebar .ant-menu-item-selected,
+.ant-drawer-body .ant-menu-item-selected {
+  box-shadow: inset -2px 0 0 0 var(--nm-accent);
+}
+
+/* Content 暗底 */
+.ant-layout-content {
+  background: var(--nm-bg);
+}
+
+/* 侧栏滚动条暗底适配 */
+.app-sidebar ::-webkit-scrollbar-thumb {
+  background: var(--nm-border-strong);
+}
+.app-sidebar ::-webkit-scrollbar-thumb:hover {
+  background: var(--nm-text-dim);
+}
