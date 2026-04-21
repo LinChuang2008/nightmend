@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" fill="none">
+  <!-- NightMend horizontal wordmark —— logo + 字 —— 侧栏/页头用 -->
+  <!-- Icon (mini 版，省 1 行细节) -->
+  <circle cx="24" cy="24" r="20" fill="#0a0a0f" stroke="#10B981" stroke-width="2.5"/>
+  <path d="M 12 20 Q 24 26, 36 20" stroke="#e4e4e7" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path
+    d="M 8 30 L 14 30 L 17 26 L 21 34 L 25 30 L 31 30 L 34 32 L 37 28 L 40 30"
+    stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"
+  />
+  <circle cx="21" cy="34" r="1.5" fill="#10B981"/>
+
+  <!-- Wordmark text: NightMend —— Geist 700 -->
+  <text
+    x="56" y="32"
+    font-family="Geist, 'Geist Sans', system-ui, -apple-system, sans-serif"
+    font-size="22"
+    font-weight="700"
+    letter-spacing="-0.02em"
+    fill="#e4e4e7"
+  >NightMend</text>
+</svg>

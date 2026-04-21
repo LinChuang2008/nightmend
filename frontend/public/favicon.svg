@@ -1,9 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- Shield -->
-  <path d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4z" fill="#1677ff"/>
-  <path d="M32 8L12 18v14c0 12.6 8.96 24.36 20 28 11.04-3.64 20-15.4 20-28V18L32 8z" fill="#e6f4ff"/>
-  <!-- Eye -->
-  <ellipse cx="32" cy="34" rx="12" ry="8" fill="#1677ff"/>
-  <circle cx="32" cy="34" r="4" fill="#fff"/>
-  <circle cx="32" cy="34" r="2" fill="#0958d9"/>
+  <!-- NightMend favicon — 简化版 H (Sleeping Watcher)
+       针对 16-32px 显示优化：
+         - 去掉细针脚（小尺寸不可见）
+         - 眼睑曲线加粗到 4px
+         - 心跳波 stroke 加粗到 4px
+         - 底色用 emerald 填充让主体元素负空间显眼 -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#10B981"/>
+
+  <!-- 闭眼（向下弯曲的弧）—— "sleep" -->
+  <path
+    d="M 16 26 Q 32 34, 48 26"
+    stroke="#0a0a0f"
+    stroke-width="4.5"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- 心跳波形 —— "still watching/fixing" -->
+  <path
+    d="M 12 42 L 22 42 L 26 34 L 32 50 L 38 42 L 52 42"
+    stroke="#0a0a0f"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
 </svg>
