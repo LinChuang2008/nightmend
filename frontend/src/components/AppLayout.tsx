@@ -378,17 +378,9 @@ export default function AppLayout() {
         background: colorBgLayout,
       }}
     >
-      {/* 桌面端侧边栏 —— DESIGN.md 规定 200px 固定宽 */}
+      {/* 桌面端侧边栏 —— 用 Ant 默认宽度（200 展开/80 折叠），避免自定义 collapsedWidth 挤 icon */}
       {!isMobile && (
-        <Sider
-          trigger={null}
-          collapsible
-          collapsed={collapsed}
-          theme="dark"
-          className="app-sidebar"
-          width={200}
-          collapsedWidth={64}
-        >
+        <Sider trigger={null} collapsible collapsed={collapsed} theme="dark" className="app-sidebar">
           {renderMenuContent()}
         </Sider>
       )}
