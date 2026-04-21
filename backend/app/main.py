@@ -23,6 +23,11 @@ from datetime import datetime, timezone
 # 配置应用级别日志 (Configure application-level logging)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
+# 全局日志脱敏：拦截 Bearer token / api_key / secret 等敏感字段，防止凭证进文件/ELK。
+# 必须在 basicConfig 之后、应用代码导入之前执行，确保所有后续 logger 继承 filter。
+from app.core.log_redaction import install_global_redaction  # noqa: E402
+install_global_redaction()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text

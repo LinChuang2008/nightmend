@@ -138,6 +138,11 @@ class Settings(BaseSettings):
 
     # AlertManager Bridge 配置 (AlertManager Bridge Configuration)
     alertmanager_webhook_token: str = ""  # Bearer token for webhook auth, generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+    # IP 白名单（逗号分隔 CIDR/IP），留空关闭白名单（仅靠 token 鉴权）。
+    # 例: "10.0.0.0/8,192.168.1.100,2001:db8::/32"
+    # 若请求经过反向代理，需设置 webhook_trust_forwarded=True 并确保 proxy 可信。
+    alertmanager_webhook_allowed_ips: str = ""
+    webhook_trust_forwarded: bool = False  # 是否信任 X-Forwarded-For 首段
     alertmanager_auto_threshold: float = 0.9  # AI 信心分数 >= 此值时自动执行修复 (Auto-execute when confidence >= this)
     enable_remediation: bool = True  # False = 仅诊断模式，不执行修复 (False = diagnosis-only demo mode)
     demo_sse_max_clients: int = 50  # SSE 最大并发连接数 (Max concurrent SSE connections for demo)
