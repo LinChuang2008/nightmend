@@ -20,7 +20,8 @@ interface LogoProps {
   style?: CSSProperties;
 }
 
-/** 闭眼 + 心跳 —— 所有变体共用的 SVG 主体（viewBox 64x64）。 */
+/** 盾牌 + 闭眼 + 心跳 —— 所有变体共用的 SVG 主体（viewBox 64x64）。
+    盾 = 守护；闭眼 = 你睡；心跳 = AI 仍醒着做事。 */
 function IconSVG({ size }: { size: number }) {
   return (
     <svg
@@ -31,35 +32,43 @@ function IconSVG({ size }: { size: number }) {
       fill="none"
       aria-hidden
     >
-      <circle cx="32" cy="32" r="28" fill="#0a0a0f" stroke="#10B981" strokeWidth="3" />
+      {/* 盾牌外形 */}
+      <path
+        d="M 12 8 L 52 8 Q 56 8 56 12 L 56 32 Q 56 48 32 60 Q 8 48 8 32 L 8 12 Q 8 8 12 8 Z"
+        fill="#0a0a0f"
+        stroke="#10B981"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
       {/* 闭眼 */}
       <path
-        d="M 16 24 Q 32 32, 48 24"
+        d="M 18 26 Q 32 33 46 26"
         stroke="#e4e4e7"
         strokeWidth="3"
         strokeLinecap="round"
         fill="none"
       />
-      {/* 睫毛 */}
+      {/* 睫毛 / 针脚（sleep + 修补双关）*/}
       {[
-        { x1: 20, y1: 22, x2: 19, y2: 18 },
-        { x1: 26, y1: 23, x2: 25, y2: 18 },
-        { x1: 32, y1: 23.5, x2: 32, y2: 18 },
-        { x1: 38, y1: 23, x2: 39, y2: 18 },
-        { x1: 44, y1: 22, x2: 45, y2: 18 },
+        { x1: 22, y1: 24, x2: 21, y2: 20 },
+        { x1: 27, y1: 25, x2: 26, y2: 20 },
+        { x1: 32, y1: 25.5, x2: 32, y2: 20 },
+        { x1: 37, y1: 25, x2: 38, y2: 20 },
+        { x1: 42, y1: 24, x2: 43, y2: 20 },
       ].map((p, i) => (
         <line key={i} {...p} stroke="#e4e4e7" strokeWidth="2" strokeLinecap="round" />
       ))}
-      {/* 心跳 */}
+      {/* 心跳波形 */}
       <path
-        d="M 10 40 L 18 40 L 22 34 L 26 46 L 30 40 L 38 40 L 42 44 L 46 36 L 54 40"
+        d="M 13 42 L 20 42 L 23 37 L 27 48 L 31 42 L 38 42 L 41 45 L 45 38 L 51 42"
         stroke="#10B981"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="26" cy="46" r="2" fill="#10B981" />
+      {/* 波峰亮点 */}
+      <circle cx="27" cy="48" r="2" fill="#10B981" />
     </svg>
   );
 }
