@@ -16,6 +16,7 @@ import 'dayjs/locale/zh-cn';
 dayjs.extend(relativeTime);
 import api from '../services/api';
 import { alertService, notificationService, type NotificationChannel } from '../services/alerts';
+import { PromQLRuleEditor } from '../components/PromQLRuleEditor';
 import { databaseService } from '../services/databases';
 import type { DatabaseItem } from '../services/databases';
 import type { Alert, AlertRule } from '../services/alerts';
@@ -46,6 +47,9 @@ export default function AlertList() {
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
   const [ruleType, setRuleType] = useState<string>('metric');
+  // PromQL 模式的受控字段（Form 里用受控组件，避免跟 react-hook-form 冲突）
+  const [promqlExpr, setPromqlExpr] = useState<string | null>(null);
+  const [promqlFor, setPromqlFor] = useState<number | null>(null);
   const [dbList, setDbList] = useState<DatabaseItem[]>([]);
   const [notificationChannels, setNotificationChannels] = useState<NotificationChannel[]>([]);
   const [channelsLoading, setChannelsLoading] = useState(false);
@@ -313,6 +317,24 @@ export default function AlertList() {
     const payload = { ...values } as Record<string, unknown>;
     payload.silence_start = values.silence_start ? (values.silence_start as dayjs.Dayjs).format('HH:mm:ss') : null;
     payload.silence_end = values.silence_end ? (values.silence_end as dayjs.Dayjs).format('HH:mm:ss') : null;
+    // PromQL 模式：把受控字段补进 payload；后端要求 metric/threshold/operator 非空，
+    // 给合法默认值避开校验，实际触发走 query_expr。
+    if (ruleType === 'promql') {
+      if (!promqlExpr || !promqlExpr.trim()) {
+        messageApi.error('PromQL 表达式不能为空');
+        return;
+      }
+      payload.query_expr = promqlExpr;
+      payload.for_duration_seconds = promqlFor;
+      payload.rule_type = 'promql';
+      payload.metric = payload.metric || 'promql_expr';
+      payload.operator = payload.operator || '>';
+      payload.threshold = payload.threshold ?? 0;
+    } else {
+      // 非 PromQL 模式显式置空，避免从 PromQL 切回来留脏字段
+      payload.query_expr = null;
+      payload.for_duration_seconds = null;
+    }
     try {
       if (editingRule) {
         await alertService.updateRule(editingRule.id, payload as Partial<AlertRule>);
@@ -467,10 +489,15 @@ export default function AlertList() {
         <Space>
           <Button type="link" size="small" onClick={() => {
             setEditingRule(r);
-            setRuleType(r.rule_type || 'metric');
+            // 有 query_expr 的规则一律视作 PromQL 模式，优先于 rule_type 字段
+            const isPromql = Boolean(r.query_expr);
+            setRuleType(isPromql ? 'promql' : (r.rule_type || 'metric'));
+            setPromqlExpr(r.query_expr ?? null);
+            setPromqlFor(r.for_duration_seconds ?? null);
             const vals = { ...r } as Record<string, unknown>;
             if (r.silence_start) vals.silence_start = dayjs(r.silence_start, 'HH:mm:ss');
             if (r.silence_end) vals.silence_end = dayjs(r.silence_end, 'HH:mm:ss');
+            if (isPromql) vals.rule_type = 'promql';
             form.setFieldsValue(vals);
             loadDbList();
             loadNotificationChannels();
@@ -564,7 +591,7 @@ export default function AlertList() {
           children: (
             <>
               <Row justify="end" style={{ marginBottom: 16 }}>
-                <Button type="primary" onClick={() => { setEditingRule(null); setRuleType('metric'); form.resetFields(); setRuleModalOpen(true); loadDbList(); loadNotificationChannels(); }}>{t('alerts.createRule')}</Button>
+                <Button type="primary" onClick={() => { setEditingRule(null); setRuleType('metric'); setPromqlExpr(null); setPromqlFor(null); form.resetFields(); setRuleModalOpen(true); loadDbList(); loadNotificationChannels(); }}>{t('alerts.createRule')}</Button>
               </Row>
               <Card>
                 <Table dataSource={rules} columns={ruleColumns} rowKey="id" loading={rulesLoading} pagination={false} />
@@ -657,6 +684,7 @@ export default function AlertList() {
               { label: t('alerts.rules.metric'), value: 'metric' },
               { label: t('alerts.rules.logKeyword'), value: 'log_keyword' },
               { label: t('alerts.rules.database'), value: 'db_metric' },
+              { label: t('alerts.rules.promql', 'PromQL (Prometheus)'), value: 'promql' },
             ]} />
           </Form.Item>
 
@@ -681,6 +709,18 @@ export default function AlertList() {
               </Form.Item>
               <Form.Item name="log_service" label={t('alerts.rules.logService')}><Input placeholder="e.g.: nginx, app" /></Form.Item>
             </>
+          )}
+
+          {ruleType === 'promql' && (
+            <PromQLRuleEditor
+              queryExpr={promqlExpr}
+              forDuration={promqlFor}
+              onChange={(patch) => {
+                if ('query_expr' in patch) setPromqlExpr(patch.query_expr ?? null);
+                if ('for_duration_seconds' in patch) setPromqlFor(patch.for_duration_seconds ?? null);
+              }}
+              readonly={Boolean(editingRule?.is_builtin)}
+            />
           )}
 
           {ruleType === 'db_metric' && (

@@ -29,6 +29,21 @@ from app.models.alert_group import AlertDeduplication
 from app.models.user import User
 from app.schemas.alert import AlertRuleCreate, AlertRuleUpdate, AlertRuleResponse
 from app.services.audit import log_audit
+from app.services.prom_file_sd import sync_file_sd
+from app.services.prom_rules_sync import sync_rules_to_prometheus
+
+import logging
+
+_sync_logger = logging.getLogger("nightmend.alert_rules.prom_sync")
+
+
+async def _best_effort_sync(db: AsyncSession) -> None:
+    """写 rules.yml + reload，失败只记日志不阻塞主流程（API 返回已成功）。"""
+    try:
+        await sync_rules_to_prometheus(db, reload_sidecar=True)
+    except Exception as exc:  # noqa: BLE001
+        _sync_logger.warning("Prometheus rule sync failed (non-fatal): %s", exc)
+
 
 router = APIRouter(prefix="/api/v1/alert-rules", tags=["alert-rules"])
 
@@ -99,6 +114,9 @@ async def create_alert_rule(
                     request.client.host if request.client else None)
     await db.commit()
     await db.refresh(rule)
+    # query_expr 非空时同步到 Prometheus rules.yml（开关关闭时内部会短路）
+    if rule.query_expr:
+        await _best_effort_sync(db)
     return rule
 
 
@@ -203,6 +221,12 @@ async def update_alert_rule(
                     request.client.host if request.client else None)
     await db.commit()
     await db.refresh(rule)
+    # 触发 Prom 规则同步：
+    #   - 本身已经是 PromQL 规则（含/曾含 query_expr）
+    #   - 或本次更新动了 query_expr / is_enabled / for_duration_seconds
+    prom_fields = {"query_expr", "is_enabled", "for_duration_seconds"}
+    if rule.query_expr or (updates.keys() & prom_fields):
+        await _best_effort_sync(db)
     return rule
 
 
@@ -246,5 +270,49 @@ async def delete_alert_rule(
     await log_audit(db, _user.id, "delete_alert_rule", "alert_rule", rule_id,
                     None,  # 删除操作不需要记录具体内容
                     request.client.host if request.client else None)
+    had_query_expr = bool(rule.query_expr)
     await db.delete(rule)  # 从数据库中物理删除规则
     await db.commit()
+    # 被删的是 PromQL 规则 → 让 sidecar 移除它
+    if had_query_expr:
+        await _best_effort_sync(db)
+
+
+@router.post("/prometheus/sync")
+async def sync_prom_rules_manually(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_operator_user),
+):
+    """
+    手动全量同步 AlertRule (query_expr 非空 & is_enabled) 到 Prometheus rules.yml。
+
+    使用场景：
+        - sidecar 迁移后首次全量推送
+        - rules.yml 被外部工具污染后的强制修复
+        - 升级 for_duration 默认值/标签策略后的一次性刷盘
+    """
+    stats = await sync_rules_to_prometheus(db, reload_sidecar=True)
+    await log_audit(db, _user.id, "prom_rules_sync", "alert_rule", 0,
+                    json.dumps(stats),
+                    request.client.host if request.client else None)
+    return {"status": "ok", **stats}
+
+
+@router.post("/prometheus/file-sd-sync")
+async def sync_file_sd_manually(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_operator_user),
+):
+    """
+    手动全量导出 Host / Service 到 Prometheus file_sd targets。
+
+    日常运行由 prom_file_sd 后台任务每 60s 触发；
+    此端点用于：Host 大批导入后立刻推送、targets 目录被清空后快速恢复、诊断。
+    """
+    stats = await sync_file_sd(db)
+    await log_audit(db, _user.id, "prom_file_sd_sync", "alert_rule", 0,
+                    json.dumps(stats),
+                    request.client.host if request.client else None)
+    return {"status": "ok", **stats}

@@ -1,0 +1,3 @@
+# Recording + alerting rules 目录占位。
+# Milestone 2 会由 NightMend 后端自动同步规则文件到此目录，
+# 通过 POST http://prometheus:9090/-/reload 热加载。

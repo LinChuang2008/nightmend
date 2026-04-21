@@ -28,8 +28,10 @@ from typing import Any, Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.host_metric import HostMetric
 from app.models.host import Host
+from app.services import prometheus_remote
 
 logger = logging.getLogger(__name__)
 
@@ -450,6 +452,17 @@ async def execute_instant_query(
     Raises:
         ValueError: 查询解析或执行失败 (Query parse or execution failure)
     """
+    # ── Prometheus sidecar 分发 (Prometheus sidecar dispatch) ───────────────
+    # 开关开启时优先走 sidecar；不可达则 fallback 到内置引擎，保持可用性。
+    if settings.prometheus_remote_enabled:
+        try:
+            return await prometheus_remote.instant_query(expr, eval_time)
+        except prometheus_remote.PrometheusRemoteError:
+            # 用户 query 非法：透传 ValueError 让 router 返回 400
+            raise
+        except prometheus_remote.PrometheusRemoteUnavailable as exc:
+            logger.warning("Prometheus sidecar unavailable, falling back to local engine: %s", exc)
+
     pq = parse_promql(expr)
     if eval_time is None:
         eval_time = datetime.now(timezone.utc)
@@ -703,6 +716,15 @@ async def execute_range_query(
     Raises:
         ValueError: 查询解析或执行失败 (Query parse or execution failure)
     """
+    # ── Prometheus sidecar 分发 (Prometheus sidecar dispatch) ───────────────
+    if settings.prometheus_remote_enabled:
+        try:
+            return await prometheus_remote.range_query(expr, start, end, step)
+        except prometheus_remote.PrometheusRemoteError:
+            raise
+        except prometheus_remote.PrometheusRemoteUnavailable as exc:
+            logger.warning("Prometheus sidecar unavailable, falling back to local engine: %s", exc)
+
     pq = parse_promql(expr)
 
     # 范围向量函数的特殊处理 (Special handling for range vector functions)
