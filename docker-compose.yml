@@ -68,7 +68,8 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
-      - --web.enable-lifecycle         # 支持 POST /-/reload 热加载规则
+      - --web.enable-lifecycle                    # 支持 POST /-/reload 热加载规则
+      - --web.enable-remote-write-receiver        # 允许外部 Prom push 数据进来
       - --web.listen-address=:9090
     ports:
       - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
