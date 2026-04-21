@@ -1,29 +1,29 @@
 /**
- * 导航壳样式覆盖 —— Phase 3
+ * 导航壳样式覆盖 —— Phase 3（修订版）
  *
- * 严格对齐 DESIGN.md 的 Navigation 规则：
- *   - 左侧边栏（200px 固定宽度）
- *   - 分组区块，紧凑密度
- *   - 激活项：accent 色 + 右侧竖线
- *   - 交互：150ms 过渡，无装饰动画
+ * 教训：第一版过度 !important 强制 height / width / margin，跟 Ant Menu 内部盒模型冲突。
+ * 这版只覆盖颜色和激活态，把 height/width/margin 交给 Ant 自己算。
  *
- * 只用 var(--nm-*) tokens，禁止硬编码颜色。
+ * 对齐 DESIGN.md：
+ *   - Sider 背景 --nm-surface，右边 --nm-border 分隔
+ *   - Menu item 默认 --nm-text-muted，hover 升到 --nm-text
+ *   - 激活项：--nm-accent-glow 背景 + --nm-accent 文字 + 右侧 inset box-shadow 代替 ::after
+ *   - 150ms ease-out 过渡
  */
 
-/* ── Sider 背景 + 边框 ────────────────────────────────────────────── */
+/* ── Sider 本体 ───────────────────────────────────────────────────── */
 .app-sidebar.ant-layout-sider {
-  background: var(--nm-surface) !important;
+  background: var(--nm-surface);
   border-right: 1px solid var(--nm-border);
 }
 
-/* 折叠切换 trigger（若 Sider 用默认 trigger）*/
 .app-sidebar.ant-layout-sider .ant-layout-sider-trigger {
-  background: var(--nm-surface) !important;
+  background: var(--nm-surface);
   border-top: 1px solid var(--nm-border);
   color: var(--nm-text-muted);
 }
 
-/* ── Menu 基础 ────────────────────────────────────────────────────── */
+/* ── Menu 背景 + 字体 ─────────────────────────────────────────────── */
 .app-sidebar .ant-menu,
 .app-sidebar .ant-menu-sub,
 .ant-drawer-body .ant-menu {
@@ -32,91 +32,76 @@
   border-inline-end: none !important;
 }
 
-/* 分组 label */
-.app-sidebar .ant-menu-item-group-title,
-.ant-drawer-body .ant-menu-item-group-title {
-  color: var(--nm-text-dim) !important;
-  font-family: var(--nm-font-mono) !important;
-  font-size: 11px !important;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  padding: var(--nm-space-md) var(--nm-space-md) var(--nm-space-xs) !important;
-}
-
-/* ── Menu Item 默认态 ─────────────────────────────────────────────── */
+/* ── Item 颜色（不碰尺寸）──────────────────────────────────────────── */
 .app-sidebar .ant-menu-item,
 .app-sidebar .ant-menu-submenu-title,
 .ant-drawer-body .ant-menu-item,
 .ant-drawer-body .ant-menu-submenu-title {
-  color: var(--nm-text-muted) !important;
-  border-radius: var(--nm-radius-md) !important;
-  margin: 2px var(--nm-space-sm) !important;
-  width: calc(100% - 16px) !important;
+  color: var(--nm-text-muted);
   transition: background-color var(--nm-duration-short) var(--nm-ease-out),
-              color var(--nm-duration-short) var(--nm-ease-out) !important;
-  height: 36px !important;
-  line-height: 36px !important;
+              color var(--nm-duration-short) var(--nm-ease-out),
+              box-shadow var(--nm-duration-short) var(--nm-ease-out);
 }
 
-/* hover 态：lift 到 surface-hover */
-.app-sidebar .ant-menu-item:hover,
+/* hover */
+.app-sidebar .ant-menu-item:not(.ant-menu-item-selected):hover,
 .app-sidebar .ant-menu-submenu-title:hover,
-.ant-drawer-body .ant-menu-item:hover,
+.ant-drawer-body .ant-menu-item:not(.ant-menu-item-selected):hover,
 .ant-drawer-body .ant-menu-submenu-title:hover {
   background: var(--nm-surface-hover) !important;
   color: var(--nm-text) !important;
 }
 
-/* ── 激活态：accent 色 + 右侧竖线（DESIGN.md 核心规则）──────────────── */
+/* ── 激活态：emerald glow + 内阴影右线（比 ::after 稳）──────────── */
 .app-sidebar .ant-menu-item-selected,
 .ant-drawer-body .ant-menu-item-selected {
   background: var(--nm-accent-glow) !important;
   color: var(--nm-accent) !important;
+  box-shadow: inset -2px 0 0 0 var(--nm-accent);
   font-weight: 600;
-  position: relative;
 }
 
-.app-sidebar .ant-menu-item-selected::after,
-.ant-drawer-body .ant-menu-item-selected::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  background: var(--nm-accent);
-  border-radius: 2px;
-  border: none !important;
+/* 取消 Ant 原生右 border 指示（避免双线）*/
+.app-sidebar .ant-menu-item::after,
+.ant-drawer-body .ant-menu-item::after {
+  display: none !important;
 }
 
-/* Icon 跟随选中色 */
+/* Icon 跟随激活色 */
 .app-sidebar .ant-menu-item-selected .anticon,
 .ant-drawer-body .ant-menu-item-selected .anticon {
   color: var(--nm-accent) !important;
 }
 
-/* SubMenu expand 箭头对齐 */
+/* SubMenu 展开箭头 + 打开态 title */
 .app-sidebar .ant-menu-submenu-arrow,
 .ant-drawer-body .ant-menu-submenu-arrow {
-  color: var(--nm-text-dim) !important;
+  color: var(--nm-text-dim);
 }
 
-/* 展开中 submenu 的 title 主色 */
 .app-sidebar .ant-menu-submenu-open > .ant-menu-submenu-title,
 .ant-drawer-body .ant-menu-submenu-open > .ant-menu-submenu-title {
   color: var(--nm-text) !important;
+}
+
+/* 分组 label（--ant-menu-item-group-title）*/
+.app-sidebar .ant-menu-item-group-title,
+.ant-drawer-body .ant-menu-item-group-title {
+  color: var(--nm-text-dim) !important;
+  font-family: var(--nm-font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 /* ── Header ──────────────────────────────────────────────────────── */
 .ant-layout-header {
   background: var(--nm-surface) !important;
   border-bottom: 1px solid var(--nm-border);
-  padding-inline: var(--nm-space-lg) !important;
 }
 
-/* Header 里的 Button ghost 态 */
 .ant-layout-header .ant-btn-text {
-  color: var(--nm-text-muted) !important;
+  color: var(--nm-text-muted);
   transition: color var(--nm-duration-short) var(--nm-ease-out);
 }
 
@@ -125,26 +110,20 @@
   background: var(--nm-surface-hover) !important;
 }
 
-/* Header 里用户头像区 —— 可点击变色 */
 .ant-layout-header .ant-avatar {
   background: var(--nm-accent-dim) !important;
   color: var(--nm-accent) !important;
 }
 
-/* ── Content 容器 ─────────────────────────────────────────────────── */
+/* Content 整体暗底 */
 .ant-layout-content {
-  background: var(--nm-bg) !important;
+  background: var(--nm-bg);
 }
 
-/* ── Sider 品牌区底部分隔 ─────────────────────────────────────────── */
-.app-sidebar-menu-scroll {
-  padding-top: var(--nm-space-sm);
-  padding-bottom: var(--nm-space-sm);
+/* ── 侧栏滚动条（继承 index.css 暗色） ─────────────────────────── */
+.app-sidebar ::-webkit-scrollbar-thumb {
+  background: var(--nm-border-strong);
 }
-
-/* 折叠态下 logo icon 居中 */
-.ant-layout-sider-collapsed .app-sidebar-menu-scroll .ant-menu-item,
-.ant-layout-sider-collapsed .app-sidebar-menu-scroll .ant-menu-submenu-title {
-  padding-inline: 0 !important;
-  text-align: center;
+.app-sidebar ::-webkit-scrollbar-thumb:hover {
+  background: var(--nm-text-dim);
 }
