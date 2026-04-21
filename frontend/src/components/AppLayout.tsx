@@ -44,6 +44,10 @@ import {
   AppstoreOutlined,
   EyeInvisibleOutlined,
   QuestionCircleOutlined,
+  DesktopOutlined,
+  BellOutlined,
+  ExperimentOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import QuickStartGuide from './QuickStartGuide';
 import GuidedTour, { useTourControl } from './GuidedTour';
@@ -125,11 +129,14 @@ function getConfigurableMenuItems(items: ReturnType<typeof buildMenuItems>) {
   return result;
 }
 
-/** 生成侧边栏菜单项（分 4 个分组），使用 i18n 翻译 */
+/** 生成侧边栏菜单项（分 4 个可折叠 submenu），使用 i18n 翻译
+ *  用 key-based submenu 而不是 type:'group'，这样每组可独立展开/收起。
+ */
 function buildMenuItems(t: (key: string) => string) {
   return [
     {
-      type: 'group' as const,
+      key: 'group:monitoring',
+      icon: <DesktopOutlined />,
       label: t('menu.groupMonitoring'),
       children: [
         { key: '/dashboard', icon: <DashboardOutlined />, label: <span data-tour="dashboard">{t('menu.dashboard')}</span> },
@@ -143,7 +150,8 @@ function buildMenuItems(t: (key: string) => string) {
       ],
     },
     {
-      type: 'group' as const,
+      key: 'group:alerts',
+      icon: <BellOutlined />,
       label: t('menu.groupAlerts'),
       children: [
         { key: '/alerts', icon: <AlertOutlined />, label: <span data-tour="alerts">{t('menu.alerts')}</span> },
@@ -153,7 +161,8 @@ function buildMenuItems(t: (key: string) => string) {
       ],
     },
     {
-      type: 'group' as const,
+      key: 'group:analysis',
+      icon: <ExperimentOutlined />,
       label: t('menu.groupAnalysis'),
       children: [
         { key: '/ops', icon: <RobotOutlined />, label: <span data-tour="ai-analysis">{t('menu.aiAnalysis')}</span> },
@@ -164,7 +173,8 @@ function buildMenuItems(t: (key: string) => string) {
       ],
     },
     {
-      type: 'group' as const,
+      key: 'group:config',
+      icon: <ToolOutlined />,
       label: t('menu.groupConfig'),
       children: [
         { key: '/notification-channels', icon: <NotificationOutlined />, label: t('menu.notificationChannels') },
@@ -337,11 +347,12 @@ export default function AppLayout() {
     return matched || '/dashboard';
   };
   const selectedKey = findSelectedKey();
-  const openKey = allFlatItems.find(
-    (item: any) => 'children' in item && item.children?.some((c: any) => c.key === selectedKey)
-  )?.key;
+  // 结构已改为 4 个可折叠 submenu：定位 selectedKey 所在的 top-level group key
+  const openKey = allMenuItems.find(
+    (group: any) => Array.isArray(group.children) && group.children.some((c: any) => c.key === selectedKey)
+  )?.key as string | undefined;
 
-  // 路由变化时自动展开对应的 SubMenu
+  // 路由变化时自动展开对应的 SubMenu（保持"所在组默认展开，其他默认收起"）
   useEffect(() => {
     if (openKey && !menuOpenKeys.includes(openKey)) {
       setMenuOpenKeys(prev => [...new Set([...prev, openKey])]);

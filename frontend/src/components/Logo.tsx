@@ -36,7 +36,7 @@ function IconSVG({ size }: { size: number }) {
       <path
         d="M 12 8 L 52 8 Q 56 8 56 12 L 56 32 Q 56 48 32 60 Q 8 48 8 32 L 8 12 Q 8 8 12 8 Z"
         fill="#0a0a0f"
-        stroke="#10B981"
+        stroke="#3b82f6"
         strokeWidth="3"
         strokeLinejoin="round"
       />
@@ -61,14 +61,14 @@ function IconSVG({ size }: { size: number }) {
       {/* 心跳波形 */}
       <path
         d="M 13 42 L 20 42 L 23 37 L 27 48 L 31 42 L 38 42 L 41 45 L 45 38 L 51 42"
-        stroke="#10B981"
+        stroke="#3b82f6"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
       {/* 波峰亮点 */}
-      <circle cx="27" cy="48" r="2" fill="#10B981" />
+      <circle cx="27" cy="48" r="2" fill="#3b82f6" />
     </svg>
   );
 }
