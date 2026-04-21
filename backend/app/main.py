@@ -76,6 +76,7 @@ from app.routers import ai_analysis
 from app.routers import custom_runbooks
 from app.routers import promql
 from app.routers import webhooks
+from app.routers import prom_exporters  # noqa: E402
 from app.routers import alert_stream
 from app.api.v1 import data_retention
 from app.api.v1 import alert_deduplication
@@ -309,6 +310,7 @@ app.include_router(ai_analysis.router)  # AI 分析 (AI analysis: insights, root
 app.include_router(custom_runbooks.router)  # 自定义 Runbook 管理 (Custom Runbook Management)
 app.include_router(promql.router)  # PromQL 查询 (PromQL Query Engine)
 app.include_router(webhooks.router)  # 外部告警源 Webhook (External Alert Source Webhooks)
+app.include_router(prom_exporters.router)  # Prometheus Exporter 一键安装脚本 (Prometheus Exporter Install Script)
 app.include_router(alert_stream.router)  # 告警诊断 SSE 流 (Alert Diagnosis SSE Stream)
 
 
