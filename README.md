@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/logo.svg" width="96" height="96" alt="NightMend logo" />
+
 # NightMend
 
 **Your team gets 200+ alerts daily. 80% are noise. AI fixes them while you sleep.**

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/logo.svg" width="96" height="96" alt="NightMend logo" />
+
 # NightMend
 
 **你的团队每天收到 200+ 条告警，80% 是噪音。AI 在你睡觉时帮你修好。**
