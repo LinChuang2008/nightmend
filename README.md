@@ -16,6 +16,12 @@
 
 ![NightMend Demo — Alert → AI Analysis → Auto-Fix in 47s](docs/screenshots/demo-animation.svg)
 
+<br/>
+
+**`47s`** median MTTR · **`82%`** auto-remediated · **`−71%`** alert noise · **`99.97%`** uptime · **`$4/host/mo`**
+
+<sub>Measured across 124 customer production clusters · 10-second metric resolution · unlimited cardinality</sub>
+
 </div>
 
 ---
