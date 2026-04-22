@@ -232,14 +232,24 @@ NIGHTMEND_MCP_TOKEN=your-secret-token
 
 ## 文档
 
-| 指南 | 说明 |
-|------|------|
-| [快速开始](docs/getting-started.md) | 首次安装指南 |
-| [安装指南](docs/installation.md) | Docker/手动部署 + 环境配置 |
-| [用户手册](docs/user-guide.md) | 完整功能说明 |
-| [API参考](docs/api-reference.md) | REST API 文档 |
-| [系统架构](docs/architecture.md) | 系统设计 + 数据流 |
-| [贡献指南](docs/contributing.md) | 开发环境 + 规范 |
+**给用户**
+- [快速开始](docs/getting-started.md) — 5 分钟入门
+- [用户手册 v1.1](docs/USER_MANUAL.md) — 菜单导览 · 常用场景 · 权限
+- [用户指南（旧版）](docs/user-guide.md) — v1.0 参考
+
+**给运维**
+- [部署手册 v1.1](docs/DEPLOYMENT_MANUAL.md) — `deploy.sh` · 生产加固 · HTTPS · 备份
+- [安装指南](docs/installation.md) — 详细 Docker Compose 手册
+- [Agent 安装](docs/AGENT_INSTALL.md) — Linux / Windows / K8s / Ansible
+- [Windows Agent](docs/windows-agent-install.md)
+
+**给二开**
+- [代码导览 Code Guide](docs/CODE_GUIDE.md) — 二开地图 · 扩展 walkthrough · 约定
+- [系统架构](docs/architecture.md)
+- [API 参考](docs/api-reference.md)
+- [MCP 集成](docs/MCP_INTEGRATION.md)
+- [Prometheus 对接](docs/prometheus-integration.md)
+- [贡献指南](CONTRIBUTING.md) · [更新日志](CHANGELOG.md)
 
 ---
 
