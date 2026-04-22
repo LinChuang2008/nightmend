@@ -1,146 +1,102 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 480">
-  <!--
-    NightMend Auto-Remediation Demo (static-first)
-    依赖 DESIGN.md tokens · 深色 Industrial 主题 · Geist Mono
-    重要：所有文字默认 opacity=1，确保 GitHub README /
-    Quick Look / 邮件客户端 等"静态 svg 渲染器"也能完整显示。
-    只保留 LIVE pulse dot 的 SMIL 动画（不依赖元素可见性）。
-  -->
-  <defs>
-    <linearGradient id="titlebar-grad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#141419"/>
-      <stop offset="1" stop-color="#0a0a0f"/>
-    </linearGradient>
-    <filter id="glow-emerald" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="glow-crit" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2.5" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420">
+  <style>
+    @keyframes typing { from { width: 0 } to { width: 100% } }
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+    .terminal { font-family: 'Menlo', 'Monaco', 'Courier New', monospace; font-size: 13px; }
+    .prompt { fill: #50fa7b; }
+    .command { fill: #f8f8f2; }
+    .alert { fill: #ff5555; }
+    .ai { fill: #8be9fd; }
+    .fix { fill: #50fa7b; }
+    .info { fill: #bd93f9; }
+    .dim { fill: #6272a4; }
+    .line1 { animation: fadeIn 0.3s 0.5s both; }
+    .line2 { animation: fadeIn 0.3s 1.5s both; }
+    .line3 { animation: fadeIn 0.3s 2.0s both; }
+    .line4 { animation: fadeIn 0.3s 2.5s both; }
+    .line5 { animation: fadeIn 0.3s 3.5s both; }
+    .line6 { animation: fadeIn 0.3s 4.0s both; }
+    .line7 { animation: fadeIn 0.3s 4.5s both; }
+    .line8 { animation: fadeIn 0.3s 5.5s both; }
+    .line9 { animation: fadeIn 0.3s 6.0s both; }
+    .line10 { animation: fadeIn 0.3s 6.5s both; }
+    .line11 { animation: fadeIn 0.3s 7.0s both; }
+    .line12 { animation: fadeIn 0.3s 8.0s both; }
+    .line13 { animation: fadeIn 0.3s 8.5s both; }
+    .cursor { animation: blink 1s step-end infinite; fill: #f8f8f2; }
+  </style>
 
-  <!-- ─── Frame ─── -->
-  <rect x="0" y="0" width="880" height="480" rx="10" fill="#0a0a0f"/>
-  <rect x="0.5" y="0.5" width="879" height="479" rx="10" fill="none" stroke="#27272a" stroke-width="1"/>
+  <!-- Terminal window -->
+  <rect width="800" height="420" rx="8" fill="#282a36"/>
+  <!-- Title bar -->
+  <rect width="800" height="32" rx="8" fill="#44475a"/>
+  <rect y="24" width="800" height="8" fill="#44475a"/>
+  <circle cx="20" cy="16" r="6" fill="#ff5555"/>
+  <circle cx="40" cy="16" r="6" fill="#f1fa8c"/>
+  <circle cx="60" cy="16" r="6" fill="#50fa7b"/>
 
-  <!-- ─── Title bar ─── -->
-  <rect x="0" y="0" width="880" height="36" rx="10" fill="url(#titlebar-grad)"/>
-  <rect x="0" y="28" width="880" height="8" fill="#141419"/>
-  <line x1="0" y1="36" x2="880" y2="36" stroke="#27272a" stroke-width="1"/>
-  <circle cx="20" cy="18" r="5.5" fill="#ef4444"/>
-  <circle cx="40" cy="18" r="5.5" fill="#f59e0b"/>
-  <circle cx="60" cy="18" r="5.5" fill="#10B981"/>
-
-  <!-- Brand -->
-  <g transform="translate(100, 8)">
-    <rect width="20" height="20" rx="3" fill="#10B981"/>
-    <text x="10" y="15" text-anchor="middle" fill="#0a0a0f"
-          font-family="Geist, Inter, sans-serif" font-size="12" font-weight="900">N</text>
+  <!-- NightMend logo mark (前置品牌图标) -->
+  <g transform="translate(340, 6)">
+    <rect width="20" height="20" rx="3" fill="#50fa7b"/>
+    <text x="10" y="15" text-anchor="middle" fill="#282a36" class="terminal" font-size="13" font-weight="900">N</text>
   </g>
-  <text x="128" y="22" fill="#e4e4e7"
-        font-family="Geist, Inter, sans-serif" font-size="12" font-weight="600">NightMend</text>
-  <text x="205" y="22" fill="#52525b"
-        font-family="Geist Mono, IBM Plex Mono, JetBrains Mono, Menlo, monospace" font-size="11">· AI-Powered Auto-Remediation</text>
+  <text x="368" y="20" fill="#f8f8f2" class="terminal" font-size="12">NightMend — AI-Powered Auto-Remediation Demo</text>
 
-  <!-- LIVE indicator (SMIL pulse) -->
-  <circle cx="820" cy="18" r="4" fill="#10B981">
-    <animate attributeName="opacity" values="1;0.45;1" dur="1.4s" repeatCount="indefinite"/>
-  </circle>
-  <text x="830" y="22" fill="#71717a"
-        font-family="Geist Mono, IBM Plex Mono, Menlo, monospace" font-size="10" letter-spacing="0.12em">LIVE</text>
+  <!-- Terminal content -->
+  <g class="terminal" transform="translate(16, 52)">
+    <!-- Alert fires -->
+    <g class="line1">
+      <text y="0" class="alert">CRITICAL ALERT</text>
+      <text y="0" x="130" class="dim"> [2026-03-14 09:15:32]</text>
+    </g>
+    <g class="line2">
+      <text y="20" class="alert">  Disk usage 95% on prod-server-01 (/var/log)</text>
+    </g>
+    <g class="line3">
+      <text y="40" class="dim">  Source: Prometheus  |  Severity: critical  |  Host: 10.0.1.42</text>
+    </g>
 
-  <!-- ───────────────────────────────────────────────── -->
-  <!-- Body                                               -->
-  <!-- ───────────────────────────────────────────────── -->
-  <g font-family="Geist Mono, IBM Plex Mono, JetBrains Mono, Menlo, monospace" font-size="13" transform="translate(24, 60)">
+    <!-- AI Analysis -->
+    <g class="line4">
+      <text y="70" class="info">AI ANALYZING...</text>
+      <text y="70" x="130" class="dim"> DeepSeek scanning logs + metrics + topology</text>
+    </g>
+    <g class="line5">
+      <text y="100" class="ai">  Root Cause: /var/log/nginx/access.log grew 12GB in 24h</text>
+    </g>
+    <g class="line6">
+      <text y="120" class="ai">  Pattern: Log rotation not configured for nginx</text>
+    </g>
+    <g class="line7">
+      <text y="140" class="ai">  Recommendation: Execute log_rotation runbook</text>
+    </g>
 
-    <!-- ========== STEP 1 · CRITICAL ALERT ========== -->
-    <rect x="0" y="0" width="4" height="22" rx="1" fill="#ef4444" filter="url(#glow-crit)"/>
-    <text x="14" y="14" fill="#ef4444" font-size="10" letter-spacing="0.14em" font-weight="600">● ALERT · CRITICAL</text>
-    <text x="180" y="14" fill="#52525b" font-size="11">2026-04-23  09:15:32  UTC</text>
+    <!-- Auto-remediation -->
+    <g class="line8">
+      <text y="170" class="info">AUTO-REMEDIATION</text>
+      <text y="170" x="145" class="dim"> Runbook: log_rotation  |  Safety: pre-check passed</text>
+    </g>
+    <g class="line9">
+      <text y="200" class="fix">  [1/3] Rotating /var/log/nginx/access.log ... done</text>
+    </g>
+    <g class="line10">
+      <text y="220" class="fix">  [2/3] Configuring logrotate for nginx ... done</text>
+    </g>
+    <g class="line11">
+      <text y="240" class="fix">  [3/3] Verifying disk usage ... 58% (was 95%)</text>
+    </g>
 
-    <text x="14" y="36" fill="#e4e4e7">Disk usage</text>
-    <text x="90" y="36" fill="#ef4444" font-weight="600">95%</text>
-    <text x="120" y="36" fill="#71717a">on</text>
-    <text x="142" y="36" fill="#e4e4e7">prod-api-01</text>
-    <text x="225" y="36" fill="#52525b">· /var/log ·</text>
-    <text x="300" y="36" fill="#52525b">Prometheus source</text>
-
-    <text x="14" y="56" fill="#52525b" font-size="11">host 10.0.1.42 · payments cluster · triggered by DiskSpaceLow rule</text>
-
-    <line x1="0" y1="78" x2="820" y2="78" stroke="#27272a" stroke-dasharray="2 4"/>
-
-    <!-- ========== STEP 2 · AI CAUSAL INFERENCE ========== -->
-    <rect x="0" y="92" width="4" height="22" rx="1" fill="#3b82f6"/>
-    <text x="14" y="106" fill="#3b82f6" font-size="10" letter-spacing="0.14em" font-weight="600">◆ AI · CAUSAL INFERENCE</text>
-    <text x="220" y="106" fill="#52525b" font-size="11">DeepSeek · logs + metrics + topology · 12s</text>
-
-    <text x="14" y="126" fill="#a855f7" font-weight="600">root cause</text>
-    <text x="110" y="126" fill="#e4e4e7">/var/log/nginx/access.log grew</text>
-    <text x="335" y="126" fill="#ef4444" font-weight="600">12 GiB / 24h</text>
-
-    <text x="14" y="146" fill="#a855f7" font-weight="600">pattern</text>
-    <text x="110" y="146" fill="#e4e4e7">logrotate not configured for nginx</text>
-
-    <text x="14" y="166" fill="#a855f7" font-weight="600">recommend</text>
-    <text x="110" y="166" fill="#e4e4e7">execute runbook</text>
-    <text x="225" y="166" fill="#10B981" font-weight="600">log_rotation.v3</text>
-    <text x="340" y="166" fill="#52525b">· confidence 0.94</text>
-
-    <line x1="0" y1="188" x2="820" y2="188" stroke="#27272a" stroke-dasharray="2 4"/>
-
-    <!-- ========== STEP 3 · AUTO-REMEDIATION ========== -->
-    <rect x="0" y="202" width="4" height="22" rx="1" fill="#10B981" filter="url(#glow-emerald)"/>
-    <text x="14" y="216" fill="#10B981" font-size="10" letter-spacing="0.14em" font-weight="600">▶ AUTO-REMEDIATION</text>
-    <text x="210" y="216" fill="#52525b" font-size="11">runbook log_rotation.v3 · safety pre-check OK · 35s</text>
-
-    <text x="14" y="238" fill="#10B981">[1/3]</text>
-    <text x="60" y="238" fill="#e4e4e7">rotate  /var/log/nginx/access.log</text>
-    <text x="370" y="238" fill="#10B981">done</text>
-    <text x="420" y="238" fill="#52525b">8.4s</text>
-
-    <text x="14" y="258" fill="#10B981">[2/3]</text>
-    <text x="60" y="258" fill="#e4e4e7">install logrotate config for nginx</text>
-    <text x="370" y="258" fill="#10B981">done</text>
-    <text x="420" y="258" fill="#52525b">12.1s</text>
-
-    <text x="14" y="278" fill="#10B981">[3/3]</text>
-    <text x="60" y="278" fill="#e4e4e7">verify disk usage</text>
-    <text x="220" y="278" fill="#10B981" font-weight="600">58%</text>
-    <text x="260" y="278" fill="#71717a">(was 95%)</text>
-    <text x="370" y="278" fill="#10B981">done</text>
-    <text x="420" y="278" fill="#52525b">14.3s</text>
-
-    <line x1="0" y1="300" x2="820" y2="300" stroke="#27272a"/>
-
-    <!-- ========== STEP 4 · Outcome ========== -->
-    <rect x="0" y="316" width="4" height="74" rx="1" fill="#10B981" filter="url(#glow-emerald)"/>
-    <text x="14" y="340" fill="#10B981" font-size="10" letter-spacing="0.14em" font-weight="600">✓ RESOLVED · NO HUMAN REACHED FOR KEYBOARD</text>
-
-    <!-- Big MTTR -->
-    <text x="14" y="380" fill="#10B981" font-size="44" font-weight="700" letter-spacing="-0.02em">47s</text>
-    <text x="94" y="354" fill="#52525b" font-size="10" letter-spacing="0.12em">MTTR</text>
-    <text x="94" y="372" fill="#71717a" font-size="11">Alert → AI → Fix → Verified</text>
-    <text x="94" y="386" fill="#52525b" font-size="10">0s · 12s · 35s · total</text>
-
-    <!-- Stat chips -->
-    <g transform="translate(300, 336)">
-      <rect x="0" y="0" width="140" height="52" rx="4" fill="none" stroke="#27272a"/>
-      <text x="12" y="18" fill="#52525b" font-size="9" letter-spacing="0.12em">AUTO-REMEDIATED</text>
-      <text x="12" y="40" fill="#e4e4e7" font-size="22" font-weight="700">82%</text>
-      <text x="76" y="40" fill="#71717a" font-size="11">of P1/P2</text>
-
-      <rect x="152" y="0" width="140" height="52" rx="4" fill="none" stroke="#27272a"/>
-      <text x="164" y="18" fill="#52525b" font-size="9" letter-spacing="0.12em">ALERT NOISE</text>
-      <text x="164" y="40" fill="#10B981" font-size="22" font-weight="700">−71%</text>
-      <text x="225" y="40" fill="#71717a" font-size="11">vs baseline</text>
-
-      <rect x="304" y="0" width="190" height="52" rx="4" fill="none" stroke="#27272a"/>
-      <text x="316" y="18" fill="#52525b" font-size="9" letter-spacing="0.12em">UPTIME · 30D</text>
-      <text x="316" y="40" fill="#10B981" font-size="22" font-weight="700">99.97%</text>
-      <text x="398" y="40" fill="#71717a" font-size="11">SLO 99.95%</text>
+    <!-- Result -->
+    <g class="line12">
+      <text y="280" class="fix">RESOLVED</text>
+      <text y="280" x="80" class="dim"> Alert auto-resolved in 47 seconds</text>
+    </g>
+    <g class="line13">
+      <text y="300" class="dim">  Total time: Alert(0s) → AI Analysis(12s) → Fix(35s) → Verified</text>
     </g>
   </g>
+
+  <!-- Cursor -->
+  <rect class="cursor line13" x="16" y="368" width="8" height="16" rx="1"/>
 </svg>
