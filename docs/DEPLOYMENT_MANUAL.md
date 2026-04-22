@@ -21,20 +21,31 @@
 
 ---
 
-## 二、一键部署
+## 二、一键部署（基于仓库内脚本）
+
+> 目前没有公网 installer 域名，部署需要先把仓库拉到目标机。
 
 ```bash
-curl -sSL https://get.nightmend.io/install.sh | bash
+# 1. 克隆仓库（内网 gitlab 或 GitHub）
+git clone https://gitlab.lchuangnet.com/lchuangnet/nightmend.git /opt/nightmend
+# 或（外网）
+git clone https://github.com/LinChuang2008/nightmend.git /opt/nightmend
 
-# 指定目录和分支
-curl -sSL https://get.nightmend.io/install.sh | bash -s -- --dir=/opt/nightmend --branch=main
+# 2. 执行仓库内的安装脚本
+cd /opt/nightmend
+sudo ./install.sh
+
+# 3. 可选参数
+sudo ./install.sh --dir=/opt/nightmend --branch=main
 ```
 
-脚本动作：
-1. 在 `$INSTALL_DIR`（默认 `/opt/nightmend`）克隆仓库
+脚本动作（见 `install.sh` 源码）：
+1. 校验 Docker / Docker Compose 版本
 2. 生成 `.env`（随机 `POSTGRES_PASSWORD` / `JWT_SECRET` / `AGENT_REGISTER_TOKEN`）
-3. `docker compose pull` + `up -d`
+3. `docker compose pull` + `docker compose up -d`
 4. 打印访问地址与初始 admin 密码
+
+> 如果只想最小化启动（已有 `.env`），直接 `docker compose up -d` 即可。
 
 ---
 
@@ -156,9 +167,10 @@ systemctl restart docker
 
 ## 五、升级
 
-### 在线升级
+### 快速升级（基于本地脚本）
 ```bash
-curl -sSL https://get.nightmend.io/install.sh | bash -s -- --upgrade
+cd /opt/nightmend
+sudo ./install.sh --upgrade
 ```
 
 ### 手动升级

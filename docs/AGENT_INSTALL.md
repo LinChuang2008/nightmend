@@ -33,19 +33,28 @@
 
 ## 三、Linux 安装
 
-### 3.1 一键脚本（Ubuntu / Debian / Rocky / AlmaLinux / RHEL 8+）
+### 3.1 快速脚本（Ubuntu / Debian / Rocky / AlmaLinux / RHEL 8+）
+
+> 目前未托管公网 installer，需要先把仓库拉到目标机或从已部署的 NightMend 服务器 `rsync` agent 目录过来。
 
 ```bash
-curl -sSL https://<your-nightmend>/agent/install.sh \
-  | sudo bash -s -- \
-      --server http://<nightmend-host>:8000 \
-      --token  <AGENT_REGISTER_TOKEN> \
-      --name   $(hostname)
+# 1. 把 agent 目录拿到目标机（任选一种）
+scp -r <nightmend-server>:/opt/nightmend/agent /tmp/nightmend-agent
+# 或
+git clone --depth 1 https://gitlab.lchuangnet.com/lchuangnet/nightmend.git /tmp/nightmend && \
+  cp -r /tmp/nightmend/agent /tmp/nightmend-agent
+
+# 2. 运行安装脚本（脚本内部会按系统版本选择对应流程）
+cd /tmp/nightmend-agent
+sudo bash scripts/install.sh \
+  --server http://<nightmend-host>:8000 \
+  --token  <AGENT_REGISTER_TOKEN> \
+  --name   $(hostname)
 ```
 
 脚本会：
 1. 装 Python 3.9（如缺）+ `pipx`
-2. `pipx install nightmend-agent`
+2. `pipx install .`（用本地 wheel，不依赖 PyPI）
 3. 生成 `/etc/nightmend/agent.yaml`
 4. 注册 systemd 服务 `nightmend-agent.service`
 5. 立即 `systemctl enable --now nightmend-agent`
@@ -277,12 +286,18 @@ curl -v -X POST "http://<server>:8000/api/v1/agents/register" \
 - hosts: all
   become: true
   tasks:
+    - name: Sync NightMend agent payload
+      synchronize:
+        src: /opt/nightmend/agent/
+        dest: /tmp/nightmend-agent/
+        rsync_opts: ['--delete']
     - name: Install NightMend Agent
       shell: |
-        curl -sSL https://<server>/agent/install.sh | \
-          bash -s -- --server http://<server>:8000 \
-                     --token  {{ nightmend_token }} \
-                     --name   {{ inventory_hostname }}
+        cd /tmp/nightmend-agent && \
+        bash scripts/install.sh \
+          --server http://<server>:8000 \
+          --token  {{ nightmend_token }} \
+          --name   {{ inventory_hostname }}
       args:
         creates: /etc/nightmend/agent.yaml
 ```
