@@ -8,7 +8,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useResponsive } from '../hooks/useResponsive';
 import {
-  Input, Select, DatePicker, Table, Tag, Row, Col, Button, Space, Drawer, Descriptions, Typography, Segmented, Tooltip,
+  Input, Select, DatePicker, Table, Row, Col, Button, Space, Drawer, Descriptions, Typography, Segmented, Tooltip,
 } from 'antd';
 import {
   SearchOutlined, PauseCircleOutlined, PlayCircleOutlined, ClearOutlined,
@@ -22,13 +22,39 @@ import api from '../services/api';
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 
-const LEVEL_COLOR: Record<string, string> = {
-  DEBUG: 'default',
-  INFO: 'blue',
-  WARN: 'orange',
-  ERROR: 'red',
-  FATAL: 'purple',
+/** Industrial chip 色板（对齐 AlertList / Topology 的 chip 视觉语言） */
+const LEVEL_CHIP_TONE: Record<string, { color: string; bg: string; border: string; glow: boolean }> = {
+  DEBUG: { color: 'var(--nm-text-dim)', bg: 'rgba(113,113,122,0.10)', border: 'var(--nm-border)',        glow: false },
+  INFO:  { color: 'var(--nm-info)',     bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.28)',   glow: false },
+  WARN:  { color: 'var(--nm-warning)',  bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.28)',   glow: true  },
+  ERROR: { color: 'var(--nm-error)',    bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.28)',    glow: true  },
+  FATAL: { color: '#ff2975',            bg: 'rgba(255,41,117,0.14)',  border: 'rgba(255,41,117,0.40)',   glow: true  },
 };
+
+function LevelChip({ level }: { level: string }) {
+  const k = level?.toUpperCase?.() || 'INFO';
+  const c = LEVEL_CHIP_TONE[k] || LEVEL_CHIP_TONE.INFO;
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 5,
+      fontFamily: 'var(--nm-font-mono)',
+      fontSize: 10.5,
+      padding: '2px 7px',
+      borderRadius: 3,
+      border: `1px solid ${c.border}`,
+      background: c.bg,
+      color: c.color,
+      letterSpacing: '0.08em',
+      fontWeight: 600,
+      whiteSpace: 'nowrap',
+    }}>
+      {c.glow && <span style={{ width: 5, height: 5, borderRadius: '50%', background: c.color, boxShadow: `0 0 6px ${c.color}` }} />}
+      {k}
+    </span>
+  );
+}
 
 const LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'];
 
@@ -165,7 +191,7 @@ export default function Logs() {
     { title: t('logs.timestamp'), dataIndex: 'timestamp', key: 'timestamp', width: 180, render: (val: string) => dayjs(val).format('YYYY-MM-DD HH:mm:ss') },
     { title: t('logs.server'), dataIndex: 'hostname', key: 'hostname', width: 140, render: (name: string, record: LogEntry) => name || hostMapRef.current[String(record.host_id)] || `Host #${record.host_id}` },
     { title: t('logs.service'), dataIndex: 'service', key: 'service', width: 120 },
-    { title: t('logs.level'), dataIndex: 'level', key: 'level', width: 90, render: (l: string) => <Tag color={LEVEL_COLOR[l] || 'default'}>{l}</Tag> },
+    { title: t('logs.level'), dataIndex: 'level', key: 'level', width: 90, render: (l: string) => <LevelChip level={l} /> },
     { title: t('logs.message'), dataIndex: 'message', key: 'message', ellipsis: true },
   ];
 
@@ -173,7 +199,7 @@ export default function Logs() {
     { title: t('logs.timestamp'), dataIndex: 'timestamp', key: 'timestamp', width: 180, render: (val: string) => dayjs(val).format('YYYY-MM-DD HH:mm:ss') },
     { title: t('logs.server'), dataIndex: 'hostname', key: 'hostname', width: 140, render: (name: string, record: LogEntry) => name || hostMapRef.current[String(record.host_id)] || `Host #${record.host_id}` },
     { title: t('logs.service'), dataIndex: 'service', key: 'service', width: 120 },
-    { title: t('logs.level'), dataIndex: 'level', key: 'level', width: 90, render: (l: string) => <Tag color={LEVEL_COLOR[l] || 'default'}>{l}</Tag> },
+    { title: t('logs.level'), dataIndex: 'level', key: 'level', width: 90, render: (l: string) => <LevelChip level={l} /> },
     {
       title: t('logs.message'),
       dataIndex: 'message',
@@ -292,12 +318,12 @@ export default function Logs() {
               <Descriptions.Item label={t('logs.timestamp')}>{dayjs(selectedLog.timestamp).format('YYYY-MM-DD HH:mm:ss.SSS')}</Descriptions.Item>
               <Descriptions.Item label={t('logs.server')}>{selectedLog.hostname}</Descriptions.Item>
               <Descriptions.Item label={t('logs.service')}>{selectedLog.service}</Descriptions.Item>
-              <Descriptions.Item label={t('logs.level')}><Tag color={LEVEL_COLOR[selectedLog.level]}>{selectedLog.level}</Tag></Descriptions.Item>
+              <Descriptions.Item label={t('logs.level')}><LevelChip level={selectedLog.level} /></Descriptions.Item>
               {selectedLog.file_path && <Descriptions.Item label={t('logs.filePath')}>{selectedLog.file_path}</Descriptions.Item>}
             </Descriptions>
 
             <Title level={5}>{t('logs.messageContent')}</Title>
-            <pre style={{ background: '#f5f5f5', padding: 12, borderRadius: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 200, overflow: 'auto' }}>
+            <pre style={{ background: 'var(--nm-surface-hover)', color: 'var(--nm-text)', padding: 12, borderRadius: 6, border: '1px solid var(--nm-border)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 200, overflow: 'auto', fontFamily: 'var(--nm-font-mono)', fontSize: 12 }}>
               {selectedLog.message}
             </pre>
 
