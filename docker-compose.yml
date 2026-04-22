@@ -91,6 +91,7 @@ services:
     volumes:
       - ./backend:/app
       - ./agent:/app/agent
+      - ./scripts:/scripts:ro
     restart: unless-stopped
 
   # MCP Server - 独立运行的 Model Context Protocol 服务 (MCP Server - Standalone service)
