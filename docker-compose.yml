@@ -123,7 +123,7 @@ services:
     environment:
       TZ: Asia/Shanghai
     ports:
-      - "${FRONTEND_PORT:-3001}:80"
+      - "${FRONTEND_PORT:-3002}:80"
     depends_on:
       - backend
     restart: unless-stopped
