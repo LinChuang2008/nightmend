@@ -140,7 +140,7 @@ export default function DatabaseDetail() {
         <Col xs={24} md={12}>
           <Card>
             <ReactECharts option={lineOption(t('databases.connectionsTrend'), [
-              { name: t('databases.totalConnections'), data: metrics.map(m => m.connections_total), color: '#1677ff' },
+              { name: t('databases.totalConnections'), data: metrics.map(m => m.connections_total), color: '#10B981' },
               { name: t('databases.activeConnections'), data: metrics.map(m => m.connections_active), color: '#52c41a' },
             ])} style={{ height: 280 }} />
           </Card>
@@ -162,7 +162,7 @@ export default function DatabaseDetail() {
         <Col xs={24} md={12}>
           <Card>
             <ReactECharts option={lineOption(t('databases.transactionsTrend'), [
-              { name: t('databases.committed'), data: metrics.map(m => m.transactions_committed), color: '#1677ff' },
+              { name: t('databases.committed'), data: metrics.map(m => m.transactions_committed), color: '#10B981' },
               { name: t('databases.rolledback'), data: metrics.map(m => m.transactions_rolled_back), color: '#ff4d4f' },
             ])} style={{ height: 280 }} />
           </Card>

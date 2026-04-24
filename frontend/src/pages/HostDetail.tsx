@@ -130,7 +130,7 @@ export default function HostDetail() {
     xAxis: { type: 'category' as const, data: timestamps, axisLabel: { rotate: 30 } },
     yAxis: { type: 'value' as const, axisLabel: { formatter: (v: number) => `${(v / 1024).toFixed(0)} KB` } },
     series: [
-      { name: t('hosts.sent'), type: 'line' as const, data: metrics.map(m => m.net_bytes_sent), smooth: true, itemStyle: { color: '#1677ff' } },
+      { name: t('hosts.sent'), type: 'line' as const, data: metrics.map(m => m.net_bytes_sent), smooth: true, itemStyle: { color: '#10B981' } },
       { name: t('hosts.recv'), type: 'line' as const, data: metrics.map(m => m.net_bytes_recv), smooth: true, itemStyle: { color: '#52c41a' } },
     ],
     grid: { top: 40, bottom: 60, left: 70, right: 20 },
@@ -143,7 +143,7 @@ export default function HostDetail() {
     xAxis: { type: 'category' as const, data: timestamps, axisLabel: { rotate: 30 } },
     yAxis: { type: 'value' as const, axisLabel: { formatter: '{value} KB/s' } },
     series: [
-      { name: t('hosts.upload'), type: 'line' as const, data: metrics.map(m => Math.max(0, m.net_send_rate_kb ?? 0)), smooth: true, areaStyle: { opacity: 0.1 }, itemStyle: { color: '#1677ff' } },
+      { name: t('hosts.upload'), type: 'line' as const, data: metrics.map(m => Math.max(0, m.net_send_rate_kb ?? 0)), smooth: true, areaStyle: { opacity: 0.1 }, itemStyle: { color: '#10B981' } },
       { name: t('hosts.download'), type: 'line' as const, data: metrics.map(m => Math.max(0, m.net_recv_rate_kb ?? 0)), smooth: true, areaStyle: { opacity: 0.1 }, itemStyle: { color: '#52c41a' } },
     ],
     grid: { top: 40, bottom: 60, left: 60, right: 20 },
@@ -299,7 +299,7 @@ export default function HostDetail() {
         <Col xs={24} md={12}>
           <Card>
             <ReactECharts option={lineOption(t('hosts.cpuUsage'), [
-              { name: 'CPU', data: metrics.map(m => m.cpu_percent), color: '#1677ff' },
+              { name: 'CPU', data: metrics.map(m => m.cpu_percent), color: '#10B981' },
             ])} style={{ height: 280 }} />
           </Card>
         </Col>

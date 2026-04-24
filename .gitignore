@@ -63,3 +63,9 @@ tmpclaude-*
 # Built agent bundles (use release artifacts instead)
 agent.zip
 agent-*.zip
+
+# Agent logs
+logs/agent.log
+logs/agent.log.*
+
+image/*.png

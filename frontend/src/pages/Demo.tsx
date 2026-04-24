@@ -194,7 +194,7 @@ export default function Demo() {
               ) : status === 'error' || status === 'disconnected' ? (
                 <DisconnectOutlined style={{ fontSize: 48, color: '#ff4d4f' }} />
               ) : (
-                <LoadingOutlined style={{ fontSize: 48, color: '#1677ff' }} />
+                <LoadingOutlined style={{ fontSize: 48, color: '#10B981' }} />
               )
             }
           />

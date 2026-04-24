@@ -159,9 +159,31 @@ export default function HostList() {
     {
       title: t('hosts.status'), dataIndex: 'status', key: 'status',
       render: (s: string) => {
-        if (s === 'online') return <Tag color="success">{t('hosts.online')}</Tag>;
-        if (s === 'offline') return <Tag color="error">{t('hosts.offline')}</Tag>;
-        return <Tag>{t('common.unknown')}</Tag>;
+        const tone =
+          s === 'online'    ? { color: 'var(--nm-accent)',     bg: 'rgba(16,185,129,0.10)',  border: 'rgba(16,185,129,0.28)', glow: true,  text: t('hosts.online') }
+          : s === 'offline' ? { color: 'var(--nm-error)',      bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.28)',  glow: false, text: t('hosts.offline') }
+          :                   { color: 'var(--nm-text-dim)',   bg: 'rgba(113,113,122,0.10)', border: 'var(--nm-border)',      glow: false, text: t('common.unknown') };
+        return (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            fontFamily: 'var(--nm-font-mono)',
+            fontSize: 10.5,
+            padding: '2px 8px',
+            borderRadius: 3,
+            border: `1px solid ${tone.border}`,
+            background: tone.bg,
+            color: tone.color,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+          }}>
+            {tone.glow && <span style={{ width: 6, height: 6, borderRadius: '50%', background: tone.color, boxShadow: `0 0 6px ${tone.color}` }} />}
+            {tone.text}
+          </span>
+        );
       },
     },
     {

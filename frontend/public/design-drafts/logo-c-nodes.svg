@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 方向 I：自愈循环 (Self-Healing Loop) — 对应核心能力
+       "AI Analyzes → AI Decides → AI Fixes → AI Learns" 四步循环闭环。
+       一个环状箭头表达循环，环上三个点代表 Alert (断点) → AI (处理) → Mended (愈合)。
+       中心是 AI 大脑节点（emerald 实心圆带小光环）。
+       这是 NightMend 最独特的价值主张的视觉化。 -->
+
+  <!-- 背景圆角方块 -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#141419"/>
+
+  <!-- 循环环 —— 主体 emerald，但有一段（顶部 10%）是暗色断裂，配合 Alert 点 -->
+  <!-- 暗色部分（告警断裂段，顶部从 -15° 到 15°）-->
+  <path
+    d="M 27 12 A 20 20 0 0 1 37 12"
+    stroke="#ef4444"
+    stroke-width="4"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- emerald 闭合部分 —— 大弧（修复轨迹）-->
+  <path
+    d="M 37 12 A 20 20 0 1 1 27 12"
+    stroke="#10B981"
+    stroke-width="4"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- 箭头 —— 在 emerald 弧末端指向 Alert 点，表达"循环向前推进" -->
+  <path
+    d="M 27 12 L 23 9 M 27 12 L 23 15"
+    stroke="#10B981"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- 三个状态点 -->
+  <!-- Alert 点（红色断点，顶部）-->
+  <circle cx="32" cy="10" r="3" fill="#ef4444"/>
+  <!-- AI 处理点（右下，emerald）-->
+  <circle cx="48" cy="40" r="3" fill="#10B981"/>
+  <!-- Mended 愈合点（左下，emerald + 白光环）-->
+  <circle cx="16" cy="40" r="3" fill="#10B981"/>
+
+  <!-- 中心 AI 节点 —— 大 emerald 实心 + 脉动光环 -->
+  <circle cx="32" cy="34" r="7" fill="#10B981"/>
+  <circle cx="32" cy="34" r="3.5" fill="#141419"/>
+  <circle cx="32" cy="34" r="1.5" fill="#10B981"/>
+</svg>

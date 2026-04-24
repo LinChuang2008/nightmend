@@ -1,9 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- Shield -->
-  <path d="M32 4L8 16v16c0 14.4 10.24 27.84 24 32 13.76-4.16 24-17.6 24-32V16L32 4z" fill="#1677ff"/>
-  <path d="M32 8L12 18v14c0 12.6 8.96 24.36 20 28 11.04-3.64 20-15.4 20-28V18L32 8z" fill="#e6f4ff"/>
-  <!-- Eye -->
-  <ellipse cx="32" cy="34" rx="12" ry="8" fill="#1677ff"/>
-  <circle cx="32" cy="34" r="4" fill="#fff"/>
-  <circle cx="32" cy="34" r="2" fill="#0958d9"/>
+  <!-- NightMend favicon — Shield + 闭眼 + 心跳（16-32px 优化版）
+       盾牌 = 守护；闭眼 = 你睡；心跳 = AI 仍在监控+修复。
+       简化细节：去针脚、加粗眼睑/波形至 4.5 / 4 px。 -->
+
+  <!-- 盾牌底色（实心 emerald）：顶部平 + 两侧直 + 底部收成尖角 -->
+  <path
+    d="M 12 10 L 52 10 Q 54 10 54 12 L 54 32 Q 54 46 32 58 Q 10 46 10 32 L 10 12 Q 10 10 12 10 Z"
+    fill="#3b82f6"
+  />
+
+  <!-- 闭眼曲线（深色描在 emerald 上）-->
+  <path
+    d="M 18 28 Q 32 35 46 28"
+    stroke="#0a0a0f"
+    stroke-width="4"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- 心跳波形（压低到盾牌下半部）-->
+  <path
+    d="M 14 42 L 22 42 L 26 36 L 31 48 L 36 42 L 50 42"
+    stroke="#0a0a0f"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
 </svg>

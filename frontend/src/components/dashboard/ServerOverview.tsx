@@ -106,7 +106,7 @@ const ServerOverview: React.FC<ServerOverviewProps> = ({ hosts }) => {
                           percent={m.cpu_percent}
                           size="small"
                           showInfo={false}
-                          strokeColor={cpuHigh ? '#ff4d4f' : '#1677ff'}
+                          strokeColor={cpuHigh ? '#ff4d4f' : '#10B981'}
                         />
                         <Text style={{ 
                           fontSize: 11, 

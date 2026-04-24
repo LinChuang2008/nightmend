@@ -57,7 +57,19 @@ function RoleGuard({ children }: { children: React.ReactElement }) {
     let cancelled = false;
     fetch('/api/v1/auth/me', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((user) => { if (!cancelled) setRole(user.role || 'viewer'); })
+      .then((user) => {
+        if (cancelled) return;
+        const r = user.role || 'viewer';
+        setRole(r);
+        // 自愈：把 role 回写 localStorage，让 AppLayout 的菜单过滤正确工作
+        // （即便 Login 时没写入 / 老会话 / OAuth 回跳 都能兜住）
+        if (localStorage.getItem('user_role') !== r) {
+          localStorage.setItem('user_role', r);
+        }
+        if (user.name && localStorage.getItem('user_name') !== user.name) {
+          localStorage.setItem('user_name', user.name);
+        }
+      })
       .catch(() => { if (!cancelled) setRole('viewer'); });
     return () => { cancelled = true; };
   }, []);
@@ -84,16 +96,20 @@ function HomeRedirect() {
 const antdLocaleMap: Record<string, typeof zhCN> = { zh: zhCN, en: enUS };
 
 function AppInner() {
-  const { isDark } = useTheme();
+  // DESIGN.md 规定 dark 唯一，isDark 不再消费
+  useTheme();
   const { i18n } = useTranslation();
   const antdLocale = antdLocaleMap[i18n.language] || zhCN;
   return (
     <ConfigProvider
       locale={antdLocale}
       theme={{
-        algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+        // 强制 dark algorithm —— DESIGN.md 规定 dark 为唯一主题
+        algorithm: antTheme.darkAlgorithm,
         token: {
-          colorPrimary: '#1677ff',
+          // 唯一品牌色：emerald；borderRadius 保持紧凑；其他 token 全交给 darkAlgorithm 计算
+          colorPrimary: '#10B981',
+          colorSuccess: '#10B981',
           borderRadius: 6,
         },
       }}

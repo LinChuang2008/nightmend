@@ -11,8 +11,10 @@ import { Form, Input, Button, Typography, message, Tabs, Modal } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, RocketOutlined, GlobalOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { authService } from '../services/auth';
+import { Logo } from '../components/Logo';
 
-const { Title } = Typography;
+const { Title: _Title } = Typography;
+void _Title;
 
 /* ── Design tokens from DESIGN.md ──────────────────────────── */
 const T = {
@@ -178,6 +180,8 @@ export default function Login() {
       // Cookie 由后端 set-cookie 自动写入，仅缓存非敏感显示信息
       const { data: user } = await authService.me();
       localStorage.setItem('user_name', user.name);
+      // user_role 用于 AppLayout 过滤菜单（admin 可见 全部 / member / viewer 层级）
+      localStorage.setItem('user_role', user.role || 'viewer');
       messageApi.success(t('login.loginSuccess'));
       navigate('/dashboard');
     } catch (e: unknown) {
@@ -195,6 +199,7 @@ export default function Login() {
       await authService.register(values);
       const { data: user } = await authService.me();
       localStorage.setItem('user_name', user.name);
+      localStorage.setItem('user_role', user.role || 'viewer');
       messageApi.success(t('login.registerSuccess'));
       navigate('/dashboard');
     } catch (e: unknown) {
@@ -249,6 +254,7 @@ export default function Login() {
       // 获取用户信息
       const { data: user } = await authService.me();
       localStorage.setItem('user_name', user.name);
+      localStorage.setItem('user_role', user.role || 'viewer');
       messageApi.success(t('login.ldapLoginSuccess'));
       navigate('/dashboard');
     } catch (e: any) {
@@ -313,36 +319,15 @@ export default function Login() {
         </Button>
       </div>
 
-      {/* Logo / brand */}
+      {/* Logo / brand —— 方向 H (Sleeping Watcher) 官方落地 */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{
-          width: 48,
-          height: 48,
-          margin: '0 auto 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <svg width="48" height="48" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="40" height="40" rx="8" fill={T.accentDim}/>
-            <circle cx="20" cy="21" r="11.5" fill="none" stroke={T.accent} strokeWidth="2.2"/>
-            <path d="M13 15.5L20 26.5L27 15.5" fill="none" stroke={T.accent} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+          <Logo variant="stacked" size={64} />
         </div>
-        <Title level={3} style={{
-          color: T.textPrimary,
-          margin: 0,
-          fontFamily: T.fontFamily,
-          fontWeight: 700,
-          fontSize: 24,
-          letterSpacing: '-0.02em',
-        }}>
-          NightMend
-        </Title>
         <div style={{
           color: T.textMuted,
           fontSize: 13,
-          marginTop: 6,
+          marginTop: 8,
           fontFamily: T.fontFamily,
         }}>
           {t('login.subtitle')}

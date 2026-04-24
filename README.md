@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/logo.svg" width="96" height="96" alt="NightMend logo" />
+
 # NightMend
 
 **Your team gets 200+ alerts daily. 80% are noise. AI fixes them while you sleep.**
@@ -15,6 +17,12 @@
 <br/>
 
 ![NightMend Demo — Alert → AI Analysis → Auto-Fix in 47s](docs/screenshots/demo-animation.svg)
+
+<br/>
+
+**`47s`** median MTTR · **`82%`** auto-remediated · **`−71%`** alert noise · **`99.97%`** uptime · **`$4/host/mo`**
+
+<sub>Measured across 124 customer production clusters · 10-second metric resolution · unlimited cardinality</sub>
 
 </div>
 
@@ -39,15 +47,24 @@ NightMend is the **first open-source AI platform** that doesn't just monitor —
 
 **Try Online** (no install): [demo.lchuangnet.com](https://demo.lchuangnet.com/login) — `demo@nightmend.io` / `demo123`
 
-**Self-Host in 3 Steps:**
+**Self-Host (choose one):**
 
 ```bash
+# A) One-click, zero-interaction — random secrets, migration, prints admin credentials
+git clone https://github.com/LinChuang2008/nightmend.git && cd nightmend
+bash deploy.sh
+
+# B) Interactive wizard — guided prompts for port / password / TLS
+git clone https://github.com/LinChuang2008/nightmend.git && cd nightmend
+sudo ./install.sh
+
+# C) Manual (advanced)
 git clone https://github.com/LinChuang2008/nightmend.git && cd nightmend
 cp .env.example .env                    # Optional: add DeepSeek API key for live AI
 docker compose up -d                    # Open http://localhost:3001
 ```
 
-> First registered account becomes admin. On first startup, the backend auto-creates tables, alert rules, and dashboard components.
+> First registered account becomes admin. On first startup, the backend auto-creates tables, alert rules, and dashboard components. For production hardening (HTTPS, resource limits, backup), see [DEPLOYMENT_MANUAL.md](docs/DEPLOYMENT_MANUAL.md).
 
 ---
 
@@ -220,7 +237,24 @@ See [docs/installation.md](docs/installation.md) for full guide.
 
 ## Documentation
 
-[Getting Started](docs/getting-started.md) | [Installation](docs/installation.md) | [User Guide](docs/user-guide.md) | [API Reference](docs/api-reference.md) | [Architecture](docs/architecture.md) | [Contributing](CONTRIBUTING.md) | [Changelog](CHANGELOG.md)
+**For users**
+- [Getting Started](docs/getting-started.md) — 5-min intro
+- [User Manual (v1.1)](docs/USER_MANUAL.md) — menu walkthrough · common workflows · permissions
+- [User Guide (legacy)](docs/user-guide.md) — v1.0 reference
+
+**For operators**
+- [Deployment Manual (v1.1)](docs/DEPLOYMENT_MANUAL.md) — `deploy.sh` · production hardening · HTTPS · backup
+- [Installation Guide](docs/installation.md) — detailed compose walkthrough
+- [Agent Install](docs/AGENT_INSTALL.md) — Linux / Windows / K8s / Ansible
+- [Windows Agent](docs/windows-agent-install.md)
+
+**For developers**
+- [Code Guide](docs/CODE_GUIDE.md) — 二开导览 · extension walkthrough · conventions
+- [Architecture](docs/architecture.md)
+- [API Reference](docs/api-reference.md)
+- [MCP Integration](docs/MCP_INTEGRATION.md)
+- [Prometheus Integration](docs/prometheus-integration.md)
+- [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
 ---
 
