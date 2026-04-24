@@ -7,8 +7,10 @@
  *   - stacked: 图标在上、文字在下 —— 登录页中央
  *
  * 样式策略：
- *   直接 inline SVG，保持和 favicon.svg 结构一致，避免 <img> 加载闪烁 +
- *   允许 CSS 通过 currentColor/--accent 覆盖主色。
+ *   直接 inline SVG，与 trademark/svg/nightmend-logo-primary.svg (FM-1)
+ *   逐字段对齐，避免 <img> 加载闪烁 + 允许 CSS 通过
+ *   currentColor/--accent 覆盖主色。favicon.svg 是 16-32px 优化版，
+ *   去掉了针脚，结构不同，不要用它做对齐基线。
  */
 import type { CSSProperties } from 'react';
 

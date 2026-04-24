@@ -51,6 +51,11 @@ docs/service-onboarding.md
 docs/VigilOps-*.pptx
 .gstack/
 
+# Legal / IP filing materials (keep locally, exclude from public repo)
+# 商标注册 + 软著申请材料，含主体身份信息，不走公开仓库
+trademark/
+软著申请/
+
 # Claude Code working directory residues — never commit
 tmpclaude-*-cwd
 tmpclaude-*

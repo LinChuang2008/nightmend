@@ -1,9 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <!-- NightMend favicon — Shield + 闭眼 + 心跳（16-32px 优化版）
+       trademark FM-2，对应 trademark/svg/nightmend-favicon.svg。
        盾牌 = 守护；闭眼 = 你睡；心跳 = AI 仍在监控+修复。
        简化细节：去针脚、加粗眼睑/波形至 4.5 / 4 px。 -->
 
-  <!-- 盾牌底色（实心 emerald）：顶部平 + 两侧直 + 底部收成尖角 -->
+  <!-- 盾牌底色（实心蓝 #3b82f6）：顶部平 + 两侧直 + 底部收成尖角 -->
   <path
     d="M 12 10 L 52 10 Q 54 10 54 12 L 54 32 Q 54 46 32 58 Q 10 46 10 32 L 10 12 Q 10 10 12 10 Z"
     fill="#3b82f6"
