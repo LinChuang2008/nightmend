@@ -2,6 +2,10 @@
 .env
 backend/.env
 
+# Generated secrets (deploy.sh 等脚本会写入明文凭据,严禁入库)
+.deploy-credentials.txt
+*credentials*.txt
+
 # Python
 __pycache__/
 *.py[cod]
@@ -17,6 +21,7 @@ frontend/dist/
 # IDE
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 
