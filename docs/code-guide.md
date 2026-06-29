@@ -62,7 +62,7 @@
 ## 二、仓库目录
 
 ```
-vigilops/
+nightmend/
 ├── agent/              Agent Python 源 + install-agent-centos7.sh
 ├── backend/            FastAPI + alembic
 │   └── app/
@@ -361,10 +361,10 @@ docker compose up -d --force-recreate frontend
 
 新同学接手时过一遍：
 
-- [ ] `docs/USER_MANUAL.md` 过一遍产品形态
+- [ ] `docs/user-manual.md` 过一遍产品形态
 - [ ] `docs/architecture.md` 理解系统依赖
 - [ ] 本文 § 三 启动本地环境（后端 + 前端 + agent）
-- [ ] 登录 `demo@vigilops.io` / `demo123` 点完所有菜单
+- [ ] 登录 `demo@nightmend.io` / `demo123` 点完所有菜单
 - [ ] 跑通一次 § 四 场景 A 加一个 hello API
 - [ ] 跑通一次 § 四 场景 B 加一个空白页
 - [ ] 读 `backend/app/main.py` 头部 docstring
@@ -376,11 +376,11 @@ docker compose up -d --force-recreate frontend
 
 ## 九、相关文档
 
-- 《用户手册》`docs/USER_MANUAL.md`
-- 《部署手册》`docs/DEPLOYMENT_MANUAL.md`
-- 《Agent 安装》`docs/AGENT_INSTALL.md`
+- 《用户手册》`docs/user-manual.md`
+- 《部署手册》`docs/deployment.md`
+- 《Agent 安装》`docs/agent-install.md`
 - 《架构概览》`docs/architecture.md`
 - 《API 参考》`docs/api-reference.md`
-- 《MCP 集成》`docs/MCP_INTEGRATION.md`
+- 《MCP 集成》`docs/integrations/mcp-integration.md`
 - 《DESIGN.md》设计系统规范
 - 《CONTRIBUTING.md》贡献流程

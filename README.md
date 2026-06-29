@@ -64,7 +64,7 @@ cp .env.example .env                    # Optional: add DeepSeek API key for liv
 docker compose up -d                    # Open http://localhost:3001
 ```
 
-> First registered account becomes admin. On first startup, the backend auto-creates tables, alert rules, and dashboard components. For production hardening (HTTPS, resource limits, backup), see [DEPLOYMENT_MANUAL.md](docs/DEPLOYMENT_MANUAL.md).
+> First registered account becomes admin. On first startup, the backend auto-creates tables, alert rules, and dashboard components. For production hardening (HTTPS, resource limits, backup), see [deployment.md](docs/deployment.md).
 
 ---
 
@@ -239,21 +239,20 @@ See [docs/installation.md](docs/installation.md) for full guide.
 
 **For users**
 - [Getting Started](docs/getting-started.md) — 5-min intro
-- [User Manual (v1.1)](docs/USER_MANUAL.md) — menu walkthrough · common workflows · permissions
-- [User Guide (legacy)](docs/user-guide.md) — v1.0 reference
+- [User Manual (v1.1)](docs/user-manual.md) — menu walkthrough · common workflows · permissions
 
 **For operators**
-- [Deployment Manual (v1.1)](docs/DEPLOYMENT_MANUAL.md) — `deploy.sh` · production hardening · HTTPS · backup
+- [Deployment Manual (v1.1)](docs/deployment.md) — `deploy.sh` · production hardening · HTTPS · backup
 - [Installation Guide](docs/installation.md) — detailed compose walkthrough
-- [Agent Install](docs/AGENT_INSTALL.md) — Linux / Windows / K8s / Ansible
+- [Agent Install](docs/agent-install.md) — Linux / Windows / K8s / Ansible
 - [Windows Agent](docs/windows-agent-install.md)
 
 **For developers**
-- [Code Guide](docs/CODE_GUIDE.md) — 二开导览 · extension walkthrough · conventions
+- [Code Guide](docs/code-guide.md) — 二开导览 · extension walkthrough · conventions
 - [Architecture](docs/architecture.md)
 - [API Reference](docs/api-reference.md)
-- [MCP Integration](docs/MCP_INTEGRATION.md)
-- [Prometheus Integration](docs/prometheus-integration.md)
+- [MCP Integration](docs/integrations/mcp-integration.md)
+- [Prometheus Integration](docs/integrations/prometheus-integration.md)
 - [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
 ---

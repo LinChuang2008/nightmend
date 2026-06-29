@@ -46,18 +46,33 @@ git clone --depth 1 https://gitlab.lchuangnet.com/lchuangnet/nightmend.git /tmp/
 
 # 2. 运行安装脚本（脚本内部会按系统版本选择对应流程）
 cd /tmp/nightmend-agent
-sudo bash scripts/install.sh \
-  --server http://<nightmend-host>:8000 \
+sudo bash scripts/install-agent.sh \
+  --server http://<nightmend-host>:8001 \
   --token  <AGENT_REGISTER_TOKEN> \
   --name   $(hostname)
 ```
 
+> 端口说明：后端容器内监听 `8000`，对外映射到宿主端口 `8001`（见 `docker-compose.yml` 的 `${BACKEND_PORT:-8001}:8000`）。**Agent 从主机网络访问，`--server` / `server.url` 一律填宿主端口 `8001`**，仅容器内部互访才用 `8000`。
+
 脚本会：
-1. 装 Python 3.9（如缺）+ `pipx`
-2. `pipx install .`（用本地 wheel，不依赖 PyPI）
+1. 装 Python 3.9（如缺）+ 创建虚拟环境
+2. 从本地 `agent/` 目录安装（不依赖 PyPI）
 3. 生成 `/etc/nightmend/agent.yaml`
 4. 注册 systemd 服务 `nightmend-agent.service`
 5. 立即 `systemctl enable --now nightmend-agent`
+
+#### 安装脚本参数
+
+| 参数 | 简写 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `--server` | `-s` | ✅ | NightMend 后端地址，如 `http://192.168.1.100:8001` |
+| `--token` | `-t` | ✅ | Agent Token（在「设置 → Agent Tokens」中获取） |
+| `--hostname` | `-n` | ❌ | 自定义主机名，默认自动检测 |
+| `--display-name` | — | ❌ | 自定义显示名称（在 NightMend 界面中显示） |
+| `--interval` | `-i` | ❌ | 指标采集间隔（秒），默认 15 |
+| `--no-db` | — | ❌ | 不安装数据库驱动，减小依赖体积 |
+| `--upgrade` | — | ❌ | 升级已有安装，保留配置文件 |
+| `--uninstall` | — | ❌ | 完全卸载 Agent |
 
 ### 3.2 CentOS 7 专用脚本
 
@@ -66,7 +81,7 @@ CentOS 7 的 Python 3 源较老，项目提供专用脚本：
 ```bash
 cd /opt && git clone https://github.com/LinChuang2008/nightmend.git
 cd nightmend/agent
-sudo bash install-agent-centos7.sh "http://<nightmend-host>:8000" "<AGENT_REGISTER_TOKEN>"
+sudo bash install-agent-centos7.sh "http://<nightmend-host>:8001" "<AGENT_REGISTER_TOKEN>"
 ```
 
 脚本动作：
@@ -75,7 +90,117 @@ sudo bash install-agent-centos7.sh "http://<nightmend-host>:8000" "<AGENT_REGIST
 - 用本地 agent 目录 `pip install` 离线安装
 - 恢复原 yum 源
 
-### 3.3 手动安装
+### 3.3 内网半自动安装（先手动装 Python 3.9+，再跑脚本）
+
+适用于无法访问外网、或脚本自动安装 Python 失败的场景。先按发行版手动装好 Python 3.9+ 并换国内源，再执行 `scripts/install-agent.sh`（脚本会自动检测到已有 Python，跳过安装步骤）。
+
+#### 第一步：按发行版安装 Python 3.9+
+
+**Ubuntu 20.04 / 22.04 / 24.04**
+
+```bash
+# 换源（阿里云，可选）
+sudo sed -i 's|http://archive.ubuntu.com|http://mirrors.aliyun.com|g' /etc/apt/sources.list
+sudo sed -i 's|http://security.ubuntu.com|http://mirrors.aliyun.com|g' /etc/apt/sources.list
+
+# 安装 Python 3.9+（Ubuntu 20.04 默认是 3.8，需要 deadsnakes PPA）
+sudo apt-get update
+sudo apt-get install -y software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa -y
+sudo apt-get update
+sudo apt-get install -y python3.9 python3.9-venv python3.9-distutils
+
+# Ubuntu 22.04+ 自带 Python 3.10，直接安装即可
+# sudo apt-get install -y python3 python3-venv python3-pip
+```
+
+**Debian 11 (Bullseye) / 12 (Bookworm)**
+
+```bash
+# 换源（清华源，可选）
+sudo tee /etc/apt/sources.list > /dev/null <<'EOF'
+# Debian 12 Bookworm
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware
+deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware
+EOF
+# Debian 11 将上面 bookworm 替换为 bullseye
+
+sudo apt-get update
+sudo apt-get install -y python3 python3-venv python3-pip
+```
+
+**CentOS 7**
+
+```bash
+# 换源（阿里云，可选）
+sudo mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
+sudo curl -o /etc/yum.repos.d/CentOS-Base.repo \
+  http://mirrors.aliyun.com/repo/Centos-7.repo
+sudo yum makecache
+
+# CentOS 7 默认 Python 3.6，需要通过 SCL 或 IUS 安装 3.9
+sudo yum install -y centos-release-scl
+sudo yum install -y rh-python39 rh-python39-python-pip
+
+# 激活（临时）
+scl enable rh-python39 bash
+
+# 或者创建软链接（永久）
+sudo ln -sf /opt/rh/rh-python39/root/usr/bin/python3.9 /usr/local/bin/python3.9
+```
+
+**CentOS 8 / Rocky Linux 8 / AlmaLinux 8**
+
+```bash
+# 换源（阿里云，可选）
+sudo sed -i 's|mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*.repo
+sudo sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://mirrors.aliyun.com|g' /etc/yum.repos.d/CentOS-*.repo
+# Rocky/Alma 换源
+sudo sed -i 's|https://dl.rockylinux.org|https://mirrors.aliyun.com/rockylinux|g' /etc/yum.repos.d/*.repo
+
+sudo dnf install -y python39 python39-pip
+# 设为默认（可选）
+sudo alternatives --set python3 /usr/bin/python3.9
+```
+
+**CentOS 9 / Rocky Linux 9 / AlmaLinux 9**
+
+```bash
+sudo dnf install -y python3 python3-pip
+# 默认即为 Python 3.9+，无需额外操作
+```
+
+**pip 换源（所有发行版通用）**
+
+```bash
+# 换为阿里云 PyPI 镜像
+pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/
+pip3 config set global.trusted-host mirrors.aliyun.com
+
+# 或清华源
+pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple/
+pip3 config set global.trusted-host pypi.tuna.tsinghua.edu.cn
+```
+
+#### 第二步：执行安装脚本
+
+```bash
+# 确保在 nightmend 仓库根目录
+cd /path/to/nightmend
+
+chmod +x ./scripts/install-agent.sh
+sudo ./scripts/install-agent.sh \
+  --server http://<nightmend-host>:8001 \
+  --token  <AGENT_REGISTER_TOKEN> \
+  --display-name "我的服务器"
+
+# 验证
+systemctl status nightmend-agent
+journalctl -u nightmend-agent -f
+```
+
+### 3.4 手动安装
 
 ```bash
 # 1. 装依赖
@@ -197,7 +322,43 @@ sudo systemctl restart nightmend-agent
 
 ---
 
-## 七、升级
+## 七、CLI 命令
+
+```bash
+# 查看版本
+nightmend-agent --version
+
+# 交互式配置向导（首次使用）
+nightmend-agent configure
+
+# 验证配置文件
+nightmend-agent -c /etc/nightmend/agent.yaml check
+
+# 前台运行（调试用）
+nightmend-agent -c /etc/nightmend/agent.yaml run
+
+# 详细日志模式
+nightmend-agent -v -c /etc/nightmend/agent.yaml run
+```
+
+---
+
+## 八、Agent 模块说明
+
+| 模块 | 文件 | 功能 |
+| --- | --- | --- |
+| 系统指标采集 | `collector.py` | 采集 CPU、内存、磁盘、网络 |
+| 服务健康检查 | `checker.py` | HTTP / TCP 健康检查，记录响应时间 |
+| 日志采集 | `log_collector.py` | Tail 日志，支持多行合并和 Docker json-log |
+| 数据库指标 | `db_collector.py` | 采集 PostgreSQL / MySQL / Oracle 指标 |
+| 自动发现 | `discovery.py` | 自动发现 Docker 容器和宿主机监听服务 |
+| 数据上报 | `reporter.py` | 汇总数据，HTTP POST 上报到后端，处理自动更新 |
+| 命令行入口 | `cli.py` | 提供 `run`、`check`、`configure` 等 CLI 命令 |
+| 配置加载 | `config.py` | 解析 YAML 配置，支持环境变量覆盖 |
+
+---
+
+## 九、升级
 
 ### 自动升级（默认开启）
 
@@ -214,7 +375,7 @@ sudo systemctl restart nightmend-agent
 
 ---
 
-## 八、卸载
+## 十、卸载
 
 ```bash
 sudo systemctl disable --now nightmend-agent
@@ -231,7 +392,7 @@ pip uninstall nightmend-agent
 
 ---
 
-## 九、故障排查
+## 十一、故障排查
 
 | 现象 | 排查 | 处置 |
 | --- | --- | --- |
@@ -278,7 +439,7 @@ curl -v -X POST "http://<server>:8000/api/v1/agents/register" \
 
 ---
 
-## 十、批量部署
+## 十二、批量部署
 
 ### Ansible
 
@@ -338,9 +499,8 @@ spec:
 
 ---
 
-## 十一、相关文档
+## 十三、相关文档
 
-- 《用户手册》`docs/USER_MANUAL.md`
-- 《部署手册》`docs/DEPLOYMENT_MANUAL.md`
+- 《用户手册》`docs/user-manual.md`
+- 《部署手册》`docs/deployment.md`
 - 《Windows Agent》`docs/windows-agent-install.md`
-- 《Agent 使用细节》`docs/agent-guide.md`
