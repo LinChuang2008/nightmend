@@ -1,0 +1,2 @@
+# file_sd targets 目录占位。
+# Milestone 3 会由 NightMend 根据 hosts 表导出 targets.json 供 Prometheus 发现。

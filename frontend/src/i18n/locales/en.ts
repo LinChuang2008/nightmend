@@ -306,6 +306,7 @@ const en = {
       metric: 'Metric Alert',
       logKeyword: 'Log Keyword Alert',
       database: 'Database Alert',
+      promql: 'PromQL (Prometheus)',
       condition: 'Condition',
       threshold: 'Threshold',
       enabled: 'Enabled',

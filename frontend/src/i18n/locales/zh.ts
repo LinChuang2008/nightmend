@@ -306,6 +306,7 @@ const zh = {
       metric: '指标告警',
       logKeyword: '日志关键字',
       database: '数据库告警',
+      promql: 'PromQL (Prometheus)',
       condition: '条件',
       threshold: '阈值',
       enabled: '启用',
