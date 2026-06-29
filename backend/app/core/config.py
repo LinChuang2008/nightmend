@@ -145,6 +145,8 @@ class Settings(BaseSettings):
     prometheus_remote_timeout_seconds: float = 15.0
     # Remote Write 接收端点 Bearer token；空 = 拒绝所有 Bearer 调用（仅允许 User JWT）
     prom_remote_write_token: str = ""
+    # Alertmanager sidecar 反向路由地址；空 = 反向 silence API 禁用
+    alertmanager_url: str = "http://alertmanager:9093"
 
     # AlertManager Bridge 配置 (AlertManager Bridge Configuration)
     alertmanager_webhook_token: str = ""  # Bearer token for webhook auth, generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"

@@ -68,8 +68,11 @@ scrape_configs:
       - target_label: __address__
         replacement: blackbox:9115
 
-# Alertmanager 对接占位：Milestone 2 启用。
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets: ["alertmanager:9093"]
+# Alertmanager 对接（M7 启用）
+# 规则触发后投递到 alertmanager:9093，由 AM 去重/分组/抑制后回投 NightMend webhook。
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+      timeout: 10s
+      api_version: v2
