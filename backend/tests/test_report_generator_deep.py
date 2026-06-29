@@ -1,6 +1,6 @@
 """报告生成服务深度测试 — mock DB 查询 + AI API。"""
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 from app.services.report_generator import (

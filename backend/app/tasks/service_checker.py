@@ -9,7 +9,6 @@ Suitable for internal services only accessible via localhost.
 """
 import asyncio
 import logging
-import socket
 import time
 from datetime import datetime, timezone
 
@@ -30,7 +29,7 @@ async def check_http_service(url: str, timeout: int = 10, expected_status: int =
     """检查 HTTP 服务"""
     start_time = time.time()
     try:
-        async with httpx.AsyncClient(timeout=timeout, verify=False) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.get(url, follow_redirects=True)
             response_time_ms = int((time.time() - start_time) * 1000)
 

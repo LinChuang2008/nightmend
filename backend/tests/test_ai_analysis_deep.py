@@ -6,9 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 from app.models.log_entry import LogEntry
 from app.models.host import Host
-from app.models.host_metric import HostMetric
 from app.models.alert import Alert, AlertRule
-from app.models.service import Service
 from app.models.ai_insight import AIInsight
 
 

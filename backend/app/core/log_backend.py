@@ -10,7 +10,6 @@
 - loki: Grafana Loki时序日志存储
 """
 
-import asyncio
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime

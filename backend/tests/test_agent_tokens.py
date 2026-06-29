@@ -1,5 +1,4 @@
 """Agent Token 管理路由测试。"""
-import pytest
 from httpx import AsyncClient
 
 

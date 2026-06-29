@@ -1,0 +1,85 @@
+# NightMend Autopilot Demo
+# Usage: docker compose -f docker-compose.demo.yml up --build
+# Reset: docker compose -f docker-compose.demo.yml down -v
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nightmend
+      POSTGRES_USER: nightmend
+      POSTGRES_PASSWORD: nightmend_demo
+      TZ: Asia/Shanghai
+    volumes:
+      - demo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nightmend"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    environment:
+      TZ: Asia/Shanghai
+    command: redis-server --requirepass nightmend_demo
+    volumes:
+      - demo_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "nightmend_demo", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "8001:8000"
+    environment:
+      # Database
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: nightmend
+      POSTGRES_USER: nightmend
+      POSTGRES_PASSWORD: nightmend_demo
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: nightmend_demo
+      # Environment
+      ENVIRONMENT: development
+      # Demo mode
+      DEMO_MODE: "true"
+      DEMO_FAULT_DELAY_SECONDS: "60"
+      # AI — 用户需要提供自己的 API key
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_API_BASE: ${AI_API_BASE:-https://api.deepseek.com/v1}
+      AI_MODEL: ${AI_MODEL:-deepseek-chat}
+      # Timezone
+      TZ: Asia/Shanghai
+    command: ["/bin/sh", "/app/scripts/startup.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - ./agent:/app/agent
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  demo_pgdata:
+  demo_redisdata:

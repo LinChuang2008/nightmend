@@ -1,5 +1,4 @@
 """认证模块测试 — 注册、登录、JWT 刷新、获取当前用户。"""
-import pytest
 from httpx import AsyncClient
 
 

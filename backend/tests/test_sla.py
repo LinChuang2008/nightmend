@@ -1,7 +1,7 @@
 """SLA 管理路由测试。"""
 import pytest
 from httpx import AsyncClient
-from app.models.sla import SLARule, SLAViolation
+from app.models.sla import SLARule
 from app.models.service import Service
 from app.models.host import Host
 

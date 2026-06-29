@@ -15,14 +15,11 @@ Author: NightMend Team
 from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, and_, func, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.host_metric import HostMetric
-from app.models.alert import Alert
-from app.models.log_entry import LogEntry
 from app.models.user import User
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])

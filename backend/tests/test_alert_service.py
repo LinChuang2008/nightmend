@@ -4,15 +4,11 @@
 Tests for AlertDeduplicationService and extended alert API coverage.
 """
 import operator as op
-import tempfile
-import os
 from datetime import datetime, timezone, timedelta
 
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy import create_engine, event, BigInteger
-from sqlalchemy.ext.compiler import compiles
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from app.core.database import Base

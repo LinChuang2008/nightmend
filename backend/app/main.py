@@ -171,6 +171,12 @@ async def lifespan(app: FastAPI):
         from app.tasks.remediation_listener import remediation_listener_loop
         task_factories["remediation_listener"] = lambda: remediation_listener_loop()
 
+    # Autopilot Demo 流程（仅在 DEMO_MODE=true 时启动）
+    if app_settings.demo_mode:
+        from app.services.demo_orchestrator import run_demo_flow
+        task_factories["demo_autopilot"] = lambda: run_demo_flow()
+        logger.info("Demo mode enabled — Autopilot Demo will start automatically")
+
     # Prometheus file_sd 同步任务（仅在启用 sidecar 时）
     if app_settings.prometheus_remote_enabled:
         from app.tasks.prom_file_sd_task import prom_file_sd_loop
@@ -260,7 +266,6 @@ else:
         "https://demo.lchuangnet.com",
         "https://lchuangnet.com",
         "https://www.lchuangnet.com",
-        "http://139.196.210.68:3001",
     ]
     if _frontend_url and _frontend_url not in allowed_origins:
         allowed_origins.append(_frontend_url)
@@ -321,6 +326,10 @@ app.include_router(prom_exporters.router)  # Prometheus Exporter 一键安装脚
 app.include_router(prom_remote_write.router)  # Prometheus Remote Write 接收器 (Prometheus Remote Write Receiver)
 app.include_router(alertmanager_silences.router)  # Alertmanager Silence 反向路由 (Alertmanager Silence Reverse Routing)
 app.include_router(alert_stream.router)  # 告警诊断 SSE 流 (Alert Diagnosis SSE Stream)
+
+# Demo 路由（始终注册，内部检查 DEMO_MODE）
+from app.routers import demo
+app.include_router(demo.router)  # Autopilot Demo 状态 (Autopilot Demo Status)
 
 
 @app.get("/health")

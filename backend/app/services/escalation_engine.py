@@ -14,7 +14,7 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.alert import Alert, AlertRule
+from app.models.alert import Alert
 from app.models.escalation import EscalationRule, AlertEscalation
 from app.services.notifier import send_alert_notification
 

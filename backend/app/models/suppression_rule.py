@@ -10,7 +10,7 @@ Including host metrics, service monitoring, log anomalies, AI insights, etc.
 """
 from datetime import datetime
 
-from sqlalchemy import Integer, String, Text, DateTime, Boolean, JSON, ForeignKey, func
+from sqlalchemy import Integer, String, Text, DateTime, Boolean, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base

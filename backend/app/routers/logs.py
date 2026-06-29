@@ -14,19 +14,15 @@ Author: NightMend Team
 """
 
 import asyncio
-import json
 from datetime import datetime
 
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
-from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.host import Host
-from app.models.log_entry import LogEntry
 from app.models.user import User
 from app.schemas.log_entry import (
     LogEntryResponse,

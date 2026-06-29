@@ -5,7 +5,6 @@
 Allows users to create custom remediation scripts, extending built-in Runbook capabilities.
 """
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import String, Integer, Boolean, DateTime, Text, JSON, func
 from sqlalchemy.orm import Mapped, mapped_column

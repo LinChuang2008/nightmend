@@ -10,7 +10,7 @@ Complies with OWASP security best practices.
 """
 import os
 import re
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware

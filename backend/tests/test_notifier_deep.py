@@ -1,6 +1,6 @@
 """通知服务深度测试 — mock 5个渠道 + 降噪逻辑。"""
 import pytest
-from datetime import datetime, timezone, time as dt_time
+from datetime import datetime, time as dt_time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.notifier import (
@@ -12,7 +12,6 @@ from app.services.notifier import (
     _dingtalk_sign,
     _feishu_sign,
     send_alert_notification,
-    _send_to_channel,
     _send_webhook,
     _send_dingtalk,
     _send_feishu,

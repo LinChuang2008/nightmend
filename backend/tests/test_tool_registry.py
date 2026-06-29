@@ -11,7 +11,6 @@ Covers:
 """
 from __future__ import annotations
 
-import types
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 

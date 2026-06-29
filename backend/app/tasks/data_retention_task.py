@@ -12,7 +12,6 @@ import logging
 from datetime import datetime, time
 from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import async_session
 from app.services.data_retention import DataRetentionService

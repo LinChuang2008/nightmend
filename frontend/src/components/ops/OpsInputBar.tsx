@@ -155,10 +155,14 @@ export default function OpsInputBar({ onSend, disabled, pendingAskQuestion, onAc
         )}
       </div>
 
-      {/* 主机选择器行 */}
-      {hosts.length > 0 && (
-        <div className="cc-host-row">
-          <span className="cc-host-label">target:</span>
+      {/* 主机选择器行：始终渲染，hosts 为空时显示空状态提示 */}
+      <div className="cc-host-row">
+        <span className="cc-host-label">target:</span>
+        {hosts.length === 0 ? (
+          <span className="cc-host-empty-state">
+            暂无在线主机 — 请先到 <a href="/hosts" className="cc-host-empty-link">主机管理</a> 添加并启动 Agent
+          </span>
+        ) : (
           <button
             className="cc-host-btn"
             onClick={() => setShowHostPicker(!showHostPicker)}
@@ -172,8 +176,9 @@ export default function OpsInputBar({ onSend, disabled, pendingAskQuestion, onAc
               > [x]</span>
             )}
           </button>
+        )}
 
-          {showHostPicker && (
+        {hosts.length > 0 && showHostPicker && (
             <div className="cc-host-picker">
               <div className="cc-host-search-wrap">
                 <input
@@ -216,9 +221,8 @@ export default function OpsInputBar({ onSend, disabled, pendingAskQuestion, onAc
                 </div>
               ))}
             </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* 输入行 */}
       <div className={`cc-input-line ${disabled ? 'disabled' : ''}`}>
@@ -272,6 +276,15 @@ export default function OpsInputBar({ onSend, disabled, pendingAskQuestion, onAc
           transition: color 0.1s;
         }
         .cc-host-btn:hover { color: #ddd; }
+        .cc-host-empty-state {
+          font-size: 12px;
+          color: #ad7f00;
+        }
+        .cc-host-empty-link {
+          color: #f0a500;
+          text-decoration: underline;
+        }
+        .cc-host-empty-link:hover { color: #ffbf2e; }
         .cc-ai-select {
           background: #111;
           color: #ddd;

@@ -5,10 +5,7 @@ NightMend 测试基础配置
 所有测试使用隔离的 SQLite 数据库，不依赖外部 PostgreSQL/Redis。
 """
 import asyncio
-import json
-from datetime import datetime, timezone
 from typing import AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
@@ -34,7 +31,7 @@ from app.models.user import User
 # ── SQLite 异步引擎 ──────────────────────────────────────────────────
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-from sqlalchemy import event, BigInteger, Integer
+from sqlalchemy import event, BigInteger
 
 engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 
@@ -42,7 +39,6 @@ engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 @event.listens_for(engine.sync_engine, "connect")
 def _register_sqlite_functions(dbapi_conn, connection_record):
     """Register date_trunc and extract for SQLite so PG-specific SQL works in tests."""
-    import sqlite3
     from datetime import datetime as _dt
 
     def _date_trunc(part, value):

@@ -1,6 +1,5 @@
 """通知服务测试（mock 外部渠道）。"""
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import MagicMock
 
 
 class TestNotifierService:

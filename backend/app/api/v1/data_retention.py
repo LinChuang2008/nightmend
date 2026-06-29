@@ -12,7 +12,7 @@ Provides configuration and management APIs for data retention policies, includin
 - View data statistics and cleanup history
 """
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field

@@ -4,7 +4,7 @@ Dashboard 配置管理 API
 提供 Dashboard 布局的 CRUD 操作、预设模板管理、组件配置等功能。
 用户可以自定义 Dashboard 布局，保存多个配置方案，并在不同方案间切换。
 """
-from typing import List, Optional
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +23,6 @@ from app.schemas.dashboard import (
     PresetLayoutInfo,
     QuickConfigUpdate,
     OperationResponse,
-    BatchLayoutOperation,
 )
 
 router = APIRouter(prefix="/dashboard-config", tags=["dashboard-config"])

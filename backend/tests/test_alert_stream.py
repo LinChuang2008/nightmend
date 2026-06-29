@@ -2,13 +2,11 @@
 告警诊断 SSE 流 + 诊断功能测试
 Tests for alert diagnosis SSE stream and diagnosis-only mode.
 """
-import asyncio
 import json
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-import pytest_asyncio
 
 from app.alert_sources.base import IncomingAlert
 from app.core.config import settings

@@ -1,7 +1,7 @@
 """运维消息模型 (Ops Message Model)"""
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, func, Text
+from sqlalchemy import String, DateTime, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base

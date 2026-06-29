@@ -11,7 +11,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 
 from app.core.database import async_session
 from app.core.redis import get_redis

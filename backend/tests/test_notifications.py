@@ -1,7 +1,7 @@
 """通知渠道管理测试。"""
 import pytest
 from httpx import AsyncClient
-from app.models.notification import NotificationChannel, NotificationLog
+from app.models.notification import NotificationChannel
 
 
 @pytest.fixture

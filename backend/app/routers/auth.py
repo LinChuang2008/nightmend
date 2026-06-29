@@ -101,11 +101,10 @@ async def register(data: UserRegister, request: Request, response: Response, db:
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    # 第一个用户自动设为管理员，后续用户默认为 operator（可访问所有功能页面，不含用户管理）
-    # 使用 with_for_update() 加行级锁防止并发注册的竞态条件
-    # Use with_for_update() row-level lock to prevent race condition on concurrent registration
+    # 第一个用户自动设为管理员，后续用户默认为 operator
+    # with_for_update() 防止并发注册时多个用户同时获得 admin 角色
     count_result = await db.execute(
-        select(func.count()).select_from(User)
+        select(func.count()).select_from(User).with_for_update()
     )
     user_count = count_result.scalar()
     role = "admin" if user_count == 0 else "operator"

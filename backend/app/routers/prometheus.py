@@ -14,8 +14,7 @@ Author: NightMend Team
 """
 import hashlib
 import hmac
-import json
-from typing import List, Dict, Any, Optional, Union
+from typing import Dict, Optional, Union
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -24,7 +23,6 @@ from sqlalchemy import select, func, desc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.redis import get_redis
 from app.core.security import decode_token
 from app.core.redis import is_token_blacklisted
 from app.models.host import Host
@@ -453,7 +451,7 @@ async def prometheus_targets(
                 }
                 targets.append(target)
     
-    except Exception as e:
+    except Exception:
         # 返回空目标列表，避免 Prometheus 抓取失败
         targets = []
     
