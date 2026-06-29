@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8"><title>VigilOps · UI 高保真原型 · Industrial Command Console (A)</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#e4e4e7;font-family:'Geist','Inter',system-ui,sans-serif;font-size:13px;min-height:100vh}
+a{color:inherit;text-decoration:none}
+header{position:sticky;top:0;z-index:20;background:#0a0a0f;border-bottom:1px solid #27272a;padding:14px 22px;display:flex;align-items:center;gap:20px}
+header .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;letter-spacing:.02em}
+header .brand .mark{width:20px;height:20px;background:#10b981;border-radius:3px;display:grid;place-items:center;color:#000;font-weight:800;font-size:12px}
+header h1{font-family:'Geist Mono',monospace;font-size:12px;font-weight:500;color:#a1a1aa;text-transform:uppercase;letter-spacing:.14em}
+header h1 b{color:#10b981;font-weight:600}
+header .spacer{flex:1}
+header .mode{display:flex;gap:4px;background:#141419;border:1px solid #27272a;border-radius:5px;padding:3px}
+header .mode button{background:transparent;color:#a1a1aa;border:none;padding:6px 12px;font-family:'Geist Mono',monospace;font-size:11px;border-radius:3px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase}
+header .mode button.on{background:rgba(16,185,129,.12);color:#10b981}
+.tabs{display:flex;gap:0;padding:0 22px;background:#0a0a0f;border-bottom:1px solid #27272a;overflow-x:auto}
+.tab{background:transparent;color:#71717a;border:none;padding:14px 20px;cursor:pointer;font-family:'Geist',sans-serif;font-size:13px;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:10px}
+.tab:hover{color:#e4e4e7}
+.tab.on{color:#10b981;border-bottom-color:#10b981}
+.tab .k{font-family:'Geist Mono',monospace;font-size:10px;color:#52525b;background:#141419;border:1px solid #27272a;padding:1px 5px;border-radius:3px;letter-spacing:.08em}
+.tab.on .k{color:#10b981;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.08)}
+.tab .desc{font-family:'Geist Mono',monospace;font-size:10.5px;color:#52525b;font-weight:400;text-transform:uppercase;letter-spacing:.08em}
+.frame-wrap{background:#05050a;padding:16px 22px 28px;min-height:calc(100vh - 114px)}
+.frame-box{border:1px solid #27272a;border-radius:10px;background:#0a0a0f;box-shadow:0 30px 80px rgba(0,0,0,.5);overflow:hidden}
+.frame-chrome{height:34px;background:#141419;border-bottom:1px solid #27272a;display:flex;align-items:center;padding:0 14px;gap:10px}
+.frame-chrome .dots{display:flex;gap:6px}
+.frame-chrome .dot{width:10px;height:10px;border-radius:50%;background:#27272a}
+.frame-chrome .url{flex:1;text-align:center;font-family:'Geist Mono',monospace;font-size:11px;color:#52525b}
+.frame-chrome .act{font-family:'Geist Mono',monospace;font-size:10.5px;color:#10b981}
+.frame-body{height:calc(100vh - 200px);min-height:700px}
+.frame-body iframe{width:100%;height:100%;border:0;background:#0a0a0f}
+footer{background:#0a0a0f;border-top:1px solid #27272a;padding:24px 22px}
+.alt-dirs{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.alt-dirs .hd{font-family:'Geist Mono',monospace;font-size:11px;color:#71717a;text-transform:uppercase;letter-spacing:.14em}
+.alt-dirs .alt{font-family:'Geist Mono',monospace;font-size:11px;color:#52525b;padding:4px 10px;border:1px solid #27272a;border-radius:3px;text-decoration:none}
+.alt-dirs .alt:hover{color:#e4e4e7;border-color:#71717a}
+.alt-dirs .alt b{color:#71717a;font-weight:500;margin-right:6px}
+.meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:20px 0;border-top:1px solid #27272a}
+.meta-col h4{font-family:'Geist Mono',monospace;font-size:10.5px;color:#52525b;text-transform:uppercase;letter-spacing:.14em;margin-bottom:10px;font-weight:500}
+.meta-col p{font-size:12px;color:#a1a1aa;line-height:1.6}
+.meta-col p b{color:#10b981;font-weight:500}
+.meta-col code{font-family:'Geist Mono',monospace;font-size:11px;color:#e4e4e7;background:#141419;padding:2px 6px;border-radius:3px;border:1px solid #27272a}
+</style></head>
+<body>
+<header>
+  <a class="brand" href="#"><span class="mark">V</span>VIGILOPS</a>
+  <h1>UI 高保真原型 · 方向已锁 <b>A · INDUSTRIAL COMMAND CONSOLE</b></h1>
+  <div class="spacer"></div>
+  <div class="mode">
+    <button class="on" data-t="dashboard">Dashboard</button>
+    <button data-t="landing">Landing</button>
+    <button data-t="alerts">Alerts</button>
+    <button data-t="hosts">Hosts</button>
+    <button data-t="login">Login</button>
+  </div>
+</header>
+<div class="tabs">
+  <button class="tab on" data-t="dashboard"><span class="k">D</span>Dashboard<span class="desc">· 应用首屏 · KPI + 告警流</span></button>
+  <button class="tab" data-t="landing"><span class="k">L</span>Landing<span class="desc">· 营销首页 · hero + 产品 preview + CTA</span></button>
+  <button class="tab" data-t="alerts"><span class="k">A</span>Alerts<span class="desc">· 双栏 split · AI causal + runbook</span></button>
+  <button class="tab" data-t="hosts"><span class="k">H</span>Hosts<span class="desc">· 实体详情 · 指标 + 进程 + 日志 live-tail</span></button>
+  <button class="tab" data-t="login"><span class="k">◯</span>Login<span class="desc">· 登录页 · SSO + 实时 ticker</span></button>
+</div>
+<div class="frame-wrap">
+  <div class="frame-box">
+    <div class="frame-chrome">
+      <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="url" id="url">vigilops.io/app/dashboard · prod · apac-1</div>
+      <div class="act" id="act">● LIVE</div>
+    </div>
+    <div class="frame-body">
+      <iframe id="frame" src="dashboard-A-industrial.html"></iframe>
+    </div>
+  </div>
+</div>
+<footer>
+  <div class="alt-dirs">
+    <span class="hd">OTHER DIRECTIONS FOR REFERENCE →</span>
+    <a class="alt" href="dashboard-B-editorial.html" target="_blank"><b>B</b>Editorial Ops Journal</a>
+    <a class="alt" href="dashboard-C-glass.html" target="_blank"><b>C</b>Glass Observatory</a>
+    <span style="margin-left:auto;font-family:'Geist Mono',monospace;font-size:10.5px;color:#52525b">A 方向已 locked · B/C 仅留 Dashboard 样对比</span>
+  </div>
+  <div class="meta-grid">
+    <div class="meta-col">
+      <h4>SELECTED DIRECTION</h4>
+      <p><b>A · Industrial Command Console</b> — 深色工业风 plus 版。SRE 工程师凌晨 3 点信赖的精密仪器。零装饰，每个像素都承载功能。</p>
+    </div>
+    <div class="meta-col">
+      <h4>DESIGN TOKENS</h4>
+      <p>bg <code>#0a0a0f</code> · surface <code>#141419</code> · accent emerald <code>#10b981</code> · crit <code>#ef4444</code> · warn <code>#f59e0b</code></p>
+    </div>
+    <div class="meta-col">
+      <h4>TYPOGRAPHY</h4>
+      <p>UI & body: <code>Geist</code> 400/500/600/700<br>Data & timestamps: <code>Geist Mono</code> tabular-nums</p>
+    </div>
+    <div class="meta-col">
+      <h4>NEXT STEPS</h4>
+      <p>1. 提取 CSS tokens 进 <code>tokens.css</code><br>2. 按此高保真改 React 组件<br>3. 剩余 25 个页面复用骨架</p>
+    </div>
+  </div>
+</footer>
+<script>
+const urls={
+  dashboard:{src:'dashboard-A-industrial.html',url:'vigilops.io/app/dashboard · prod · apac-1',act:'● LIVE'},
+  landing:{src:'landing-A-industrial.html',url:'vigilops.io',act:'MARKETING'},
+  alerts:{src:'alerts-A-industrial.html',url:'vigilops.io/app/alerts · prod · apac-1',act:'● LIVE'},
+  hosts:{src:'hosts-A-industrial.html',url:'vigilops.io/app/hosts/pay-api-01 · prod · apac-1',act:'● LIVE'},
+  login:{src:'login-A-industrial.html',url:'vigilops.io/login',act:'SSO · READY'}
+};
+function go(t){
+  document.querySelectorAll('.tab,.mode button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+  const o=urls[t];document.getElementById('frame').src=o.src;
+  document.getElementById('url').textContent=o.url;
+  document.getElementById('act').textContent=o.act;
+  document.getElementById('act').style.color=o.act.startsWith('●')?'#10b981':'#71717a';
+}
+document.querySelectorAll('.tab,.mode button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.t)));
+</script>
+</body></html>

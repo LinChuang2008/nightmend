@@ -44,9 +44,14 @@ import {
   AppstoreOutlined,
   EyeInvisibleOutlined,
   QuestionCircleOutlined,
+  DesktopOutlined,
+  BellOutlined,
+  ExperimentOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import QuickStartGuide from './QuickStartGuide';
 import GuidedTour, { useTourControl } from './GuidedTour';
+import { Logo } from './Logo';
 import { menuSettingsApi } from '../services/menuSettings';
 
 const { Header, Sider, Content } = Layout;
@@ -124,11 +129,14 @@ function getConfigurableMenuItems(items: ReturnType<typeof buildMenuItems>) {
   return result;
 }
 
-/** 生成侧边栏菜单项（分 4 个分组），使用 i18n 翻译 */
+/** 生成侧边栏菜单项（分 4 个可折叠 submenu），使用 i18n 翻译
+ *  用 key-based submenu 而不是 type:'group'，这样每组可独立展开/收起。
+ */
 function buildMenuItems(t: (key: string) => string) {
   return [
     {
-      type: 'group' as const,
+      key: 'group:monitoring',
+      icon: <DesktopOutlined />,
       label: t('menu.groupMonitoring'),
       children: [
         { key: '/dashboard', icon: <DashboardOutlined />, label: <span data-tour="dashboard">{t('menu.dashboard')}</span> },
@@ -142,7 +150,8 @@ function buildMenuItems(t: (key: string) => string) {
       ],
     },
     {
-      type: 'group' as const,
+      key: 'group:alerts',
+      icon: <BellOutlined />,
       label: t('menu.groupAlerts'),
       children: [
         { key: '/alerts', icon: <AlertOutlined />, label: <span data-tour="alerts">{t('menu.alerts')}</span> },
@@ -152,7 +161,8 @@ function buildMenuItems(t: (key: string) => string) {
       ],
     },
     {
-      type: 'group' as const,
+      key: 'group:analysis',
+      icon: <ExperimentOutlined />,
       label: t('menu.groupAnalysis'),
       children: [
         { key: '/ops', icon: <RobotOutlined />, label: <span data-tour="ai-analysis">{t('menu.aiAnalysis')}</span> },
@@ -163,7 +173,8 @@ function buildMenuItems(t: (key: string) => string) {
       ],
     },
     {
-      type: 'group' as const,
+      key: 'group:config',
+      icon: <ToolOutlined />,
       label: t('menu.groupConfig'),
       children: [
         { key: '/notification-channels', icon: <NotificationOutlined />, label: t('menu.notificationChannels') },
@@ -184,13 +195,27 @@ function buildMenuItems(t: (key: string) => string) {
  * 包含可折叠侧边栏、顶部导航栏（用户头像与退出登录）、以及子路由内容区域。
  * 在移动端使用抽屉式侧边栏以优化用户体验。
  */
+const SIDEBAR_COLLAPSED_KEY = 'nightmend_sidebar_collapsed';
+
 export default function AppLayout() {
-  /** 侧边栏折叠状态 */
-  const [collapsed, setCollapsed] = useState(false);
+  /** 侧边栏折叠状态
+   *  - 默认收起（监控工具优先给主内容区更多空间）
+   *  - 用户偏好持久化：从 localStorage 读取上次选择
+   */
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    // 初次使用（无存储）默认 true；明确设过 false 则尊重用户选择
+    return stored === null ? true : stored === 'true';
+  });
   /** 移动端抽屉打开状态 */
   const [drawerVisible, setDrawerVisible] = useState(false);
   /** 菜单展开的 SubMenu keys */
   const [menuOpenKeys, setMenuOpenKeys] = useState<string[]>([]);
+
+  // 每次折叠状态变更，持久化
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+  }, [collapsed]);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -322,11 +347,12 @@ export default function AppLayout() {
     return matched || '/dashboard';
   };
   const selectedKey = findSelectedKey();
-  const openKey = allFlatItems.find(
-    (item: any) => 'children' in item && item.children?.some((c: any) => c.key === selectedKey)
-  )?.key;
+  // 结构已改为 4 个可折叠 submenu：定位 selectedKey 所在的 top-level group key
+  const openKey = allMenuItems.find(
+    (group: any) => Array.isArray(group.children) && group.children.some((c: any) => c.key === selectedKey)
+  )?.key as string | undefined;
 
-  // 路由变化时自动展开对应的 SubMenu
+  // 路由变化时自动展开对应的 SubMenu（保持"所在组默认展开，其他默认收起"）
   useEffect(() => {
     if (openKey && !menuOpenKeys.includes(openKey)) {
       setMenuOpenKeys(prev => [...new Set([...prev, openKey])]);
@@ -336,25 +362,24 @@ export default function AppLayout() {
   /** 渲染菜单内容 */
   const renderMenuContent = (inDrawer = false) => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* 品牌标识区域 */}
-      <div style={{
-        height: 64,
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: inDrawer ? (isDark ? '#fff' : 'inherit') : '#fff',
-        fontSize: (inDrawer || !collapsed) ? 20 : 16,
-        fontWeight: 'bold',
-        letterSpacing: 2,
-        borderBottom: inDrawer ? `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#f0f0f0'}` : undefined,
-      }}>
-        <svg width={collapsed && !inDrawer ? 28 : 24} height={collapsed && !inDrawer ? 28 : 24} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: (inDrawer || !collapsed) ? 8 : 0, flexShrink: 0 }}>
-          <rect width="40" height="40" rx="8" fill="#1677ff"/>
-          <circle cx="20" cy="21" r="11.5" fill="none" stroke="white" strokeWidth="2.2"/>
-          <path d="M13 15.5L20 26.5L27 15.5" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        {(inDrawer || !collapsed) ? 'NightMend' : ''}
+      {/* 品牌标识区域 —— 使用统一的 <Logo /> 组件（方向 H 盾牌）*/}
+      <div
+        style={{
+          height: 64,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: (inDrawer || !collapsed) ? 'flex-start' : 'center',
+          paddingLeft: (inDrawer || !collapsed) ? 20 : 0,
+          paddingRight: (inDrawer || !collapsed) ? 12 : 0,
+          borderBottom: inDrawer ? `1px solid rgba(255,255,255,0.08)` : undefined,
+        }}
+      >
+        {(inDrawer || !collapsed) ? (
+          <Logo variant="wordmark" size={22} />
+        ) : (
+          <Logo variant="icon" size={28} />
+        )}
       </div>
       <div className="app-sidebar-menu-scroll">
         <Menu

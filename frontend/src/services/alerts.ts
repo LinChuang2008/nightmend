@@ -78,6 +78,12 @@ export interface AlertRule {
   silence_end?: string | null;
   /** 关联的通知渠道 ID 列表 */
   notification_channel_ids?: number[] | null;
+  /** PromQL 表达式；非空时走 Prometheus sidecar 触发路径，否则走内置 metric+threshold */
+  query_expr?: string | null;
+  /** PromQL 规则的 for 字段（秒），即表达式持续满足的时长 */
+  for_duration_seconds?: number | null;
+  /** 上次同步到 Prometheus rules.yml 的 ISO 时间戳（只读）*/
+  prom_rule_synced_at?: string | null;
 }
 
 /** 通知渠道 */
@@ -139,7 +145,46 @@ export const alertService = {
   updateRule: (id: string, data: Partial<AlertRule>) => api.put(`/alert-rules/${id}`, data),
   /** 删除告警规则 */
   deleteRule: (id: string) => api.delete(`/alert-rules/${id}`),
+  /** 手动触发 AlertRule → Prometheus rules.yml 全量同步 */
+  syncPromRules: () => api.post('/alert-rules/prometheus/sync'),
+  /** 手动触发 Host/Service → Prometheus file_sd 导出 */
+  syncPromFileSd: () => api.post('/alert-rules/prometheus/file-sd-sync'),
 };
+
+/** PromQL 表达式即时校验响应（走 /promql/query?query=...&time=now）*/
+export interface PromQLValidationResult {
+  valid: boolean;
+  message?: string;
+  /** 原始 Prom 数据对象，便于展示 result preview */
+  data?: unknown;
+}
+
+/**
+ * 校验 PromQL 表达式：用 /api/v1/promql/query 跑一次 instant query，
+ * HTTP 200 → valid；4xx → 不合法（解析/执行失败）；5xx → 暂不可达。
+ * 用 __noToast 关闭全局错误 toast，让编辑器自己展示内联错误。
+ */
+export async function validatePromQL(expr: string): Promise<PromQLValidationResult> {
+  if (!expr || !expr.trim()) {
+    return { valid: false, message: '表达式不能为空' };
+  }
+  try {
+    const { data } = await api.get('/promql/query', {
+      params: { query: expr },
+      // @ts-expect-error 自定义 flag 用于关闭全局错误 toast
+      __noToast: true,
+    });
+    return { valid: true, data };
+  } catch (err: unknown) {
+    const e = err as { response?: { status?: number; data?: { detail?: string } } };
+    const status = e.response?.status;
+    const detail = e.response?.data?.detail ?? '未知错误';
+    if (status && status >= 400 && status < 500) {
+      return { valid: false, message: `解析错误：${detail}` };
+    }
+    return { valid: false, message: `Prometheus 服务暂不可达（${status ?? 'network'}）` };
+  }
+}
 
 /** 通知渠道服务 */
 export const notificationService = {

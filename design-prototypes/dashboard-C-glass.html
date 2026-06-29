@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><title>VigilOps · Dashboard · Glass Observatory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b1021;--bg-deep:#070a18;--glass:rgba(255,255,255,0.045);--glass-2:rgba(255,255,255,0.07);--edge:rgba(255,255,255,0.08);--edge-top:rgba(255,255,255,0.14);--text:#ffffff;--body:rgba(255,255,255,0.86);--muted:rgba(255,255,255,0.54);--dim:rgba(255,255,255,0.32);--cyan:#00d9ff;--cyan-dim:rgba(0,217,255,.22);--mag:#ff2975;--mag-dim:rgba(255,41,117,.22);--amber:#ffb020;--sans:'Inter',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--body);font-family:var(--sans);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;position:relative;overflow-x:hidden;background:radial-gradient(1200px 700px at 10% -10%,rgba(0,217,255,.14),transparent 60%),radial-gradient(900px 600px at 110% 120%,rgba(255,41,117,.12),transparent 60%),var(--bg-deep)}
+body::before{content:"";position:fixed;inset:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");pointer-events:none;opacity:.5;mix-blend-mode:overlay;z-index:0}
+.app{position:relative;z-index:1;display:grid;grid-template-columns:64px 1fr;min-height:100vh}
+.rail{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border-right:1px solid var(--edge);backdrop-filter:blur(14px);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px}
+.logo-orb{width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,var(--cyan) 55%,#0066aa);box-shadow:0 0 18px var(--cyan),inset 0 0 8px rgba(255,255,255,.4);margin-bottom:14px;position:relative}
+.logo-orb::after{content:"V";position:absolute;inset:0;display:grid;place-items:center;color:#001018;font-family:var(--sans);font-weight:700;font-size:13px}
+.rail-divider{width:24px;height:1px;background:var(--edge);margin:6px 0}
+.rail-ico{width:44px;height:44px;display:grid;place-items:center;color:var(--muted);font-family:var(--mono);font-size:14px;border-radius:10px;cursor:pointer;position:relative}
+.rail-ico:hover{color:var(--text);background:var(--glass)}
+.rail-ico.on{color:var(--cyan);background:linear-gradient(180deg,rgba(0,217,255,.15),rgba(0,217,255,.04));border:1px solid rgba(0,217,255,.4);box-shadow:0 0 20px rgba(0,217,255,.25),inset 0 1px 0 rgba(255,255,255,.1)}
+.rail-ico .ping{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--mag);box-shadow:0 0 10px var(--mag)}
+.rail-ico .av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#6e3cff,#00d9ff);display:grid;place-items:center;color:#fff;font-weight:700;font-size:11px}
+main{padding:16px 22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.topbar{height:52px;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--glass);border:1px solid var(--edge);border-top-color:var(--edge-top);border-radius:14px;backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06)}
+.crumb{color:var(--muted);font-size:12.5px;display:flex;gap:8px;align-items:center}
+.crumb b{color:var(--text);font-weight:500}
+.cmd{flex:1;max-width:460px;margin-left:auto;height:32px;background:rgba(0,0,0,.35);border:1px solid var(--edge);border-radius:999px;display:flex;align-items:center;padding:0 14px;gap:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),inset 0 -1px 0 rgba(0,0,0,.3)}
+.cmd input{flex:1;background:transparent;border:0;color:var(--body);font-size:12.5px;font-family:var(--sans);outline:none}
+.cmd input::placeholder{color:var(--dim)}
+.cmd kbd{font-family:var(--mono);font-size:10px;color:var(--muted);background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;border:1px solid var(--edge)}
+.live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--cyan);padding:5px 10px;border:1px solid rgba(0,217,255,.35);border-radius:999px;background:rgba(0,217,255,.06);text-transform:uppercase;letter-spacing:.1em}
+.live .pulse{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:pul 1.4s infinite}
+@keyframes pul{0%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.5}100%{transform:scale(1);opacity:1}}
+.bell{position:relative;width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:var(--glass);border:1px solid var(--edge);color:var(--muted);cursor:pointer}
+.bell .n{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--mag);color:#fff;font-family:var(--mono);font-size:10px;font-weight:600;display:grid;place-items:center;box-shadow:0 0 10px rgba(255,41,117,.6)}
+.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.card{background:var(--glass);border:1px solid var(--edge);border-top-color:var(--edge-top);border-radius:18px;backdrop-filter:blur(16px);box-shadow:0 12px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);padding:18px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(140deg,rgba(255,255,255,.05),transparent 35%)}
+.card h3{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em;font-weight:500;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.card h3 .tag{margin-left:auto;font-size:10px;color:var(--cyan);background:rgba(0,217,255,.1);padding:2px 8px;border-radius:999px;border:1px solid rgba(0,217,255,.25);letter-spacing:.08em}
+.hero-card{grid-column:span 6;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px}
+.ring{position:relative;width:190px;height:190px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:grid;place-items:center;flex-direction:column}
+.ring .val .n{font-family:var(--sans);font-weight:700;font-size:52px;letter-spacing:-.03em;color:var(--text);text-shadow:0 0 22px rgba(0,217,255,.5);line-height:1}
+.ring .val .u{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.22em;margin-top:4px}
+.hero-mini{display:flex;gap:16px;margin-top:18px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.hero-mini span b{color:var(--text);font-weight:600;font-size:13px;margin-right:4px;letter-spacing:0}
+.hero-mini .crit b{color:var(--mag)}
+.hero-mini .warn b{color:var(--amber)}
+.hero-mini .ok b{color:var(--cyan)}
+.stat-card{grid-column:span 3;min-height:126px;display:flex;flex-direction:column}
+.stat-n{font-family:var(--sans);font-weight:700;font-size:42px;letter-spacing:-.02em;line-height:1;margin-top:auto}
+.stat-n.mag{color:var(--mag);text-shadow:0 0 16px rgba(255,41,117,.45)}
+.stat-n.cyan{color:var(--cyan);text-shadow:0 0 16px rgba(0,217,255,.45)}
+.stat-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px}
+.sparkline{width:100%;height:42px;margin-top:8px;display:block}
+.fleet-card{grid-column:span 6;min-height:168px}
+.fleet{position:relative;height:150px;width:100%}
+.node{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);transform:translate(-50%,-50%)}
+.node.w{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.node.c{background:var(--mag);box-shadow:0 0 12px var(--mag);animation:pul 1.6s infinite}
+.node.o{background:var(--dim);box-shadow:none}
+.fleet-legend{position:absolute;right:10px;top:0;font-family:var(--mono);font-size:10.5px;color:var(--muted);text-align:right;line-height:1.7}
+.fleet-legend b{color:var(--text);font-weight:600}
+.events-card{grid-column:span 8;min-height:260px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{font-family:var(--mono);font-size:10.5px;color:var(--muted);padding:4px 12px;border:1px solid var(--edge);border-radius:999px;background:var(--glass);cursor:pointer;letter-spacing:.08em;text-transform:uppercase}
+.tab.on{color:var(--cyan);border-color:rgba(0,217,255,.4);background:rgba(0,217,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.evt{display:grid;grid-template-columns:14px 110px 1fr auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--edge);font-size:12.5px}
+.evt:last-child{border-bottom:0}
+.evt .d{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.evt .d.w{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.evt .d.c{background:var(--mag);box-shadow:0 0 10px var(--mag)}
+.evt .t{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.evt .e b{color:var(--text);font-weight:500}
+.evt .e{color:var(--body)}
+.evt .v{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.evt .v.c{color:var(--mag)}
+.topo-card{grid-column:span 4;min-height:260px;position:relative}
+.topo{position:relative;height:210px;width:100%}
+.tnode{position:absolute;transform:translate(-50%,-50%);text-align:center}
+.tnode .orb{width:20px;height:20px;border-radius:50%;margin:0 auto 4px;background:radial-gradient(circle at 35% 30%,#fff,var(--cyan) 55%,#005a78);box-shadow:0 0 18px var(--cyan)}
+.tnode.w .orb{background:radial-gradient(circle at 35% 30%,#fff,var(--amber) 55%,#6b4400);box-shadow:0 0 18px var(--amber)}
+.tnode.c .orb{background:radial-gradient(circle at 35% 30%,#fff,var(--mag) 55%,#7a0c38);box-shadow:0 0 22px var(--mag);animation:pul 1.4s infinite}
+.tnode .lbl{font-family:var(--mono);font-size:10px;color:var(--body);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.timeline-card{grid-column:span 12;min-height:130px}
+.tl{position:relative;height:70px;margin-top:6px;border-top:1px dashed var(--edge);border-bottom:1px dashed var(--edge)}
+.tl .tick{position:absolute;top:0;bottom:0;width:1px;background:var(--edge)}
+.tl .tlbl{position:absolute;bottom:-18px;font-family:var(--mono);font-size:10px;color:var(--dim);transform:translateX(-50%)}
+.tl .dot{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer}
+.tl .dot.ok{background:var(--cyan);box-shadow:0 0 14px var(--cyan)}
+.tl .dot.w{background:var(--amber);box-shadow:0 0 14px var(--amber)}
+.tl .dot.c{background:var(--mag);box-shadow:0 0 18px var(--mag);width:16px;height:16px}
+.tl-legend{display:flex;gap:16px;margin-top:24px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tl-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+</style></head>
+<body>
+<div class="app">
+  <nav class="rail">
+    <div class="logo-orb"></div>
+    <div class="rail-ico on" title="Dashboard">◆</div>
+    <div class="rail-ico" title="Topology">❖</div>
+    <div class="rail-ico" title="Hosts">▢</div>
+    <div class="rail-ico" title="Services">▣</div>
+    <div class="rail-ico" title="Alerts">△<span class="ping"></span></div>
+    <div class="rail-ico" title="Logs">≡</div>
+    <div class="rail-ico" title="SLA">∿</div>
+    <div class="rail-ico" title="On-Call">☏</div>
+    <div class="rail-ico" title="Runbooks">✎</div>
+    <div class="rail-ico" title="OpsAssistant">✨</div>
+    <div class="rail-divider"></div>
+    <div class="rail-ico" style="margin-top:auto"><div class="av">PW</div></div>
+  </nav>
+  <main>
+    <div class="topbar">
+      <div class="crumb">Observability · <b>Dashboard</b></div>
+      <div class="cmd"><span style="color:var(--dim);font-size:13px">⌕</span><input placeholder="Search hosts, services, alerts, runbooks…"><kbd>⌘K</kbd></div>
+      <div class="live"><span class="pulse"></span>LIVE · prod · apac-1</div>
+      <div class="bell">◌<span class="n">3</span></div>
+    </div>
+
+    <div class="bento">
+      <!-- HERO: system health ring -->
+      <div class="card hero-card">
+        <h3 style="width:100%">System Health <span class="tag">30 days</span></h3>
+        <div class="ring">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="6"/>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="url(#gC-cy)" stroke-width="6" stroke-dasharray="263.9" stroke-dashoffset="7.9" stroke-linecap="round"/>
+            <defs><linearGradient id="gC-cy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00d9ff"/><stop offset="1" stop-color="#7e7bff"/></linearGradient></defs>
+          </svg>
+          <div class="val"><div><div class="n">99.97<span style="font-size:24px;color:var(--muted);margin-left:2px">%</span></div><div class="u">Uptime</div></div></div>
+        </div>
+        <div class="hero-mini">
+          <span class="crit"><b>3</b>P1 open</span>
+          <span class="warn"><b>12</b>warn</span>
+          <span class="ok"><b>244</b>/ 247 online</span>
+        </div>
+      </div>
+
+      <!-- Active Alerts -->
+      <div class="card stat-card">
+        <h3>Active Alerts</h3>
+        <div class="stat-n mag">3</div>
+        <svg class="sparkline" viewBox="0 0 200 42" preserveAspectRatio="none">
+          <defs><linearGradient id="gC-mg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ff2975" stop-opacity=".6"/><stop offset="1" stop-color="#ff2975" stop-opacity="0"/></linearGradient></defs>
+          <path fill="url(#gC-mg)" stroke="#ff2975" stroke-width="1.5" d="M0,32 L20,28 L40,30 L60,22 L80,24 L100,18 L120,22 L140,12 L160,16 L180,8 L200,4 L200,42 L0,42 Z"/>
+        </svg>
+        <div class="stat-sub">since 14:18 · <span style="color:var(--mag)">▲ 1</span> last 15m</div>
+      </div>
+
+      <!-- Latency p95 -->
+      <div class="card stat-card">
+        <h3>Latency p95</h3>
+        <div class="stat-n cyan">142<span style="font-size:18px;color:var(--muted);margin-left:4px">ms</span></div>
+        <svg class="sparkline" viewBox="0 0 200 42" preserveAspectRatio="none">
+          <defs><linearGradient id="gC-cg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#00d9ff" stop-opacity=".55"/><stop offset="1" stop-color="#00d9ff" stop-opacity="0"/></linearGradient></defs>
+          <path fill="url(#gC-cg)" stroke="#00d9ff" stroke-width="1.5" d="M0,24 L20,26 L40,22 L60,18 L80,26 L100,20 L120,14 L140,18 L160,12 L180,14 L200,10 L200,42 L0,42 Z"/>
+        </svg>
+        <div class="stat-sub">SLO 800ms · <span style="color:var(--cyan)">▼ 8%</span> last 1h</div>
+      </div>
+
+      <!-- Host Fleet constellation -->
+      <div class="card fleet-card">
+        <h3>Host Fleet · Constellation <span class="tag">apac-1</span></h3>
+        <div class="fleet" id="fleet"></div>
+        <div class="fleet-legend"><b>247</b> online<br><b>3</b> critical<br><b>3</b> warning<br><b>1</b> offline</div>
+      </div>
+      <!-- Event stream -->
+      <div class="card events-card">
+        <h3>Event Stream · Realtime</h3>
+        <div class="tabs">
+          <span class="tab on">All</span><span class="tab">Critical</span>
+          <span class="tab">Warn</span><span class="tab">Info</span>
+        </div>
+        <div>
+          <div class="evt"><div class="d c"></div><div class="t">14:23:47</div><div class="e"><b>payments-api</b> p99 latency 2.4s breach SLO 800ms</div><div class="v c">P1</div></div>
+          <div class="evt"><div class="d c"></div><div class="t">14:18:02</div><div class="e"><b>checkout-service</b> error_rate 8.2% over 1% threshold</div><div class="v c">P1</div></div>
+          <div class="evt"><div class="d c"></div><div class="t">13:52:14</div><div class="e"><b>redis-primary</b> connection pool 512/512 exhausted</div><div class="v c">P1</div></div>
+          <div class="evt"><div class="d w"></div><div class="t">13:44:58</div><div class="e"><b>kafka-broker-3</b> consumer lag 48k on orders.events</div><div class="v">P2</div></div>
+          <div class="evt"><div class="d w"></div><div class="t">13:30:11</div><div class="e"><b>edge-lb-07</b> 5xx rate 0.8% sustained 10m window</div><div class="v">P2</div></div>
+          <div class="evt"><div class="d w"></div><div class="t">13:12:33</div><div class="e"><b>pg-analytics-02</b> replication lag 28s &gt; 10s threshold</div><div class="v">P2</div></div>
+          <div class="evt"><div class="d"></div><div class="t">12:58:07</div><div class="e"><b>runbook-engine</b> auto-remediation restart-payments-api · ok 42s</div><div class="v">INFO</div></div>
+          <div class="evt"><div class="d"></div><div class="t">12:41:22</div><div class="e"><b>canary-deploy</b> checkout-v2 paused at 25% · p99 +180ms</div><div class="v">INFO</div></div>
+        </div>
+      </div>
+
+      <!-- Topology pulse -->
+      <div class="card topo-card">
+        <h3>Topology Pulse <span class="tag">mesh</span></h3>
+        <svg style="position:absolute;inset:18px 18px auto 18px;width:calc(100% - 36px);height:210px;pointer-events:none;z-index:0" viewBox="0 0 320 210" preserveAspectRatio="none">
+          <defs><linearGradient id="gC-ln" x1="0" x2="1"><stop offset="0" stop-color="#00d9ff" stop-opacity=".7"/><stop offset="1" stop-color="#00d9ff" stop-opacity=".25"/></linearGradient></defs>
+          <line x1="160" y1="40" x2="70" y2="110" stroke="url(#gC-ln)" stroke-width="1.2"/>
+          <line x1="160" y1="40" x2="250" y2="110" stroke="url(#gC-ln)" stroke-width="1.2"/>
+          <line x1="70" y1="110" x2="160" y2="170" stroke="#ff2975" stroke-width="1.6" stroke-dasharray="4 3"/>
+          <line x1="250" y1="110" x2="160" y2="170" stroke="url(#gC-ln)" stroke-width="1.2"/>
+          <line x1="70" y1="110" x2="250" y2="110" stroke="url(#gC-ln)" stroke-width="1" stroke-opacity=".5"/>
+          <line x1="160" y1="170" x2="110" y2="200" stroke="url(#gC-ln)" stroke-width="1"/>
+          <line x1="160" y1="170" x2="210" y2="200" stroke="url(#gC-ln)" stroke-width="1"/>
+        </svg>
+        <div class="topo">
+          <div class="tnode" style="left:50%;top:20%"><div class="orb"></div><div class="lbl">edge-lb</div></div>
+          <div class="tnode c" style="left:22%;top:52%"><div class="orb"></div><div class="lbl">payments</div></div>
+          <div class="tnode w" style="left:78%;top:52%"><div class="orb"></div><div class="lbl">redis</div></div>
+          <div class="tnode c" style="left:50%;top:80%"><div class="orb"></div><div class="lbl">checkout</div></div>
+          <div class="tnode" style="left:34%;top:95%"><div class="orb"></div><div class="lbl">auth</div></div>
+          <div class="tnode" style="left:66%;top:95%"><div class="orb"></div><div class="lbl">kafka</div></div>
+        </div>
+      </div>
+
+      <!-- Incident timeline -->
+      <div class="card timeline-card">
+        <h3>Incident Timeline · 24h <span class="tag">live</span></h3>
+        <div class="tl" id="tl"></div>
+        <div class="tl-legend">
+          <span><i style="background:var(--cyan);box-shadow:0 0 8px var(--cyan)"></i>Resolved</span>
+          <span><i style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></i>Warning</span>
+          <span><i style="background:var(--mag);box-shadow:0 0 10px var(--mag)"></i>Open · Critical</span>
+          <span style="margin-left:auto">Window 14:00 yesterday → 14:23 now</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+// constellation fleet dots
+const fleet=document.getElementById('fleet');
+const pts=[];for(let i=0;i<56;i++)pts.push([12+Math.random()*76,12+Math.random()*76]);
+pts.forEach((p,i)=>{const d=document.createElement('div');d.className='node';
+  if(i===8||i===23||i===41)d.className='node c';else if(i===14||i===30||i===45)d.className='node w';else if(i===37)d.className='node o';
+  d.style.left=p[0]+'%';d.style.top=p[1]+'%';fleet.appendChild(d)});
+// timeline ticks + events
+const tl=document.getElementById('tl');
+for(let h=0;h<=24;h+=3){const t=document.createElement('div');t.className='tick';t.style.left=(h/24*100)+'%';tl.appendChild(t);
+  const l=document.createElement('div');l.className='tlbl';l.style.left=(h/24*100)+'%';l.textContent=(14+h)%24+':00';tl.appendChild(l)}
+[[4,'ok'],[7.5,'ok'],[9,'w'],[11,'ok'],[13,'w'],[16,'ok'],[17.5,'w'],[20,'ok'],[22.5,'c'],[23,'c'],[23.4,'c']].forEach(([h,k])=>{
+  const d=document.createElement('div');d.className='dot '+k;d.style.left=(h/24*100)+'%';tl.appendChild(d)});
+</script>
+</body></html>

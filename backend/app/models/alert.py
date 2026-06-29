@@ -43,6 +43,11 @@ class AlertRule(Base):
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)  # 是否启用该规则 (Is Rule Enabled)
     target_type: Mapped[str] = mapped_column(String(20), nullable=False, default="host")  # 目标类型：主机/服务 (Target Type: host/service)
     target_filter: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # 目标过滤条件 JSON (Target Filter Conditions)
+    # Prometheus PromQL 告警字段 (Prometheus PromQL Alerting Fields)
+    # 非空时走 sidecar 触发路径；为空时走既有 metric+threshold 路径。
+    query_expr: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # PromQL 表达式 (PromQL expression)
+    for_duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 表达式持续满足的时长（Prom for 语义）
+    prom_rule_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # 上次同步到 rules.yml 时间
     # 日志关键字告警字段 (Log Keyword Alert Fields)
     rule_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default="metric")  # 规则类型：指标/日志关键字/数据库 (Rule Type: metric/log_keyword/db_metric)
     log_keyword: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # 日志关键字 (Log Keyword)

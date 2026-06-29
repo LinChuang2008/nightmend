@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><title>VigilOps · The Ops Journal · Vol. IV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#fafaf7;--ink:#1a1a1a;--ink-soft:#3c3a36;--muted:#6b6660;--dim:#9a958d;--rule:#c8c4bb;--rule-dim:#e4e1d9;--red:#c41e3a;--olive:#5e6b2a;--navy:#2a3e6b;--serif:'Fraunces',Georgia,serif;--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--paper)}
+body{background:var(--paper);background-image:radial-gradient(rgba(0,0,0,0.018) 1px,transparent 1px);background-size:3px 3px;color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;display:grid;grid-template-columns:56px 1fr}
+.rail{background:var(--paper);border-right:1px solid var(--rule);height:100vh;position:sticky;top:0;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:2px}
+.rail-mark{font-family:var(--serif);font-weight:900;font-size:26px;line-height:1;color:var(--ink);margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--rule);width:32px;text-align:center}
+.rail-ico{width:36px;height:36px;display:grid;place-items:center;color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:13px;border-radius:3px;position:relative}
+.rail-ico:hover{color:var(--ink);background:rgba(0,0,0,.03)}
+.rail-ico.on{color:var(--ink)}
+.rail-ico.on::after{content:"";position:absolute;bottom:2px;left:8px;right:8px;height:2px;background:var(--ink)}
+.rail-ico .n{position:absolute;top:2px;right:4px;font-size:9px;color:var(--red);font-weight:700}
+.page{max-width:1240px;padding:20px 36px 60px;margin:0 auto;width:100%}
+.masthead{display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:12px;border-bottom:3px double var(--ink);margin-bottom:4px}
+.masthead h1{font-family:var(--serif);font-weight:900;font-size:52px;line-height:.95;letter-spacing:-.02em}
+.masthead .sub{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em;margin-top:6px}
+.masthead .dateline{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;text-align:right;line-height:1.7}
+.masthead .dateline b{color:var(--ink);font-weight:600}
+.press-strip{display:flex;gap:24px;padding:6px 0;border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:24px}
+.press-strip b{color:var(--ink);font-weight:600}
+.press-strip .live{color:var(--red)}
+.press-strip .live::before{content:"●";margin-right:4px}
+.hero-grid{display:grid;grid-template-columns:8fr 4fr;gap:28px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.kicker{font-family:var(--mono);font-size:11px;color:var(--red);font-weight:600;text-transform:uppercase;letter-spacing:.2em;margin-bottom:10px}
+.headline{font-family:var(--serif);font-weight:700;font-size:58px;line-height:1.02;letter-spacing:-.025em;color:var(--ink);margin-bottom:14px}
+.headline em{font-style:italic;font-weight:500}
+.deck{font-family:var(--serif);font-style:italic;font-weight:400;font-size:21px;line-height:1.4;color:var(--ink-soft);margin-bottom:18px;max-width:680px}
+hr.rule{border:none;border-top:1px solid var(--rule);margin:0}
+hr.rule-thick{border:none;border-top:2px solid var(--ink);margin:14px 0}
+.hero-body{display:grid;grid-template-columns:1.35fr 1fr;gap:28px;margin-top:14px}
+.prose{font-size:14.5px;line-height:1.65;color:var(--ink-soft)}
+.prose p{margin-bottom:10px}
+.prose p:first-letter{font-family:var(--serif);font-weight:900;font-size:42px;float:left;line-height:.95;padding:3px 8px 0 0}
+.prose .byline{display:block;margin-top:14px;font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em}
+.at-glance-head{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em;border-bottom:1px solid var(--rule);padding-bottom:6px;margin-bottom:10px}
+.stat-row{display:flex;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px dotted var(--rule-dim)}
+.stat-row .n{font-family:var(--mono);font-weight:600;font-size:26px;color:var(--ink);letter-spacing:-.02em;min-width:90px}
+.stat-row .n.red{color:var(--red)}
+.stat-row .n.olive{color:var(--olive)}
+.stat-row .lbl{font-family:var(--sans);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.stat-row .trend{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.stat-row .trend.up{color:var(--red)}.stat-row .trend.dn{color:var(--olive)}
+.section-rule{display:flex;align-items:center;gap:12px;margin:28px 0 14px;font-family:var(--mono);font-size:11px;color:var(--ink);text-transform:uppercase;letter-spacing:.22em;font-weight:600}
+.section-rule::before,.section-rule::after{content:"";flex:1;border-top:1px solid var(--ink)}
+.section-rule .meta{color:var(--muted);font-weight:400;letter-spacing:.14em}
+.standings{padding-left:0}
+.standings h3{font-family:var(--serif);font-weight:700;font-size:28px;line-height:1;margin-bottom:4px}
+.standings .sub{font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin-bottom:12px}
+.standings-row{display:grid;grid-template-columns:24px 1fr 110px 60px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule-dim);font-size:13px}
+.standings-row .rnk{font-family:var(--mono);font-size:12px;color:var(--dim);font-weight:500}
+.standings-row .svc{font-weight:500;color:var(--ink)}
+.standings-row .svc small{color:var(--muted);font-weight:400;margin-left:6px;font-family:var(--mono);font-size:11px}
+.standings-row .bar-wrap{height:6px;background:var(--rule-dim);position:relative;border-radius:0}
+.standings-row .bar-fill{position:absolute;left:0;top:0;bottom:0;background:var(--ink)}
+.standings-row .bar-fill.red{background:var(--red)}
+.standings-row .val{font-family:var(--mono);font-size:12px;color:var(--ink);text-align:right;font-weight:500}
+.standings-row .val.red{color:var(--red)}
+.ledger{columns:2;column-gap:36px;column-rule:1px solid var(--rule)}
+.entry{break-inside:avoid;padding-bottom:16px;margin-bottom:16px;border-bottom:1px dotted var(--rule-dim)}
+.entry:last-child{border-bottom:none}
+.entry-head{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+.entry-head .ts{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+.entry-head .sev{font-family:var(--serif);font-weight:900;font-size:14px;letter-spacing:.02em}
+.entry-head .sev.p1{color:var(--red)}
+.entry-head .sev.p2{color:var(--navy)}
+.entry-head .sev.p3{color:var(--muted)}
+.entry-head .svc{font-weight:600;color:var(--ink);font-size:13.5px}
+.entry .summary{font-size:13.5px;line-height:1.55;color:var(--ink-soft)}
+.entry .filed{display:block;margin-top:6px;font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--muted)}
+.pullquote{margin:40px auto 0;max-width:780px;text-align:center;padding:28px 20px;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.pullquote .mark{font-family:var(--serif);font-weight:900;font-size:76px;line-height:.6;color:var(--dim);display:block;margin-bottom:-6px}
+.pullquote blockquote{font-family:var(--serif);font-style:italic;font-weight:500;font-size:26px;line-height:1.35;color:var(--ink);letter-spacing:-.01em}
+.pullquote blockquote strong{color:var(--red);font-weight:700;font-style:normal}
+.pullquote cite{display:block;margin-top:14px;font-family:var(--mono);font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.18em;font-style:normal}
+.spark{width:100%;height:22px;display:block;margin-top:4px}
+</style></head>
+<body>
+<nav class="rail">
+  <div class="rail-mark">V</div>
+  <div class="rail-ico on" title="Dashboard">◆</div>
+  <div class="rail-ico" title="Topology">◇</div>
+  <div class="rail-ico" title="Hosts">▢</div>
+  <div class="rail-ico" title="Services">▣</div>
+  <div class="rail-ico" title="Alerts">△<span class="n">3</span></div>
+  <div class="rail-ico" title="Logs">≡</div>
+  <div class="rail-ico" title="SLA">∿</div>
+  <div class="rail-ico" title="On-Call">☏</div>
+  <div class="rail-ico" title="Runbooks">✎</div>
+  <div class="rail-ico" title="Settings" style="margin-top:auto">⚙</div>
+</nav>
+<main class="page">
+  <div class="masthead">
+    <div>
+      <h1>VigilOps</h1>
+      <div class="sub">The Ops Journal · Vol. IV · Wednesday Edition</div>
+    </div>
+    <div class="dateline">
+      <b>WED · 22 APR 2026</b><br>
+      Press time 14:23 UTC · APAC-1 desk<br>
+      Edited by <b>patrick@vigilops.io</b>
+    </div>
+  </div>
+  <div class="press-strip">
+    <span class="live">LIVE · production</span>
+    <span>Uptime <b>99.97%</b></span>
+    <span>Open incidents <b>3</b></span>
+    <span>On-call <b>yang.liu</b> · hands off 18:00 to <b>eu-team</b></span>
+    <span style="margin-left:auto">Issue #04-22-wed</span>
+  </div>
+  <div class="hero-grid">
+    <div>
+      <div class="kicker">Today's Wire · Critical</div>
+      <h2 class="headline">Three Incidents Concentrate in <em>Payments</em> Cluster.</h2>
+      <div class="deck">Highest-severity burn detected in payments-api; MTTR trending 12% above monthly average as the Asia on-call rotation prepares to hand off to European desks at 18:00 UTC.</div>
+      <hr class="rule">
+      <div class="hero-body">
+        <div class="prose">
+          <p>At 14:23 UTC the payments-api cluster in prod-apac-1 breached its p99 latency SLO for the fifth consecutive five-minute window. Downstream, the checkout-service followed with error rates climbing to 8.2%, more than eight times the published 1% threshold. Redis primary in the data-1 region reported connection-pool exhaustion one hour prior.</p>
+          <p>Auto-remediation attempted a rolling restart on payments-api at 12:58, clearing a connection leak and restoring latency for 94 minutes. The current breach appears unrelated in source but overlapping in blast radius.</p>
+          <p>The on-call engineer, <em>yang.liu</em>, has acknowledged two of three open tickets; a third has been escalated to <em>patrick.w</em> under the severity-1 playbook. A canary deploy of checkout-v2 was paused at 25% rollout after a 180ms p99 regression.</p>
+          <span class="byline">Filed 14:23 UTC by the alert engine · revised every 30s</span>
+        </div>
+        <aside>
+          <div class="at-glance-head">At a Glance</div>
+          <div class="stat-row"><span class="n red">3</span><span class="lbl">Open P1 incidents</span><span class="trend up">▲ 1 · 15m</span></div>
+          <div class="stat-row"><span class="n">12</span><span class="lbl">Warning alerts</span><span class="trend dn">▼ 4 · 1h</span></div>
+          <div class="stat-row"><span class="n olive">99.97%</span><span class="lbl">Uptime · 30d</span><span class="trend">SLO 99.95</span></div>
+          <div class="stat-row"><span class="n">47s</span><span class="lbl">MTTR</span><span class="trend up">▲ 12% · 7d</span></div>
+          <div class="stat-row"><span class="n">247</span><span class="lbl">Hosts online</span><span class="trend">of 248</span></div>
+        </aside>
+      </div>
+    </div>
+    <aside>
+      <div class="standings">
+        <h3>Service Standings</h3>
+        <div class="sub">Top by alert noise · last 24h</div>
+        <div class="standings-row"><span class="rnk">01</span><span class="svc">payments-api<small>prod-apac-1</small></span><span class="bar-wrap"><span class="bar-fill red" style="width:92%"></span></span><span class="val red">2,430ms</span></div>
+        <div class="standings-row"><span class="rnk">02</span><span class="svc">checkout-service<small>prod-apac-1</small></span><span class="bar-wrap"><span class="bar-fill red" style="width:78%"></span></span><span class="val red">8.2% err</span></div>
+        <div class="standings-row"><span class="rnk">03</span><span class="svc">redis-primary<small>data-1</small></span><span class="bar-wrap"><span class="bar-fill" style="width:62%"></span></span><span class="val">512/512</span></div>
+        <div class="standings-row"><span class="rnk">04</span><span class="svc">kafka-broker-3<small>infra</small></span><span class="bar-wrap"><span class="bar-fill" style="width:48%"></span></span><span class="val">48k lag</span></div>
+        <div class="standings-row"><span class="rnk">05</span><span class="svc">edge-lb-07<small>edge-apac</small></span><span class="bar-wrap"><span class="bar-fill" style="width:36%"></span></span><span class="val">0.8% 5xx</span></div>
+        <div class="standings-row"><span class="rnk">06</span><span class="svc">pg-analytics-02<small>data-1</small></span><span class="bar-wrap"><span class="bar-fill" style="width:28%"></span></span><span class="val">28s lag</span></div>
+        <div class="standings-row"><span class="rnk">07</span><span class="svc">auth-service<small>prod-apac-1</small></span><span class="bar-wrap"><span class="bar-fill" style="width:22%"></span></span><span class="val">68% SLO</span></div>
+        <div class="standings-row"><span class="rnk">08</span><span class="svc">search-indexer<small>data-2</small></span><span class="bar-wrap"><span class="bar-fill" style="width:14%"></span></span><span class="val">2 warn</span></div>
+      </div>
+    </aside>
+  </div>
+  <div class="section-rule">Incident Ledger · Recent<span class="meta" style="letter-spacing:.14em">— filed last 24 hours, ordered by severity</span></div>
+  <div class="ledger">
+    <div class="entry">
+      <div class="entry-head"><span class="ts">14:23:47 UTC</span><span class="sev p1">P1</span><span class="svc">payments-api / prod-apac-1</span></div>
+      <div class="summary">Latency p99 breached 800ms SLO threshold reaching 2.4 seconds over a five-minute window. Downstream checkout service observed error-rate spike to 8.2%; auto-remediation rolled restart, awaiting human acknowledgement on root cause.</div>
+      <span class="filed">Filed by alert-engine · acknowledged by yang.liu 3 minutes ago</span>
+    </div>
+    <div class="entry">
+      <div class="entry-head"><span class="ts">14:18:02 UTC</span><span class="sev p1">P1</span><span class="svc">checkout-service / prod-apac-1</span></div>
+      <div class="summary">Error rate 8.2% sustained, more than eight times the 1% service-level objective. Correlated with payments-api degradation upstream. Escalated per sev-1 policy to secondary on-call.</div>
+      <span class="filed">Filed by alert-engine · escalated to patrick.w</span>
+    </div>
+    <div class="entry">
+      <div class="entry-head"><span class="ts">13:52:14 UTC</span><span class="sev p1">P1</span><span class="svc">redis-primary / data-1</span></div>
+      <div class="summary">Connection pool exhausted at 512 of 512. Slowlog entries accumulating at 14 per second. Failover window under review; data-team performing buffer probe before restart.</div>
+      <span class="filed">Filed by alert-engine · acknowledged by zhang.q</span>
+    </div>
+    <div class="entry">
+      <div class="entry-head"><span class="ts">13:44:58 UTC</span><span class="sev p2">P2</span><span class="svc">kafka-broker-3 / infra</span></div>
+      <div class="summary">Consumer lag on topic <em>orders.events</em> climbed to 48,000 messages. Broker restart considered out of scope per playbook; horizontal partition reassignment scheduled.</div>
+      <span class="filed">Filed by alert-engine · acknowledged by yang.liu</span>
+    </div>
+    <div class="entry">
+      <div class="entry-head"><span class="ts">13:30:11 UTC</span><span class="sev p2">P2</span><span class="svc">edge-lb-07 / edge-apac</span></div>
+      <div class="summary">5xx rate 0.8% sustained across a ten-minute window. Likely upstream timeout from payments cluster; investigation currently blocked on root-cause resolution upstream.</div>
+      <span class="filed">Unassigned · rotation window 14:00–18:00 UTC</span>
+    </div>
+    <div class="entry">
+      <div class="entry-head"><span class="ts">13:12:33 UTC</span><span class="sev p3">P3</span><span class="svc">pg-analytics-02 / data-1</span></div>
+      <div class="summary">Replication lag 28 seconds exceeded the 10-second threshold. Auto-resolved after 6 minutes of catch-up when the upstream write pressure eased. Logged for trend review.</div>
+      <span class="filed">Filed by alert-engine · resolved automatically</span>
+    </div>
+  </div>
+  <div class="pullquote">
+    <span class="mark">“</span>
+    <blockquote>SLO burn rate on <strong>auth-service</strong> has consumed 68% of error budget this week, and the pace is not slowing.</blockquote>
+    <cite>— SLA Monitor · sampled 14:23 UTC · page 7 of this issue</cite>
+  </div>
+</main></body></html>

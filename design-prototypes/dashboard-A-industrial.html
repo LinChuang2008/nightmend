@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><title>VigilOps · Dashboard · Industrial Command Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#141419;--surface-2:#1a1a21;--border:#27272a;--border-dim:#1f1f22;--text:#e4e4e7;--muted:#71717a;--dim:#52525b;--accent:#10b981;--accent-dim:#065f46;--warn:#f59e0b;--crit:#ef4444;--info:#3b82f6;--sans:'Geist',system-ui,sans-serif;--mono:'Geist Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.4;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;display:grid;grid-template-columns:200px 1fr}
+.sidebar{background:var(--bg);border-right:1px solid var(--border);height:100vh;position:sticky;top:0;overflow-y:auto}
+.logo{height:48px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border)}
+.logo-mark{width:18px;height:18px;background:var(--accent);border-radius:3px;display:grid;place-items:center;color:#000;font-weight:700;font-size:11px}
+.logo-text{font-weight:700;font-size:13px;letter-spacing:.02em}
+.nav-group{padding:14px 0 4px}
+.nav-title{font-family:var(--mono);font-size:10px;color:var(--dim);padding:0 16px 6px;text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:10px;padding:5px 16px;color:var(--muted);font-size:12.5px;cursor:pointer;border-right:2px solid transparent;text-decoration:none}
+.nav-item:hover{background:var(--surface);color:var(--text)}
+.nav-item.active{color:var(--accent);border-right-color:var(--accent);background:var(--surface)}
+.nav-item .badge{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim);background:var(--surface-2);padding:1px 5px;border-radius:3px}
+.nav-item.active .badge{color:var(--accent);background:rgba(16,185,129,.1)}
+.main{display:flex;flex-direction:column;min-width:0}
+header.topbar{height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:24px;background:var(--bg);position:sticky;top:0;z-index:10}
+.breadcrumb{color:var(--muted);font-size:12.5px}
+.breadcrumb .sep{color:var(--dim);margin:0 8px}
+.breadcrumb .current{color:var(--text)}
+.search{flex:1;max-width:480px;margin-left:auto;position:relative}
+.search input{width:100%;height:30px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:0 10px 0 28px;font-size:12.5px;font-family:var(--sans)}
+.search input:focus{outline:none;border-color:var(--accent)}
+.search .icon{position:absolute;left:9px;top:8px;color:var(--dim)}
+.search kbd{position:absolute;right:8px;top:7px;font-family:var(--mono);font-size:10px;color:var(--dim);background:var(--surface-2);padding:1px 5px;border-radius:3px;border:1px solid var(--border)}
+.env{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--warn);padding:3px 8px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:3px}
+.agents{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.agents .dot{width:6px;height:6px;background:var(--accent);border-radius:50%;box-shadow:0 0 6px var(--accent)}
+.avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3f3f46,#52525b);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--text)}
+.content{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.kpi.gpu{background:linear-gradient(180deg,rgba(168,85,247,.06),transparent)}
+.kpi.gpu .kpi-label{color:#a855f7}
+.kpi.gpu .kpi-value{color:#c084fc}
+.kpi{padding:14px 18px;border-right:1px solid var(--border)}
+.kpi:last-child{border-right:none}
+.kpi-label{font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.kpi-value{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-.02em}
+.kpi-value.crit{color:var(--crit)}.kpi-value.warn{color:var(--warn)}.kpi-value.ok{color:var(--accent)}
+.kpi-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px}
+.kpi-sub .delta-up{color:var(--crit)}.kpi-sub .delta-down{color:var(--accent)}
+.row{display:grid;gap:16px}
+.row-2-1{grid-template-columns:2fr 1fr}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.panel-head{height:40px;padding:0 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.panel-title{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.panel-meta{margin-left:auto;display:flex;gap:4px}
+.chip{font-family:var(--mono);font-size:10px;color:var(--muted);padding:3px 8px;border:1px solid var(--border);border-radius:3px;background:transparent;cursor:pointer}
+.chip.active{color:var(--accent);border-color:var(--accent-dim);background:rgba(16,185,129,.08)}
+.panel-body{padding:14px 16px}
+.chart{width:100%;height:220px}
+.legend{display:flex;gap:16px;margin-top:8px;font-family:var(--mono);font-size:11px}
+.legend-item{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.legend-dot{width:8px;height:8px;border-radius:2px}
+.heatmap{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:4px 0}
+.cell{aspect-ratio:1;border-radius:2px;position:relative}
+.cell.ok{background:var(--accent);opacity:.85}
+.cell.warn{background:var(--warn);opacity:.9}
+.cell.crit{background:var(--crit);opacity:.95;box-shadow:0 0 8px rgba(239,68,68,.5)}
+.cell.off{background:var(--surface-2);border:1px solid var(--border-dim)}
+.cell.ok:hover,.cell.warn:hover,.cell.crit:hover{transform:scale(1.15);z-index:2;transition:transform .15s}
+.heatmap-legend{display:flex;gap:14px;margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+.heatmap-legend .dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+table.alerts{width:100%;border-collapse:collapse;font-size:12.5px}
+table.alerts th{font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);font-weight:500}
+table.alerts td{padding:8px 12px;border-bottom:1px solid var(--border-dim);color:var(--text);height:32px;vertical-align:middle}
+table.alerts tr:hover td{background:var(--surface-2)}
+.sev{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em;display:inline-block}
+.sev.crit{background:rgba(239,68,68,.12);color:var(--crit);border:1px solid rgba(239,68,68,.25)}
+.sev.warn{background:rgba(245,158,11,.12);color:var(--warn);border:1px solid rgba(245,158,11,.25)}
+.sev.info{background:rgba(59,130,246,.12);color:var(--info);border:1px solid rgba(59,130,246,.25)}
+.ts{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.src{font-weight:500;color:var(--text)}
+.msg{color:var(--muted);max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
+.state{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;text-transform:uppercase}
+.state.open{background:rgba(239,68,68,.08);color:var(--crit)}
+.state.ack{background:rgba(245,158,11,.08);color:var(--warn)}
+.state.esc{background:rgba(59,130,246,.08);color:var(--info)}
+.state.res{background:rgba(113,113,122,.08);color:var(--muted)}
+.assignee{display:flex;align-items:center;gap:6px}
+.assignee .av{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#3f3f46,#52525b);display:grid;place-items:center;font-size:10px;font-weight:600}
+.row-filters{display:flex;gap:6px;align-items:center}
+.toolbar-btn{font-family:var(--mono);font-size:10px;color:var(--muted);background:transparent;border:1px solid var(--border);padding:4px 10px;border-radius:3px;cursor:pointer}
+.toolbar-btn:hover{color:var(--text);border-color:var(--muted)}
+.pill-filter{font-family:var(--mono);font-size:10px;color:var(--muted);padding:3px 8px;background:var(--surface-2);border:1px solid var(--border);border-radius:3px}
+.pill-filter b{color:var(--text);font-weight:600}
+/* FLEET METRICS TABLE */
+.fleet-table{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--sans)}
+.fleet-table thead th{font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);font-weight:500;background:var(--surface)}
+.fleet-table tbody td{padding:7px 12px;border-bottom:1px solid var(--border-dim);height:36px;vertical-align:middle}
+.fleet-table tbody tr:hover td{background:var(--surface-2)}
+.host-cell{display:flex;align-items:center;gap:10px;min-width:220px}
+.host-cell .sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.host-cell .sdot.ok{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.host-cell .sdot.w{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+.host-cell .sdot.c{background:var(--crit);box-shadow:0 0 8px var(--crit)}
+.host-cell .hname{font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--text)}
+.host-cell .hname a{color:inherit;text-decoration:none}
+.host-cell .hname a:hover{color:var(--accent)}
+.host-cell .hrole{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-left:auto;padding:1px 6px;background:var(--bg);border:1px solid var(--border);border-radius:3px}
+.mc{display:grid;grid-template-columns:48px 56px 40px;gap:8px;align-items:center;min-width:160px}
+.mc .val{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);text-align:right;white-space:nowrap}
+.mc .val.w{color:var(--warn)}.mc .val.c{color:var(--crit)}.mc .val.na{color:var(--dim);font-weight:400}
+.mc .bar{height:5px;background:var(--surface-2);border-radius:2px;overflow:hidden;position:relative}
+.mc .bar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.mc .bar i.w{background:var(--warn)}
+.mc .bar i.c{background:var(--crit);box-shadow:0 0 4px var(--crit)}
+.mc svg.spark{width:100%;height:18px;display:block}
+.fleet-foot{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.fleet-foot b{color:var(--text);font-weight:500}
+.fleet-foot .sep{color:var(--dim)}
+.fleet-foot a{margin-left:auto;color:var(--accent);text-decoration:none}
+.fleet-foot a:hover{text-decoration:underline}
+.view-toggle{display:flex;gap:0;margin-left:auto;background:var(--bg);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.view-toggle button{font-family:var(--mono);font-size:10px;color:var(--muted);background:transparent;border:0;padding:5px 10px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase}
+.view-toggle button.on{background:var(--surface-2);color:var(--accent)}
+.gpu-mark{font-family:var(--mono);font-size:9px;color:#a855f7;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);padding:1px 4px;border-radius:2px;margin-left:6px;letter-spacing:.06em}
+.sort-ind{font-family:var(--mono);font-size:9px;color:var(--accent);margin-left:4px}
+</style></head>
+<body>
+<aside class="sidebar">
+  <div class="logo"><div class="logo-mark">V</div><div class="logo-text">VIGILOPS</div></div>
+  <div class="nav-group">
+    <div class="nav-title">监控 · Monitoring</div>
+    <a class="nav-item active" href="dashboard-A-industrial.html">◆ Dashboard</a>
+    <a class="nav-item " href="hosts-A-industrial.html">▢ Hosts<span class="badge">247</span></a>
+    <a class="nav-item" href="#">▣ Services<span class="badge">62</span></a>
+    <a class="nav-item" href="#">❖ Topology</a>
+    <a class="nav-item" href="#" style="padding-left:38px">↳ Servers</a>
+    <a class="nav-item" href="#" style="padding-left:38px">↳ Service Groups</a>
+    <a class="nav-item" href="#">≡ Logs</a>
+    <a class="nav-item" href="#">▤ Databases<span class="badge">18</span></a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-title">告警 · Alerts</div>
+    <a class="nav-item " href="alerts-A-industrial.html">△ Alerts<span class="badge crit">3</span></a>
+    <a class="nav-item" href="#">⇈ Escalation</a>
+    <a class="nav-item" href="#">☏ On-Call</a>
+    <a class="nav-item" href="#">✓ SLA</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-title">分析 · AI Ops</div>
+    <a class="nav-item" href="#">✦ AI Analysis</a>
+    <a class="nav-item" href="#">⌛ AI Op Logs</a>
+    <a class="nav-item" href="#">⚡ Remediation</a>
+    <a class="nav-item" href="#">✎ Runbooks</a>
+    <a class="nav-item" href="#">⎙ Reports</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-title">配置 · Config</div>
+    <a class="nav-item" href="#">◈ Channels</a>
+    <a class="nav-item" href="#">▦ Templates</a>
+    <a class="nav-item" href="#">☰ Notif Logs</a>
+    <a class="nav-item" href="#">⛨ Users</a>
+    <a class="nav-item" href="#">✓ Audit Logs</a>
+    <a class="nav-item" href="#">✦ AI Configs</a>
+    <a class="nav-item" href="#">⚙ Settings</a>
+  </div>
+</aside>
+<section class="main">
+  <header class="topbar">
+    <div class="breadcrumb"><span>Overview</span><span class="sep">/</span><span class="current">Dashboard</span></div>
+    <div class="search"><span class="icon">⌕</span><input placeholder="Search hosts, services, alerts, runbooks…"><kbd>⌘K</kbd></div>
+    <div class="env">● PROD · apac-1</div>
+    <div class="agents"><span class="dot"></span>247 AGENTS ONLINE</div>
+    <div class="avatar">PW</div>
+  </header>
+  <div class="content">
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-label">Active Hosts</div><div class="kpi-value">247</div><div class="kpi-sub"><span class="delta-down">▲ 2</span> vs 1h ago</div></div>
+      <div class="kpi"><div class="kpi-label">Critical Alerts</div><div class="kpi-value crit">3</div><div class="kpi-sub"><span class="delta-up">▲ 1</span> last 15m</div></div>
+      <div class="kpi"><div class="kpi-label">Warning</div><div class="kpi-value warn">12</div><div class="kpi-sub"><span class="delta-down">▼ 4</span> last 1h</div></div>
+      <div class="kpi"><div class="kpi-label">Uptime 30d</div><div class="kpi-value ok">99.97%</div><div class="kpi-sub">SLO target 99.95%</div></div>
+      <div class="kpi"><div class="kpi-label">MTTR</div><div class="kpi-value ok">47<span style="font-size:14px;color:var(--muted);margin-left:4px">s</span></div><div class="kpi-sub"><span class="delta-down">▼ 12%</span> vs 7d avg</div></div>
+      <div class="kpi gpu"><div class="kpi-label">GPU Util · avg</div><div class="kpi-value">58<span style="font-size:14px;color:var(--muted);margin-left:2px">%</span></div><div class="kpi-sub"><span style="color:#c084fc">14</span> GPU hosts · <span style="color:#ef4444">1 crit</span> · VRAM 61%</div></div>
+    </div>
+    <div class="row row-2-1">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Alert Volume · 24H · Stacked by Severity</div>
+          <div class="panel-meta">
+            <button class="chip">1H</button><button class="chip">6H</button>
+            <button class="chip active">24H</button><button class="chip">7D</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <svg class="chart" viewBox="0 0 720 220" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="gA-red" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ef4444" stop-opacity=".7"/><stop offset="1" stop-color="#ef4444" stop-opacity=".05"/></linearGradient>
+              <linearGradient id="gA-amb" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f59e0b" stop-opacity=".65"/><stop offset="1" stop-color="#f59e0b" stop-opacity=".04"/></linearGradient>
+              <linearGradient id="gA-blu" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#3b82f6" stop-opacity=".55"/><stop offset="1" stop-color="#3b82f6" stop-opacity=".03"/></linearGradient>
+            </defs>
+            <!-- grid lines -->
+            <g stroke="#27272a" stroke-width="1">
+              <line x1="40" y1="20"  x2="700" y2="20"/>
+              <line x1="40" y1="70"  x2="700" y2="70"/>
+              <line x1="40" y1="120" x2="700" y2="120"/>
+              <line x1="40" y1="170" x2="700" y2="170"/>
+            </g>
+            <!-- y-axis labels -->
+            <g font-family="Geist Mono" font-size="10" fill="#52525b" text-anchor="end">
+              <text x="34" y="24">40</text><text x="34" y="74">30</text>
+              <text x="34" y="124">20</text><text x="34" y="174">10</text><text x="34" y="200">0</text>
+            </g>
+            <!-- info (blue) area -->
+            <path fill="url(#gA-blu)" stroke="#3b82f6" stroke-width="1.2" d="M40,190 L70,182 L100,178 L130,185 L160,170 L190,175 L220,160 L250,168 L280,150 L310,158 L340,140 L370,145 L400,130 L430,142 L460,128 L490,135 L520,115 L550,125 L580,110 L610,118 L640,105 L670,112 L700,100 L700,200 L40,200 Z"/>
+            <!-- warn (amber) area -->
+            <path fill="url(#gA-amb)" stroke="#f59e0b" stroke-width="1.2" d="M40,175 L70,168 L100,160 L130,172 L160,148 L190,155 L220,135 L250,145 L280,122 L310,130 L340,108 L370,115 L400,98 L430,112 L460,90 L490,102 L520,78 L550,88 L580,70 L610,82 L640,65 L670,72 L700,58 L700,100 L670,112 L640,105 L610,118 L580,110 L550,125 L520,115 L490,135 L460,128 L430,142 L400,130 L370,145 L340,140 L310,158 L280,150 L250,168 L220,160 L190,175 L160,170 L130,185 L100,178 L70,182 L40,190 Z"/>
+            <!-- crit (red) area -->
+            <path fill="url(#gA-red)" stroke="#ef4444" stroke-width="1.4" d="M40,160 L70,150 L100,140 L130,158 L160,125 L190,132 L220,108 L250,120 L280,90 L310,100 L340,72 L370,82 L400,60 L430,78 L460,45 L490,58 L520,32 L550,48 L580,22 L610,38 L640,18 L670,28 L700,10 L700,58 L670,72 L640,65 L610,82 L580,70 L550,88 L520,78 L490,102 L460,90 L430,112 L400,98 L370,115 L340,108 L310,130 L280,122 L250,145 L220,135 L190,155 L160,148 L130,172 L100,160 L70,168 L40,175 Z"/>
+            <!-- x-axis -->
+            <g font-family="Geist Mono" font-size="10" fill="#52525b" text-anchor="middle">
+              <text x="40" y="215">14:00</text><text x="150" y="215">18:00</text>
+              <text x="260" y="215">22:00</text><text x="370" y="215">02:00</text>
+              <text x="480" y="215">06:00</text><text x="590" y="215">10:00</text><text x="700" y="215">14:00</text>
+            </g>
+            <!-- peak marker -->
+            <circle cx="520" cy="32" r="4" fill="#ef4444" stroke="#0a0a0f" stroke-width="2"/>
+            <text x="528" y="30" font-family="Geist Mono" font-size="10" fill="#ef4444">peak 38 · 06:00</text>
+          </svg>
+          <div class="legend">
+            <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Critical<b style="margin-left:6px;color:var(--text)">127</b></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Warning<b style="margin-left:6px;color:var(--text)">482</b></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Info<b style="margin-left:6px;color:var(--text)">1,204</b></div>
+            <div class="legend-item" style="margin-left:auto">MTTR 47s · SLO 99.97%</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Host Health Matrix · 48 of 247</div>
+          <div class="panel-meta"><button class="chip active">APAC-1</button></div>
+        </div>
+        <div class="panel-body">
+          <div class="heatmap" id="heat"></div>
+          <div class="heatmap-legend">
+            <span><i class="dot" style="background:#10b981"></i>Healthy 41</span>
+            <span><i class="dot" style="background:#f59e0b"></i>Warn 3</span>
+            <span><i class="dot" style="background:#ef4444"></i>Crit 3</span>
+            <span><i class="dot" style="background:#1a1a21;border:1px solid #27272a"></i>Offline 1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Host Fleet · Live Metrics · Top 10 of 247</div>
+        <div class="row-filters panel-meta">
+          <span class="pill-filter">role:<b>all</b></span>
+          <span class="pill-filter">region:<b>apac-1</b></span>
+          <span class="pill-filter">status:<b>any</b></span>
+          <span class="pill-filter">sort:<b>CPU ▼</b></span>
+          <div class="view-toggle">
+            <button class="on">TABLE</button>
+            <button>MATRIX</button>
+            <button>MAP</button>
+          </div>
+        </div>
+      </div>
+      <table class="fleet-table">
+        <thead><tr>
+          <th style="width:230px">Host<span class="sort-ind"></span></th>
+          <th>CPU<span class="sort-ind">▼</span></th>
+          <th>GPU</th>
+          <th>Memory</th>
+          <th>Disk</th>
+          <th>Network</th>
+          <th style="width:80px">Uptime</th>
+          <th style="width:70px">Alerts</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><div class="host-cell"><span class="sdot c"></span><span class="hname"><a href="hosts-A-industrial.html">ml-infer-01</a></span><span class="hrole">ml-inference · gpu</span></div></td>
+            <td><div class="mc"><span class="val c">82.4%</span><span class="bar"><i class="c" style="width:82%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#ef4444" stroke-width="1.2" d="M0,14 L10,13 L20,10 L30,11 L40,8 L50,6 L60,5 L70,4 L80,3"/></svg></div></td>
+            <td><div class="mc"><span class="val c">94.1%<span class="gpu-mark">A100</span></span><span class="bar"><i class="c" style="width:94%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#a855f7" stroke-width="1.2" d="M0,12 L10,11 L20,9 L30,8 L40,5 L50,4 L60,3 L70,2 L80,1"/></svg></div></td>
+            <td><div class="mc"><span class="val c">92.0%</span><span class="bar"><i class="c" style="width:92%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#ef4444" stroke-width="1.2" d="M0,10 L10,10 L20,9 L30,8 L40,7 L50,6 L60,5 L70,5 L80,4"/></svg></div></td>
+            <td><div class="mc"><span class="val w">60%</span><span class="bar"><i class="w" style="width:60%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#f59e0b" stroke-width="1.2" d="M0,13 L10,12 L20,11 L30,10 L40,10 L50,9 L60,8 L70,8 L80,7"/></svg></div></td>
+            <td><div class="mc"><span class="val">890<span style="font-size:10px;color:var(--muted);margin-left:3px">Mbps</span></span><span class="bar"><i class="w" style="width:45%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,10 L10,8 L20,10 L30,6 L40,8 L50,4 L60,6 L70,3 L80,5"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">18d 4h</span></td>
+            <td><span class="sev crit" style="font-size:10px;padding:2px 6px">2 CRIT</span></td>
+          </tr>
+          <tr>
+            <td><div class="host-cell"><span class="sdot w"></span><span class="hname"><a href="hosts-A-industrial.html">pay-api-01</a></span><span class="hrole">payments-api</span></div></td>
+            <td><div class="mc"><span class="val w">72.4%</span><span class="bar"><i class="w" style="width:72%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#f59e0b" stroke-width="1.2" d="M0,12 L10,10 L20,11 L30,9 L40,8 L50,6 L60,5 L70,4 L80,3"/></svg></div></td>
+            <td><div class="mc"><span class="val na">—</span><span class="bar"><i style="width:0"></i></span><span></span></div></td>
+            <td><div class="mc"><span class="val w">88.2%</span><span class="bar"><i class="w" style="width:88%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#f59e0b" stroke-width="1.2" d="M0,10 L10,9 L20,8 L30,7 L40,6 L50,5 L60,4 L70,3 L80,2"/></svg></div></td>
+            <td><div class="mc"><span class="val">42%</span><span class="bar"><i style="width:42%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,10 L10,10 L20,11 L30,10 L40,10 L50,9 L60,10 L70,9 L80,9"/></svg></div></td>
+            <td><div class="mc"><span class="val">412<span style="font-size:10px;color:var(--muted);margin-left:3px">Mbps</span></span><span class="bar"><i style="width:30%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,12 L10,10 L20,8 L30,9 L40,6 L50,8 L60,5 L70,4 L80,3"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">42d 11h</span></td>
+            <td><span class="sev crit" style="font-size:10px;padding:2px 6px">1 CRIT</span></td>
+          </tr>
+          <tr>
+            <td><div class="host-cell"><span class="sdot w"></span><span class="hname">checkout-01</span><span class="hrole">checkout-service</span></div></td>
+            <td><div class="mc"><span class="val w">66.1%</span><span class="bar"><i class="w" style="width:66%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#f59e0b" stroke-width="1.2" d="M0,13 L10,11 L20,10 L30,9 L40,7 L50,6 L60,7 L70,5 L80,4"/></svg></div></td>
+            <td><div class="mc"><span class="val na">—</span><span class="bar"><i style="width:0"></i></span><span></span></div></td>
+            <td><div class="mc"><span class="val w">71.0%</span><span class="bar"><i class="w" style="width:71%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#f59e0b" stroke-width="1.2" d="M0,11 L10,10 L20,10 L30,9 L40,8 L50,7 L60,7 L70,6 L80,5"/></svg></div></td>
+            <td><div class="mc"><span class="val">40%</span><span class="bar"><i style="width:40%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,10 L10,10 L20,10 L30,10 L40,11 L50,10 L60,10 L70,10 L80,10"/></svg></div></td>
+            <td><div class="mc"><span class="val">180<span style="font-size:10px;color:var(--muted);margin-left:3px">Mbps</span></span><span class="bar"><i style="width:15%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,12 L10,11 L20,12 L30,10 L40,11 L50,9 L60,10 L70,8 L80,9"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">18d 2h</span></td>
+            <td><span class="sev crit" style="font-size:10px;padding:2px 6px">1 CRIT</span></td>
+          </tr>
+          <tr>
+            <td><div class="host-cell"><span class="sdot c"></span><span class="hname">redis-pri-01</span><span class="hrole">redis-primary</span></div></td>
+            <td><div class="mc"><span class="val">42.0%</span><span class="bar"><i style="width:42%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,12 L10,11 L20,12 L30,10 L40,11 L50,9 L60,8 L70,9 L80,8"/></svg></div></td>
+            <td><div class="mc"><span class="val na">—</span><span class="bar"><i style="width:0"></i></span><span></span></div></td>
+            <td><div class="mc"><span class="val w">78.0%</span><span class="bar"><i class="w" style="width:78%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#f59e0b" stroke-width="1.2" d="M0,11 L10,10 L20,9 L30,8 L40,7 L50,6 L60,5 L70,5 L80,4"/></svg></div></td>
+            <td><div class="mc"><span class="val">28%</span><span class="bar"><i style="width:28%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,10 L10,10 L20,11 L30,10 L40,10 L50,10 L60,11 L70,10 L80,10"/></svg></div></td>
+            <td><div class="mc"><span class="val">680<span style="font-size:10px;color:var(--muted);margin-left:3px">Mbps</span></span><span class="bar"><i class="w" style="width:35%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,10 L10,8 L20,6 L30,4 L40,5 L50,3 L60,4 L70,2 L80,3"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">91d 6h</span></td>
+            <td><span class="sev crit" style="font-size:10px;padding:2px 6px">1 CRIT</span></td>
+          </tr>
+          <tr>
+            <td><div class="host-cell"><span class="sdot w"></span><span class="hname">kafka-b3</span><span class="hrole">kafka-broker</span></div></td>
+            <td><div class="mc"><span class="val">58.0%</span><span class="bar"><i style="width:58%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,10 L10,9 L20,11 L30,8 L40,9 L50,7 L60,8 L70,6 L80,7"/></svg></div></td>
+            <td><div class="mc"><span class="val na">—</span><span class="bar"><i style="width:0"></i></span><span></span></div></td>
+            <td><div class="mc"><span class="val w">82.0%</span><span class="bar"><i class="w" style="width:82%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#f59e0b" stroke-width="1.2" d="M0,11 L10,10 L20,9 L30,8 L40,7 L50,6 L60,5 L70,4 L80,3"/></svg></div></td>
+            <td><div class="mc"><span class="val w">71%</span><span class="bar"><i class="w" style="width:71%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#f59e0b" stroke-width="1.2" d="M0,11 L10,10 L20,9 L30,9 L40,8 L50,7 L60,6 L70,6 L80,5"/></svg></div></td>
+            <td><div class="mc"><span class="val">420<span style="font-size:10px;color:var(--muted);margin-left:3px">Mbps</span></span><span class="bar"><i style="width:30%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,10 L10,9 L20,8 L30,10 L40,7 L50,9 L60,6 L70,8 L80,5"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">64d 18h</span></td>
+            <td><span class="sev warn" style="font-size:10px;padding:2px 6px">1 WARN</span></td>
+          </tr>
+          <tr>
+            <td><div class="host-cell"><span class="sdot ok"></span><span class="hname">ml-infer-02</span><span class="hrole">ml-inference · gpu</span></div></td>
+            <td><div class="mc"><span class="val">54.0%</span><span class="bar"><i style="width:54%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,9 L10,10 L20,9 L30,10 L40,8 L50,9 L60,8 L70,9 L80,8"/></svg></div></td>
+            <td><div class="mc"><span class="val">62.0%<span class="gpu-mark">A100</span></span><span class="bar"><i class="w" style="width:62%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#a855f7" stroke-width="1.2" d="M0,10 L10,9 L20,8 L30,9 L40,7 L50,6 L60,7 L70,6 L80,7"/></svg></div></td>
+            <td><div class="mc"><span class="val w">74.0%</span><span class="bar"><i class="w" style="width:74%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#f59e0b" stroke-width="1.2" d="M0,11 L10,10 L20,10 L30,9 L40,9 L50,8 L60,7 L70,7 L80,6"/></svg></div></td>
+            <td><div class="mc"><span class="val">55%</span><span class="bar"><i style="width:55%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,11 L10,10 L20,11 L30,10 L40,10 L50,9 L60,10 L70,9 L80,9"/></svg></div></td>
+            <td><div class="mc"><span class="val">512<span style="font-size:10px;color:var(--muted);margin-left:3px">Mbps</span></span><span class="bar"><i style="width:35%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,10 L10,9 L20,10 L30,8 L40,9 L50,7 L60,8 L70,7 L80,8"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">22d 9h</span></td>
+            <td><span style="font-family:var(--mono);font-size:10px;color:var(--dim)">—</span></td>
+          </tr>
+          <tr>
+            <td><div class="host-cell"><span class="sdot ok"></span><span class="hname">pay-api-02</span><span class="hrole">payments-api</span></div></td>
+            <td><div class="mc"><span class="val">48.0%</span><span class="bar"><i style="width:48%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,10 L10,10 L20,9 L30,10 L40,9 L50,10 L60,9 L70,10 L80,9"/></svg></div></td>
+            <td><div class="mc"><span class="val na">—</span><span class="bar"><i style="width:0"></i></span><span></span></div></td>
+            <td><div class="mc"><span class="val">65.0%</span><span class="bar"><i style="width:65%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,10 L10,10 L20,10 L30,10 L40,10 L50,10 L60,11 L70,10 L80,10"/></svg></div></td>
+            <td><div class="mc"><span class="val">38%</span><span class="bar"><i style="width:38%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,10 L10,10 L20,10 L30,10 L40,11 L50,10 L60,10 L70,10 L80,10"/></svg></div></td>
+            <td><div class="mc"><span class="val">220<span style="font-size:10px;color:var(--muted);margin-left:3px">Mbps</span></span><span class="bar"><i style="width:18%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,11 L10,10 L20,11 L30,10 L40,11 L50,10 L60,10 L70,10 L80,10"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">42d 11h</span></td>
+            <td><span style="font-family:var(--mono);font-size:10px;color:var(--dim)">—</span></td>
+          </tr>
+          <tr>
+            <td><div class="host-cell"><span class="sdot w"></span><span class="hname">edge-lb-07</span><span class="hrole">edge-lb</span></div></td>
+            <td><div class="mc"><span class="val">35.0%</span><span class="bar"><i style="width:35%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,11 L10,10 L20,11 L30,10 L40,11 L50,10 L60,9 L70,10 L80,9"/></svg></div></td>
+            <td><div class="mc"><span class="val na">—</span><span class="bar"><i style="width:0"></i></span><span></span></div></td>
+            <td><div class="mc"><span class="val">28.0%</span><span class="bar"><i style="width:28%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,11 L10,11 L20,10 L30,11 L40,10 L50,11 L60,10 L70,10 L80,10"/></svg></div></td>
+            <td><div class="mc"><span class="val">12%</span><span class="bar"><i style="width:12%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,11 L10,11 L20,11 L30,11 L40,11 L50,11 L60,11 L70,11 L80,11"/></svg></div></td>
+            <td><div class="mc"><span class="val w">1.2<span style="font-size:10px;color:var(--muted);margin-left:3px">Gbps</span></span><span class="bar"><i class="w" style="width:60%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,8 L10,9 L20,6 L30,7 L40,5 L50,6 L60,4 L70,5 L80,3"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">102d 3h</span></td>
+            <td><span class="sev warn" style="font-size:10px;padding:2px 6px">1 WARN</span></td>
+          </tr>
+          <tr>
+            <td><div class="host-cell"><span class="sdot ok"></span><span class="hname">pg-ana-02</span><span class="hrole">pg-analytics</span></div></td>
+            <td><div class="mc"><span class="val">22.0%</span><span class="bar"><i style="width:22%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,12 L10,11 L20,12 L30,11 L40,12 L50,11 L60,12 L70,11 L80,11"/></svg></div></td>
+            <td><div class="mc"><span class="val na">—</span><span class="bar"><i style="width:0"></i></span><span></span></div></td>
+            <td><div class="mc"><span class="val">48.0%</span><span class="bar"><i style="width:48%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,11 L10,10 L20,11 L30,10 L40,11 L50,10 L60,11 L70,10 L80,10"/></svg></div></td>
+            <td><div class="mc"><span class="val">62%</span><span class="bar"><i style="width:62%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,10 L10,10 L20,9 L30,10 L40,9 L50,9 L60,8 L70,9 L80,8"/></svg></div></td>
+            <td><div class="mc"><span class="val">110<span style="font-size:10px;color:var(--muted);margin-left:3px">Mbps</span></span><span class="bar"><i style="width:9%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,12 L10,12 L20,11 L30,12 L40,11 L50,12 L60,11 L70,12 L80,11"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">31d 14h</span></td>
+            <td><span style="font-family:var(--mono);font-size:10px;color:var(--dim)">—</span></td>
+          </tr>
+          <tr>
+            <td><div class="host-cell"><span class="sdot ok"></span><span class="hname">auth-svc-01</span><span class="hrole">auth</span></div></td>
+            <td><div class="mc"><span class="val">18.0%</span><span class="bar"><i style="width:18%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,12 L10,12 L20,11 L30,12 L40,12 L50,11 L60,12 L70,12 L80,12"/></svg></div></td>
+            <td><div class="mc"><span class="val na">—</span><span class="bar"><i style="width:0"></i></span><span></span></div></td>
+            <td><div class="mc"><span class="val">35.0%</span><span class="bar"><i style="width:35%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,11 L10,11 L20,11 L30,11 L40,11 L50,11 L60,11 L70,11 L80,11"/></svg></div></td>
+            <td><div class="mc"><span class="val">22%</span><span class="bar"><i style="width:22%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#10b981" stroke-width="1.2" d="M0,11 L10,11 L20,11 L30,11 L40,11 L50,11 L60,11 L70,11 L80,11"/></svg></div></td>
+            <td><div class="mc"><span class="val">88<span style="font-size:10px;color:var(--muted);margin-left:3px">Mbps</span></span><span class="bar"><i style="width:7%"></i></span><svg class="spark" viewBox="0 0 80 18" preserveAspectRatio="none"><path fill="none" stroke="#3b82f6" stroke-width="1.2" d="M0,12 L10,12 L20,12 L30,12 L40,11 L50,12 L60,12 L70,12 L80,12"/></svg></div></td>
+            <td><span style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">77d 2h</span></td>
+            <td><span style="font-family:var(--mono);font-size:10px;color:var(--dim)">—</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="fleet-foot">
+        <span>Showing <b>10</b> of <b>247</b> hosts</span>
+        <span class="sep">·</span>
+        <span>GPU-capable <b>14</b> · warning <b>12</b> · critical <b>3</b> · offline <b>1</b></span>
+        <span class="sep">·</span>
+        <span>Refresh <b>10s</b></span>
+        <a href="#">See all hosts ↗</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">Recent Alerts · Last 24h</div>
+        <div class="row-filters panel-meta">
+          <span class="pill-filter">severity:<b>all</b></span>
+          <span class="pill-filter">state:<b>open</b></span>
+          <span class="pill-filter">window:<b>24h</b></span>
+          <button class="toolbar-btn">EXPORT</button>
+          <button class="toolbar-btn">· · ·</button>
+        </div>
+      </div>
+      <table class="alerts">
+        <thead><tr>
+          <th style="width:84px">Severity</th><th style="width:150px">Timestamp</th>
+          <th style="width:200px">Source</th><th>Message</th>
+          <th style="width:100px">State</th><th style="width:150px">Assignee</th>
+          <th style="width:40px"></th>
+        </tr></thead>
+        <tbody>
+          <tr><td><span class="sev crit">CRIT</span></td><td class="ts">14:23:47 UTC</td><td class="src">payments-api · prod-apac-1</td><td><span class="msg">p99 latency breach — 2.4s over SLO threshold (800ms) for 5m window</span></td><td><span class="state open">OPEN</span></td><td><span class="assignee"><span class="av">YL</span>yang.liu</span></td><td>···</td></tr>
+          <tr><td><span class="sev crit">CRIT</span></td><td class="ts">14:18:02 UTC</td><td class="src">checkout-service · prod-apac-1</td><td><span class="msg">error_rate 8.2% &gt; 1% SLO · correlated with payments-api degradation</span></td><td><span class="state esc">ESCALATED</span></td><td><span class="assignee"><span class="av">PW</span>patrick.w</span></td><td>···</td></tr>
+          <tr><td><span class="sev crit">CRIT</span></td><td class="ts">13:52:14 UTC</td><td class="src">redis-primary · data-1</td><td><span class="msg">connection pool exhausted (512/512) · slowlog accumulating</span></td><td><span class="state ack">ACK</span></td><td><span class="assignee"><span class="av">ZQ</span>zhang.q</span></td><td>···</td></tr>
+          <tr><td><span class="sev warn">WARN</span></td><td class="ts">13:44:58 UTC</td><td class="src">kafka-broker-3 · infra</td><td><span class="msg">consumer lag on topic orders.events climbed to 48k messages</span></td><td><span class="state ack">ACK</span></td><td><span class="assignee"><span class="av">YL</span>yang.liu</span></td><td>···</td></tr>
+          <tr><td><span class="sev warn">WARN</span></td><td class="ts">13:30:11 UTC</td><td class="src">edge-lb-07 · edge-apac</td><td><span class="msg">5xx rate 0.8% sustained 10m window · likely upstream timeout</span></td><td><span class="state open">OPEN</span></td><td><span class="assignee"><span class="av">—</span>unassigned</span></td><td>···</td></tr>
+          <tr><td><span class="sev warn">WARN</span></td><td class="ts">13:12:33 UTC</td><td class="src">pg-analytics-02 · data-1</td><td><span class="msg">replication lag 28s &gt; 10s threshold · recovery tracking…</span></td><td><span class="state res">RESOLVED</span></td><td><span class="assignee"><span class="av">ZQ</span>zhang.q</span></td><td>···</td></tr>
+          <tr><td><span class="sev info">INFO</span></td><td class="ts">12:58:07 UTC</td><td class="src">runbook-engine · automation</td><td><span class="msg">auto-remediation executed: restart-payments-api · success 42s</span></td><td><span class="state res">RESOLVED</span></td><td><span class="assignee"><span class="av">AI</span>ops-agent</span></td><td>···</td></tr>
+          <tr><td><span class="sev info">INFO</span></td><td class="ts">12:41:22 UTC</td><td class="src">canary-deploy · checkout-v2</td><td><span class="msg">rollout paused at 25% · p99 regression 180ms · awaiting review</span></td><td><span class="state open">OPEN</span></td><td><span class="assignee"><span class="av">PW</span>patrick.w</span></td><td>···</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<script>
+// paint 48-cell heatmap
+const heat=document.getElementById('heat');
+const pattern=['ok','ok','ok','warn','ok','ok','ok','ok','ok','ok','crit','ok','ok','ok','ok','warn','ok','ok','ok','ok','ok','ok','ok','ok','ok','ok','ok','ok','crit','ok','ok','ok','ok','ok','warn','ok','ok','ok','ok','ok','ok','off','ok','ok','crit','ok','ok','ok'];
+pattern.forEach(s=>{const d=document.createElement('div');d.className='cell '+s;d.title='host-'+Math.floor(Math.random()*999);heat.appendChild(d)});
+</script>
+</body></html>

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 方向 H：闭眼 + 心跳 (Sleeping Watcher) — 对应产品 tagline
+       "Your team gets 200+ alerts daily. AI fixes them while you sleep."
+       上半部：闭合的眼睛（月牙形 = 夜晚 + 休息）
+       下半部：心跳波形（仍在监控+修复）
+       故事：你睡了，我们在看在修。 -->
+
+  <!-- 背景圆（emerald 辐射感） -->
+  <circle cx="32" cy="32" r="28" fill="#0a0a0f" stroke="#10B981" stroke-width="3"/>
+
+  <!-- 闭合的眼（眼睑曲线 + 睫毛短线）—— "sleep" -->
+  <!-- 眼睑（向下弯的弧，像合上的眼） -->
+  <path
+    d="M 16 24 Q 32 32, 48 24"
+    stroke="#e4e4e7"
+    stroke-width="3"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- 睫毛/眼线针脚 -->
+  <line x1="20" y1="22" x2="19" y2="18" stroke="#e4e4e7" stroke-width="2" stroke-linecap="round"/>
+  <line x1="26" y1="23" x2="25" y2="18" stroke="#e4e4e7" stroke-width="2" stroke-linecap="round"/>
+  <line x1="32" y1="23.5" x2="32" y2="18" stroke="#e4e4e7" stroke-width="2" stroke-linecap="round"/>
+  <line x1="38" y1="23" x2="39" y2="18" stroke="#e4e4e7" stroke-width="2" stroke-linecap="round"/>
+  <line x1="44" y1="22" x2="45" y2="18" stroke="#e4e4e7" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- 心跳/监控波 —— "we're still watching and fixing" -->
+  <path
+    d="M 10 40 L 18 40 L 22 34 L 26 46 L 30 40 L 38 40 L 42 44 L 46 36 L 54 40"
+    stroke="#10B981"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- 波峰亮点 —— 修复动作时的 spike -->
+  <circle cx="26" cy="46" r="2" fill="#10B981"/>
+</svg>

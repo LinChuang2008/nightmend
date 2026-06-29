@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- 方向 G：缝合裂缝 (Stitched Mend) — 对产品名"NightMend"最字面的视觉化
+       圆角方盾被一条斜向裂缝劈开，emerald 色的缝合线把它缝起来。
+       mend = 缝合/修补 —— 把产品名变成视觉符号，任何 DevOps 工程师一看就懂。
+       具有唯一性（没人做过）+ 体量（实心盾） + 品牌叙事（修补 = 自愈）。 -->
+
+  <!-- 圆角方盾背景 — 暗色实心 + emerald 描边 -->
+  <rect
+    x="6" y="6" width="52" height="52"
+    rx="12"
+    fill="#0a0a0f"
+    stroke="#10B981"
+    stroke-width="3.5"
+  />
+
+  <!-- 盾内裂缝（如同被劈开的玻璃）—— 两条暗色断裂路径，模拟"坏掉"的状态 -->
+  <path
+    d="M 22 14 L 30 26 L 26 36 L 36 48"
+    stroke="#27272a"
+    stroke-width="5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <path
+    d="M 22 14 L 30 26 L 26 36 L 36 48"
+    stroke="#141419"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- Emerald 缝合针脚 — 沿裂缝垂直方向的小"X"针 —— 这是叙事核心 -->
+  <!-- 针脚 1 -->
+  <line x1="20" y1="18" x2="27" y2="17" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="25" y1="13" x2="22" y2="22" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- 针脚 2 -->
+  <line x1="27" y1="24" x2="34" y2="28" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="33" y1="22" x2="28" y2="30" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- 针脚 3 -->
+  <line x1="22" y1="34" x2="30" y2="38" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="29" y1="32" x2="24" y2="40" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- 针脚 4 -->
+  <line x1="32" y1="44" x2="40" y2="46" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="38" y1="42" x2="34" y2="50" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
