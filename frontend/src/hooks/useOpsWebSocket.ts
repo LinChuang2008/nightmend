@@ -27,12 +27,18 @@ interface UseOpsWebSocketOptions {
   onEvent: (event: OpsEvent) => void;
 }
 
+// 指数退避参数：首次 1s，每次 ×2，封顶 30s，总上限 10 次，超过后放弃重连
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 30000;
+const RECONNECT_MAX_ATTEMPTS = 10;
+
 export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
   const shouldReconnectRef = useRef(true);
   const connectionSeqRef = useRef(0);
+  const reconnectAttemptsRef = useRef(0);
   // 始终保存最新的 onEvent，不触发重连
   const onEventRef = useRef(onEvent);
   useEffect(() => { onEventRef.current = onEvent; }, [onEvent]);
@@ -40,6 +46,7 @@ export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) 
   useEffect(() => {
     mountedRef.current = true;
     shouldReconnectRef.current = true;
+    reconnectAttemptsRef.current = 0;
 
     const connect = () => {
       if (!sessionId || !mountedRef.current) return;
@@ -50,6 +57,11 @@ export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) 
       const url = `${protocol}//${window.location.host}/api/v1/ops/ws/${sessionId}`;
       const ws = new WebSocket(url);
       wsRef.current = ws;
+
+      ws.onopen = () => {
+        // 连接成功后重置重试计数，后续再断开可以重新从 1s 开始退避
+        reconnectAttemptsRef.current = 0;
+      };
 
       ws.onmessage = (e) => {
         const isStaleConnection =
@@ -91,9 +103,24 @@ export function useOpsWebSocket({ sessionId, onEvent }: UseOpsWebSocketOptions) 
           evt.code !== 1008 &&
           evt.code !== 4401 &&
           evt.code !== 4403;
-        if (shouldRetry) {
-          reconnectTimerRef.current = setTimeout(connect, 3000);
+        if (!shouldRetry) return;
+
+        if (reconnectAttemptsRef.current >= RECONNECT_MAX_ATTEMPTS) {
+          console.warn('[WS] reconnect attempts exhausted, giving up', {
+            attempts: reconnectAttemptsRef.current,
+          });
+          onEventRef.current({
+            event: 'error',
+            message: 'WebSocket 连接多次失败，请刷新页面或检查网络。',
+          });
+          return;
         }
+        // 指数退避 + 抖动：delay = min(base * 2^attempt, max) ± 20%
+        const attempt = reconnectAttemptsRef.current++;
+        const expDelay = Math.min(RECONNECT_BASE_MS * 2 ** attempt, RECONNECT_MAX_MS);
+        const jitter = expDelay * (0.8 + Math.random() * 0.4);
+        console.log('[WS] scheduling reconnect', { attempt: attempt + 1, delayMs: Math.round(jitter) });
+        reconnectTimerRef.current = setTimeout(connect, jitter);
       };
 
       ws.onerror = () => { if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close(); };

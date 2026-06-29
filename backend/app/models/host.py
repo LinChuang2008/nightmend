@@ -10,7 +10,7 @@ to a monitoring agent, maintaining connection status through heartbeat mechanism
 """
 from datetime import datetime
 
-from sqlalchemy import String, DateTime, Integer, JSON, func
+from sqlalchemy import String, DateTime, Integer, JSON, Index, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -28,6 +28,11 @@ class Host(Base):
     supporting flexible tag management and grouping functions.
     """
     __tablename__ = "hosts"
+    # offline_detector 每 60s 扫 `status='online'` 且 `last_heartbeat < cutoff`，
+    # 上复合索引把 seq scan 压成 index range scan
+    __table_args__ = (
+        Index("ix_hosts_status_last_heartbeat", "status", "last_heartbeat"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)  # 主键 ID (Primary Key ID)
     hostname: Mapped[str] = mapped_column(String(255), nullable=False, index=True)  # 主机名称 (Hostname)

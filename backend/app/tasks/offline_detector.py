@@ -11,7 +11,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.core.database import async_session
 from app.core.redis import get_redis
@@ -81,13 +81,18 @@ async def check_offline_hosts():
         # 优先使用用户配置的 host_offline 规则超时时间
         heartbeat_timeout = await _get_heartbeat_timeout(db)
 
-        # 只查询当前状态为在线的主机
+        # 复合索引 (status, last_heartbeat) 把扫描集合压到"在线且心跳已过期/未记录"范围。
+        # Redis 心跳键存在时仍在线，for 循环内 Redis-first 判断保持不变。
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(seconds=heartbeat_timeout)
         result = await db.execute(
-            select(Host).where(Host.status == "online")
+            select(Host).where(
+                Host.status == "online",
+                or_(Host.last_heartbeat.is_(None), Host.last_heartbeat < cutoff),
+            )
         )
         hosts = result.scalars().all()
 
-        now = datetime.now(timezone.utc)
         for host in hosts:
             hb = await redis.get(f"heartbeat:{host.id}")
             if hb is None:

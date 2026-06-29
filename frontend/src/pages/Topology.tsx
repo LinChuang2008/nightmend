@@ -106,6 +106,17 @@ const shortName = (name: string) => {
   let s = name.replace(/\s*\(:\d+\)/, '').replace(/-1$/, '');
   return s.length > 18 ? s.substring(0, 16) + '…' : s;
 };
+// ECharts tooltip.formatter 返回 HTML 字符串会被 innerHTML 渲染，
+// 所有来自后端的动态字段必须先做 HTML entity 转义，防止 XSS。
+const escapeHtml = (v: unknown): string => {
+  if (v === null || v === undefined) return '';
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
 
 const EDGE_STYLES: Record<string, { color: string; type: 'solid' | 'dashed'; width: number; labelKey: string }> = {
   calls:      { color: '#1890ff', type: 'solid',  width: 2,   labelKey: 'topology.legendApiCall' },
@@ -450,10 +461,10 @@ export default function Topology() {
           label: { color: '#e4e4e7', fontWeight: 600 as const },
         },
         tooltip: {
-          formatter: `<div style="font-weight:600;margin-bottom:4px">${n.name}</div>` +
-            `<div>${t('common.type')}: ${getGroupLabel(n.group)}</div>` +
-            `<div>${t('common.status')}: <span style="color:${getStatusColor(n.status)}">●</span> ${n.status}</div>` +
-            `<div>${t('databases.host')}: ${n.host || '—'}</div>`,
+          formatter: `<div style="font-weight:600;margin-bottom:4px">${escapeHtml(n.name)}</div>` +
+            `<div>${escapeHtml(t('common.type'))}: ${escapeHtml(getGroupLabel(n.group))}</div>` +
+            `<div>${escapeHtml(t('common.status'))}: <span style="color:${getStatusColor(n.status)}">●</span> ${escapeHtml(n.status)}</div>` +
+            `<div>${escapeHtml(t('databases.host'))}: ${escapeHtml(n.host || '—')}</div>`,
         },
         category: categoryNames.indexOf(g),
       };
@@ -491,7 +502,7 @@ export default function Topology() {
         lineStyle: { color: style.color, type: style.type, width: style.width, curveness: 0.2 },
         edgeSymbol: ['none', 'arrow'] as [string, string], edgeSymbolSize: [0, 8],
         tooltip: {
-          formatter: `<b>${idMap.get(e.source) ?? e.source}</b> → <b>${idMap.get(e.target) ?? e.target}</b><br/>${t(style.labelKey)}: ${e.description}`,
+          formatter: `<b>${escapeHtml(idMap.get(e.source) ?? e.source)}</b> → <b>${escapeHtml(idMap.get(e.target) ?? e.target)}</b><br/>${escapeHtml(t(style.labelKey))}: ${escapeHtml(e.description)}`,
         },
       };
     });
