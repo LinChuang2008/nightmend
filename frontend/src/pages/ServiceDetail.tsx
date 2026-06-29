@@ -60,7 +60,7 @@ export default function ServiceDetail() {
     tooltip: { trigger: 'axis' as const },
     xAxis: { type: 'category' as const, data: timestamps, axisLabel: { rotate: 30 } },
     yAxis: { type: 'value' as const },
-    series: [{ type: 'line' as const, data: sorted.map(c => c.response_time_ms), smooth: true, itemStyle: { color: '#1677ff' }, areaStyle: { opacity: 0.1 } }],
+    series: [{ type: 'line' as const, data: sorted.map(c => c.response_time_ms), smooth: true, itemStyle: { color: '#10B981' }, areaStyle: { opacity: 0.1 } }],
     grid: { top: 40, bottom: 60, left: 50, right: 20 },
   };
 

@@ -51,7 +51,7 @@ export default memo(function ResourceCharts({ hosts }: ResourceChartsProps) {
           name: 'CPU', 
           type: 'bar' as const, 
           data: validHosts.map(h => h.latest_metrics!.cpu_percent ?? 0), 
-          itemStyle: { color: '#1677ff' }, 
+          itemStyle: { color: '#10B981' }, 
           barMaxWidth: 40 
         },
         { 
@@ -94,7 +94,7 @@ export default memo(function ResourceCharts({ hosts }: ResourceChartsProps) {
           name: t('hosts.upload', { defaultValue: 'Upload' }), 
           type: 'bar' as const, 
           data: networkHosts.map(h => h.latest_metrics!.net_send_rate_kb ?? 0), 
-          itemStyle: { color: '#1677ff' } 
+          itemStyle: { color: '#10B981' } 
         },
         { 
           name: t('hosts.download', { defaultValue: 'Download' }), 

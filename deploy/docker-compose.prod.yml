@@ -99,7 +99,7 @@ services:
     build: ../frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-3001}:80"
+      - "${FRONTEND_PORT:-3002}:80"
     depends_on:
       - backend
     healthcheck:

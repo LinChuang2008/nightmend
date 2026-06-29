@@ -2,6 +2,10 @@
 .env
 backend/.env
 
+# Generated secrets (deploy.sh 等脚本会写入明文凭据,严禁入库)
+.deploy-credentials.txt
+*credentials*.txt
+
 # Python
 __pycache__/
 *.py[cod]
@@ -17,6 +21,7 @@ frontend/dist/
 # IDE
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 
@@ -51,6 +56,11 @@ docs/service-onboarding.md
 docs/VigilOps-*.pptx
 .gstack/
 
+# Legal / IP filing materials (keep locally, exclude from public repo)
+# 商标注册 + 软著申请材料，含主体身份信息，不走公开仓库
+trademark/
+软著申请/
+
 # Claude Code working directory residues — never commit
 tmpclaude-*-cwd
 tmpclaude-*
@@ -63,3 +73,9 @@ tmpclaude-*
 # Built agent bundles (use release artifacts instead)
 agent.zip
 agent-*.zip
+
+# Agent logs
+logs/agent.log
+logs/agent.log.*
+
+image/*.png

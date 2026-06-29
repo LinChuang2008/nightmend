@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>NightMend · Logo Draft v3 (G / H / I) — project-native</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #141419;
+      --border: #27272a;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --dim: #52525b;
+      --accent: #10B981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Geist', system-ui, -apple-system, sans-serif;
+      min-height: 100vh; padding: 48px 24px; line-height: 1.5;
+    }
+    header { max-width: 1200px; margin: 0 auto 48px; }
+    .overline {
+      font-family: 'Geist Mono', monospace; font-size: 11px;
+      color: var(--accent); text-transform: uppercase; letter-spacing: 0.15em;
+      margin-bottom: 12px;
+    }
+    header h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; }
+    header p { color: var(--muted); margin-top: 8px; font-size: 14px; max-width: 840px; }
+    .v-note {
+      display: inline-block; margin-top: 16px; padding: 10px 14px;
+      background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 6px; color: #a7f3d0; font-size: 12px; max-width: 840px;
+    }
+    .v-note strong { color: #d1fae5; font-weight: 600; }
+
+    .grid {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 24px;
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+    .card-title { font-size: 18px; font-weight: 600; }
+    .card-name { font-family: 'Geist Mono', monospace; font-size: 11px; color: var(--muted); }
+
+    .logo-box {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 32px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px; min-height: 180px;
+    }
+    .logo-box img { width: 128px; height: 128px; }
+    .logo-box-light { background: #fafafa; border-color: #e4e4e7; }
+
+    .wordmark-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; margin-bottom: 12px;
+    }
+    .wordmark-row img { width: 32px; height: 32px; }
+    .wordmark-text { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+    .wordmark-row.tiny img { width: 16px; height: 16px; }
+    .wordmark-row.tiny .wordmark-text { font-size: 12px; font-weight: 600; }
+
+    .narrative {
+      margin-top: 16px; padding: 14px 16px;
+      background: rgba(16, 185, 129, 0.05); border-left: 3px solid var(--accent);
+      border-radius: 0 4px 4px 0; font-size: 12px; color: var(--text);
+      font-family: 'Geist Mono', monospace; line-height: 1.6;
+    }
+    .desc { margin-top: 16px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .desc strong { color: var(--text); font-weight: 600; }
+
+    footer {
+      max-width: 1200px; margin: 64px auto 0; padding: 24px; border-top: 1px solid var(--border);
+      font-family: 'Geist Mono', monospace; font-size: 11px;
+      color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="overline">NightMend · Logo v3 · project-native</div>
+    <h1>Three directions rooted in what this product actually is</h1>
+    <p>前两版（A-F）被否决——都是通用抽象 mark，没有说清楚 NightMend 独特价值。
+       v3 全部从 README / DESIGN.md / 产品 tagline 抽取意象：</p>
+    <div class="v-note">
+      <strong>产品叙事抓手：</strong><br>
+      · "NightMend" 字面：<strong>Night（值班时间的告警）+ Mend（修补/缝合）</strong><br>
+      · 核心 tagline：<strong>"AI fixes alerts while you sleep"</strong><br>
+      · 差异化：<strong>AI Analyzes → AI Decides → AI Fixes → AI Learns 自愈闭环</strong>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- 方向 G -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">G — 缝合裂缝</div>
+        <div class="card-name">Stitched Mend</div>
+      </div>
+      <div class="logo-box"><img src="./logo-a-moon.svg" alt="logo G"/></div>
+      <div class="logo-box logo-box-light"><img src="./logo-a-moon.svg" alt=""/></div>
+      <div class="wordmark-row"><img src="./logo-a-moon.svg" alt=""/><span class="wordmark-text">NightMend</span></div>
+      <div class="wordmark-row tiny"><img src="./logo-a-moon.svg" alt=""/><span class="wordmark-text">NightMend</span></div>
+      <div class="narrative">
+        MEND 字面视觉化：<br>
+        盾内裂缝（坏掉的系统）+ emerald 缝合针脚（AI 在修补）
+      </div>
+      <p class="desc">
+        <strong>这是"NightMend"三个字最直接的画。</strong>
+        产品名里的 "mend" = 缝合/修补，其他监控产品没人做过这个 motif。
+        唯一性 + 产品名耦合度 100%。
+      </p>
+    </section>
+
+    <!-- 方向 H -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">H — 闭眼 + 心跳</div>
+        <div class="card-name">Sleeping Watcher</div>
+      </div>
+      <div class="logo-box"><img src="./logo-b-pulse.svg" alt="logo H"/></div>
+      <div class="logo-box logo-box-light"><img src="./logo-b-pulse.svg" alt=""/></div>
+      <div class="wordmark-row"><img src="./logo-b-pulse.svg" alt=""/><span class="wordmark-text">NightMend</span></div>
+      <div class="wordmark-row tiny"><img src="./logo-b-pulse.svg" alt=""/><span class="wordmark-text">NightMend</span></div>
+      <div class="narrative">
+        对应 TAGLINE：<br>
+        "AI fixes alerts while you sleep"<br>
+        闭眼（你在睡）+ 心跳（我们还醒着）
+      </div>
+      <p class="desc">
+        <strong>产品 tagline 的视觉剧本。</strong>
+        闭合的眼睛 = 团队下班睡觉；emerald 心跳 = AI 仍在监控 + 修复。
+        叙事性最强，适合营销页 / 开机动画。
+      </p>
+    </section>
+
+    <!-- 方向 I -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">I — 自愈循环</div>
+        <div class="card-name">Self-Healing Loop</div>
+      </div>
+      <div class="logo-box"><img src="./logo-c-nodes.svg" alt="logo I"/></div>
+      <div class="logo-box logo-box-light"><img src="./logo-c-nodes.svg" alt=""/></div>
+      <div class="wordmark-row"><img src="./logo-c-nodes.svg" alt=""/><span class="wordmark-text">NightMend</span></div>
+      <div class="wordmark-row tiny"><img src="./logo-c-nodes.svg" alt=""/><span class="wordmark-text">NightMend</span></div>
+      <div class="narrative">
+        对应核心能力：<br>
+        AI Analyzes → Decides → Fixes → Learns<br>
+        环上三点：Alert（红） → AI（绿） → Mended（绿）
+      </div>
+      <p class="desc">
+        <strong>竞争差异化的视觉化。</strong> 环上的红色断点 = 告警，
+        emerald 闭合弧 = AI 修复轨迹；中心 AI 大脑驱动整个自愈闭环。
+        最贴合 "不只是监控，而是自愈平台" 的产品定位。
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    NightMend Logo v3 · 取自产品叙事 · 选定后一键同步 favicon + 所有组件 + wordmark
+  </footer>
+</body>
+</html>

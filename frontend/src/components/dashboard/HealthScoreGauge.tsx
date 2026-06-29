@@ -95,13 +95,14 @@ export default memo(function HealthScoreGauge({ score, breakdown }: HealthScoreG
   return (
     <div
       style={{
-        background: token.colorBgContainer,
-        borderRadius: 12,
+        background: 'var(--nm-surface, #141419)',
+        border: '1px solid var(--nm-border, #27272a)',
+        borderRadius: 'var(--nm-radius-md, 6px)',
         padding: '12px 16px',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: token.boxShadowTertiary,
+        // DESIGN.md: no shadow on cards
       }}
     >
       <Text strong style={{ fontSize: 13 }}>

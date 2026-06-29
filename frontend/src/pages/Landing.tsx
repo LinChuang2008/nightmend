@@ -6,6 +6,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/ThemeContext';
+import { Logo } from '../components/Logo';
 
 /* ── Design Tokens (from DESIGN.md) ────────────────────────── */
 const C = {
@@ -90,17 +91,7 @@ export default function Landing() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span
-            style={{
-              fontFamily: font.mono,
-              fontWeight: 700,
-              fontSize: 18,
-              color: C.text,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            NightMend
-          </span>
+          <Logo variant="wordmark" size={24} />
           <span
             style={{
               fontFamily: font.mono,
