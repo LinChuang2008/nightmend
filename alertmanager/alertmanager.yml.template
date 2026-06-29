@@ -1,0 +1,40 @@
+# Alertmanager 配置模板 (template) — NightMend 集成
+#
+# 顶层设计：
+#   Prom sidecar 的 rules（M2 同步）触发 → Alertmanager（分组/去重/抑制）→
+#   webhook 投递到 NightMend backend → AI 诊断 + runbook。
+#
+# 本文件是 template，容器启动时 entrypoint 脚本用 envsubst 把 $ALERTMANAGER_WEBHOOK_TOKEN
+# 等占位符替换成 .env 的实际值，生成 /etc/alertmanager/alertmanager.yml 再启动。
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: nightmend-webhook
+  group_by: [alertname, instance, nightmend_rule_id]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity = "critical"
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 30m
+      receiver: nightmend-webhook
+
+inhibit_rules:
+  - source_matchers: [severity = "critical"]
+    target_matchers: [severity = "warning"]
+    equal: [alertname, instance]
+
+receivers:
+  - name: nightmend-webhook
+    webhook_configs:
+      - url: ${NIGHTMEND_WEBHOOK_URL}
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: ${ALERTMANAGER_WEBHOOK_TOKEN}

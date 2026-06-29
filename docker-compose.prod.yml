@@ -74,7 +74,7 @@ services:
   frontend:
     image: ghcr.io/linchuang2008/nightmend-frontend:latest
     ports:
-      - "${FRONTEND_PORT_HOST:-3001}:80"
+      - "${FRONTEND_PORT_HOST:-3002}:80"
     depends_on:
       - backend
     restart: unless-stopped

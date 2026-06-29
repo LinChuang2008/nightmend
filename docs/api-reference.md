@@ -1597,7 +1597,7 @@ Receives alerts from Prometheus AlertManager. Supports HMAC signature verificati
 **Headers:**
 ```
 Authorization: Bearer <ALERTMANAGER_WEBHOOK_TOKEN>
-X-Vigilops-Signature: sha256=<hmac_hex>  (optional)
+X-Nightmend-Signature: sha256=<hmac_hex>  (optional, 计划中 / Planned — 当前使用 Authorization: Bearer Token)
 ```
 
 **Request Body:** Standard AlertManager webhook payload.

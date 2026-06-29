@@ -57,6 +57,61 @@ services:
     profiles:
       - clickhouse
 
+  # Prometheus sidecar — NightMend 的 TSDB + PromQL 引擎后端 (可选)
+  # 启用方式: docker compose --profile prometheus up -d
+  # 开启后，backend 若设置 PROMETHEUS_REMOTE_ENABLED=true，promql 查询会转发到这里。
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    environment:
+      TZ: Asia/Shanghai
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+      - --web.enable-lifecycle                    # 支持 POST /-/reload 热加载规则
+      - --web.enable-remote-write-receiver        # 允许外部 Prom push 数据进来
+      - --web.listen-address=:9090
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - ./prometheus/targets:/etc/prometheus/targets:ro
+      - prometheusdata:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - prometheus
+
+  # Alertmanager — Prometheus 告警分组/去重/抑制，回投 NightMend webhook (可选)
+  # 启用方式: docker compose --profile prometheus up -d alertmanager
+  # 闭环：Prom rule fire → AM → /api/v1/webhooks/alertmanager → AI 诊断 + runbook
+  alertmanager:
+    build: ./alertmanager
+    environment:
+      TZ: Asia/Shanghai
+      NIGHTMEND_WEBHOOK_URL: ${NIGHTMEND_WEBHOOK_URL:-http://backend:8000/api/v1/webhooks/alertmanager}
+      # 必须非空；由 alertmanager/entrypoint.sh 在容器启动时强制校验
+      ALERTMANAGER_WEBHOOK_TOKEN: ${ALERTMANAGER_WEBHOOK_TOKEN:-}
+    ports:
+      - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - alertmanagerdata:/alertmanager
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9093/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - backend
+    restart: unless-stopped
+    profiles:
+      - prometheus
+
   # Grafana Loki 日志聚合 (Grafana Loki Log Aggregation) - 可选
   loki:
     image: grafana/loki:2.9.0
@@ -91,6 +146,7 @@ services:
     volumes:
       - ./backend:/app
       - ./agent:/app/agent
+      - ./scripts:/scripts:ro
     restart: unless-stopped
 
   # MCP Server - 独立运行的 Model Context Protocol 服务 (MCP Server - Standalone service)
@@ -122,7 +178,7 @@ services:
     environment:
       TZ: Asia/Shanghai
     ports:
-      - "${FRONTEND_PORT:-3001}:80"
+      - "${FRONTEND_PORT:-3002}:80"
     depends_on:
       - backend
     restart: unless-stopped
@@ -137,3 +193,5 @@ volumes:
   redisdata:
   clickhousedata:
   lokidata:
+  prometheusdata:
+  alertmanagerdata:

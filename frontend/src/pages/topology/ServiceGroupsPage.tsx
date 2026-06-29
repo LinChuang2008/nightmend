@@ -112,7 +112,7 @@ export default function ServiceGroupsPage() {
       title: '服务器数',
       dataIndex: 'server_count',
       sorter: (a: ServiceGroupData, b: ServiceGroupData) => a.server_count - b.server_count,
-      render: (v: number) => <Badge count={v} showZero style={{ backgroundColor: v > 0 ? '#1677ff' : '#d9d9d9' }} />,
+      render: (v: number) => <Badge count={v} showZero style={{ backgroundColor: v > 0 ? '#10B981' : '#d9d9d9' }} />,
     },
   ];
 

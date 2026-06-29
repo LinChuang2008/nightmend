@@ -233,7 +233,11 @@ export default memo(function NoiseReduction() {
 
       {/* ── 核心数字对比 Banner ── */}
       <Card
-        style={{ marginBottom: 24, background: 'linear-gradient(135deg, #fff1f0 0%, #f6ffed 100%)', border: '1px solid #d9d9d9' }}
+        style={{
+          marginBottom: 24,
+          background: 'var(--nm-surface, #141419)',
+          border: '1px solid var(--nm-border, #27272a)',
+        }}
       >
         <Row align="middle" justify="center" gutter={24}>
           <Col>

@@ -1,8 +1,29 @@
-body {
+/* 应用全局基础样式 —— 对齐 DESIGN.md industrial/utilitarian 审美
+   默认 dark theme，Geist 字体族，压缩过渡动画避免 page load 闪烁 */
+html, body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: var(--nm-font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--nm-bg, #0a0a0f);
+  color: var(--nm-text, #e4e4e7);
+}
+
+/* tabular-nums：让监控数据表格里数字自动等宽对齐 */
+body {
+  font-feature-settings: 'tnum' 1, 'cv11' 1, 'ss01' 1;
+}
+
+/* 数据类表格/代码块用 mono */
+.nm-mono, code, pre, kbd {
+  font-family: var(--nm-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+/* 选中态用 emerald accent dim，而不是浏览器默认的蓝 */
+::selection {
+  background: var(--nm-accent-glow, rgba(16, 185, 129, 0.15));
+  color: var(--nm-text, #e4e4e7);
 }
 
 /* 修复侧边栏滚动问题 - 强制覆盖 Ant Design 默认样式 */
@@ -44,14 +65,14 @@ body {
   background: rgba(255, 255, 255, 0.4);
 }
 
-/* 暗色主题全局样式 */
+/* 暗色主题全局样式 —— 改用 NightMend token 替换硬编码 */
 [data-theme='dark'] body {
-  background-color: #141414;
-  color: rgba(255, 255, 255, 0.85);
+  background-color: var(--nm-bg);
+  color: var(--nm-text);
 }
 
 [data-theme='dark'] .ant-layout {
-  background: #141414;
+  background: var(--nm-bg);
 }
 
 /* 暗色模式下 ECharts tooltip 适配 */
