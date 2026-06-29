@@ -611,6 +611,8 @@ const en = {
     statusSuccess: 'Completed',
     statusFailed: 'Failed',
     statusRejected: 'Rejected',
+    statusEscalated: 'Escalated',
+    statusAcked: 'Acknowledged',
     detailTitle: 'Remediation Detail',
     alertNameLabel: 'Alert Name',
     hostLabel: 'Host',

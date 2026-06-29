@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><title>VigilOps · Alerts · Industrial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#141419;--surface-2:#1a1a21;--border:#27272a;--border-dim:#1f1f22;--text:#e4e4e7;--muted:#71717a;--dim:#52525b;--accent:#10b981;--warn:#f59e0b;--crit:#ef4444;--info:#3b82f6;--sans:'Geist',system-ui,sans-serif;--mono:'Geist Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.4;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;display:grid;grid-template-columns:200px 1fr}
+/* sidebar reused — compact */
+.sidebar{background:var(--bg);border-right:1px solid var(--border);height:100vh;position:sticky;top:0;overflow-y:auto}
+.logo{height:48px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border)}
+.logo-mark{width:18px;height:18px;background:var(--accent);border-radius:3px;display:grid;place-items:center;color:#000;font-weight:700;font-size:11px}
+.logo-text{font-weight:700;font-size:13px;letter-spacing:.02em}
+.nav-group{padding:14px 0 4px}
+.nav-title{font-family:var(--mono);font-size:10px;color:var(--dim);padding:0 16px 6px;text-transform:uppercase;letter-spacing:.08em}
+.nav-item{display:flex;align-items:center;gap:10px;padding:5px 16px;color:var(--muted);font-size:12.5px;cursor:pointer;border-right:2px solid transparent;text-decoration:none}
+.nav-item:hover{background:var(--surface);color:var(--text)}
+.nav-item.active{color:var(--accent);border-right-color:var(--accent);background:var(--surface)}
+.nav-item .badge{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim);background:var(--surface-2);padding:1px 5px;border-radius:3px}
+.nav-item.active .badge,.nav-item .badge.crit{color:var(--crit);background:rgba(239,68,68,.1)}
+/* layout */
+.main{display:flex;flex-direction:column;min-width:0;min-height:100vh}
+header.topbar{height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:20px;background:var(--bg);position:sticky;top:0;z-index:10}
+.breadcrumb{color:var(--muted);font-size:12.5px}
+.breadcrumb .sep{color:var(--dim);margin:0 8px}
+.breadcrumb .current{color:var(--text)}
+.search{flex:1;max-width:440px;margin-left:auto;position:relative}
+.search input{width:100%;height:30px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:0 10px 0 28px;font-size:12.5px;font-family:var(--sans)}
+.search .icon{position:absolute;left:9px;top:7px;color:var(--dim)}
+.env{font-family:var(--mono);font-size:11px;color:var(--warn);padding:3px 8px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:3px}
+.avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3f3f46,#52525b);display:grid;place-items:center;font-size:11px;font-weight:600}
+/* page head */
+.page-head{padding:18px 24px;border-bottom:1px solid var(--border);background:var(--bg)}
+.page-title-row{display:flex;align-items:baseline;gap:14px;margin-bottom:10px}
+.page-title{font-size:22px;font-weight:600;letter-spacing:-.01em}
+.page-counts{font-family:var(--mono);font-size:11.5px;color:var(--muted);display:flex;gap:14px}
+.page-counts .c{color:var(--crit)} .page-counts .w{color:var(--warn)} .page-counts .i{color:var(--info)} .page-counts .o{color:var(--accent)}
+.page-counts b{color:var(--text);font-weight:600}
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip-filter{font-family:var(--mono);font-size:11px;color:var(--muted);padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip-filter:hover{border-color:var(--muted);color:var(--text)}
+.chip-filter.on{color:var(--accent);border-color:var(--accent);background:rgba(16,185,129,.06)}
+.chip-filter b{font-weight:600;color:var(--text)}
+.chip-filter.on b{color:var(--accent)}
+.filter-actions{margin-left:auto;display:flex;gap:6px}
+.btn-sm{font-family:var(--mono);font-size:11px;color:var(--muted);padding:5px 10px;background:transparent;border:1px solid var(--border);border-radius:4px;cursor:pointer;text-transform:uppercase;letter-spacing:.08em}
+.btn-sm:hover{color:var(--text);border-color:var(--muted)}
+.btn-sm.pri{color:var(--accent);border-color:var(--accent-dim);background:rgba(16,185,129,.06)}
+/* SPLIT LAYOUT */
+.split{flex:1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:0;min-height:0}
+.list-col{border-right:1px solid var(--border);overflow-y:auto;background:var(--bg)}
+.list-head{padding:10px 20px;font-family:var(--mono);font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:var(--bg);z-index:2}
+.list-head input[type=checkbox]{accent-color:var(--accent)}
+.list-head .grow{flex:1}
+.alert-row{display:grid;grid-template-columns:28px 70px 110px 1fr 90px 90px;gap:14px;align-items:center;padding:10px 20px;border-bottom:1px solid var(--border-dim);cursor:pointer;transition:background .1s}
+.alert-row:hover{background:var(--surface-2)}
+.alert-row.selected{background:rgba(16,185,129,.06);border-left:2px solid var(--accent);padding-left:18px}
+.alert-row .sev{font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em;text-align:center}
+.sev.crit{background:rgba(239,68,68,.12);color:var(--crit);border:1px solid rgba(239,68,68,.25)}
+.sev.warn{background:rgba(245,158,11,.12);color:var(--warn);border:1px solid rgba(245,158,11,.25)}
+.sev.info{background:rgba(59,130,246,.12);color:var(--info);border:1px solid rgba(59,130,246,.25)}
+.alert-row .ts{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.alert-row .title{min-width:0}
+.alert-row .title .src{font-weight:500;color:var(--text);font-size:13px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alert-row .title .msg{font-size:12px;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.alert-row .state{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;text-transform:uppercase;text-align:center}
+.state.open{background:rgba(239,68,68,.08);color:var(--crit)}
+.state.ack{background:rgba(245,158,11,.08);color:var(--warn)}
+.state.esc{background:rgba(59,130,246,.08);color:var(--info)}
+.state.res{background:rgba(113,113,122,.08);color:var(--muted)}
+.alert-row .who{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right}
+/* DETAIL COL */
+.detail-col{overflow-y:auto;background:var(--bg);display:flex;flex-direction:column}
+.detail-head{padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:2}
+.detail-crumb{font-family:var(--mono);font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;gap:10px}
+.detail-crumb .id{color:var(--accent)}
+.detail-title{font-size:16.5px;font-weight:600;color:var(--text);margin-bottom:10px;line-height:1.35;letter-spacing:-.005em}
+.detail-head-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.detail-head-meta .sev{font-size:10px;padding:3px 7px}
+.detail-head-actions{margin-left:auto;display:flex;gap:6px}
+.detail-body{padding:16px 20px;display:flex;flex-direction:column;gap:18px}
+.detail-section h4{font-family:var(--mono);font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.14em;font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.detail-section h4::after{content:"";flex:1;height:1px;background:var(--border)}
+.kv-grid{display:grid;grid-template-columns:120px 1fr;gap:4px 16px;font-size:12.5px}
+.kv-grid dt{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:6px 0}
+.kv-grid dd{color:var(--text);padding:6px 0;font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}
+.kv-grid dd.code{color:var(--accent)}
+.mini-chart{width:100%;height:120px;background:var(--surface);border:1px solid var(--border);border-radius:4px}
+.timeline{position:relative;padding-left:22px}
+.timeline::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:1px;background:var(--border)}
+.tl-item{position:relative;padding:8px 0 8px 2px}
+.tl-item::before{content:"";position:absolute;left:-19px;top:12px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.tl-item.crit::before{border-color:var(--crit)}
+.tl-item.warn::before{border-color:var(--warn)}
+.tl-item.info::before{border-color:var(--info)}
+.tl-item.ai::before{border-color:#a855f7}
+.tl-time{font-family:var(--mono);font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.tl-text{font-size:12.5px;color:var(--text)}
+.tl-text b{color:var(--accent);font-weight:500}
+.tl-text .ai-tag{font-family:var(--mono);font-size:10px;color:#a855f7;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.3);padding:1px 5px;border-radius:3px;margin-left:4px;text-transform:uppercase;letter-spacing:.06em}
+.causal-graph{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px;position:relative}
+.causal-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-family:var(--mono);font-size:12px}
+.causal-row .arr{color:var(--dim);font-family:var(--mono)}
+.causal-node{padding:3px 8px;border-radius:3px;font-weight:500;display:inline-flex;align-items:center;gap:6px;font-size:11.5px}
+.causal-node.crit{background:rgba(239,68,68,.1);color:var(--crit);border:1px solid rgba(239,68,68,.28)}
+.causal-node.warn{background:rgba(245,158,11,.1);color:var(--warn);border:1px solid rgba(245,158,11,.28)}
+.causal-node.dep{background:rgba(59,130,246,.1);color:var(--info);border:1px solid rgba(59,130,246,.28)}
+.runbook{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:14px;font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.7;overflow-x:auto}
+.runbook .c-key{color:var(--warn)}.runbook .c-str{color:var(--accent)}.runbook .c-com{color:var(--dim)}.runbook .c-fn{color:var(--info)}
+.runbook-actions{display:flex;gap:8px;margin-top:10px}
+.related{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.related a{display:block;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;text-decoration:none}
+.related a:hover{border-color:var(--muted)}
+.related a .t{display:block;font-size:11px;color:var(--dim);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+</style></head>
+<body>
+<aside class="sidebar">
+  <div class="logo"><div class="logo-mark">V</div><div class="logo-text">VIGILOPS</div></div>
+  <div class="nav-group">
+    <div class="nav-title">监控 · Monitoring</div>
+    <a class="nav-item " href="dashboard-A-industrial.html">◆ Dashboard</a>
+    <a class="nav-item " href="hosts-A-industrial.html">▢ Hosts<span class="badge">247</span></a>
+    <a class="nav-item" href="#">▣ Services<span class="badge">62</span></a>
+    <a class="nav-item" href="#">❖ Topology</a>
+    <a class="nav-item" href="#" style="padding-left:38px">↳ Servers</a>
+    <a class="nav-item" href="#" style="padding-left:38px">↳ Service Groups</a>
+    <a class="nav-item" href="#">≡ Logs</a>
+    <a class="nav-item" href="#">▤ Databases<span class="badge">18</span></a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-title">告警 · Alerts</div>
+    <a class="nav-item active" href="alerts-A-industrial.html">△ Alerts<span class="badge crit">3</span></a>
+    <a class="nav-item" href="#">⇈ Escalation</a>
+    <a class="nav-item" href="#">☏ On-Call</a>
+    <a class="nav-item" href="#">✓ SLA</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-title">分析 · AI Ops</div>
+    <a class="nav-item" href="#">✦ AI Analysis</a>
+    <a class="nav-item" href="#">⌛ AI Op Logs</a>
+    <a class="nav-item" href="#">⚡ Remediation</a>
+    <a class="nav-item" href="#">✎ Runbooks</a>
+    <a class="nav-item" href="#">⎙ Reports</a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-title">配置 · Config</div>
+    <a class="nav-item" href="#">◈ Channels</a>
+    <a class="nav-item" href="#">▦ Templates</a>
+    <a class="nav-item" href="#">☰ Notif Logs</a>
+    <a class="nav-item" href="#">⛨ Users</a>
+    <a class="nav-item" href="#">✓ Audit Logs</a>
+    <a class="nav-item" href="#">✦ AI Configs</a>
+    <a class="nav-item" href="#">⚙ Settings</a>
+  </div>
+</aside>
+<section class="main">
+  <header class="topbar">
+    <div class="breadcrumb"><span>Observability</span><span class="sep">/</span><span class="current">Alerts</span></div>
+    <div class="search"><span class="icon">⌕</span><input placeholder="Filter alerts · severity:crit source:payments-api…"></div>
+    <div class="env">● PROD · apac-1</div>
+    <div class="avatar">PW</div>
+  </header>
+
+  <div class="page-head">
+    <div class="page-title-row">
+      <h1 class="page-title">Alerts</h1>
+      <div class="page-counts">
+        <span><span class="c">●</span> CRIT <b>3</b></span>
+        <span><span class="w">●</span> WARN <b>12</b></span>
+        <span><span class="i">●</span> INFO <b>42</b></span>
+        <span><span class="o">●</span> RESOLVED <b>128</b></span>
+        <span style="color:var(--dim)">last 24h · refreshing every 10s</span>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <span class="chip-filter on">severity: <b>CRIT · WARN</b></span>
+      <span class="chip-filter">state: <b>open · ack · esc</b></span>
+      <span class="chip-filter">env: <b>prod</b></span>
+      <span class="chip-filter">assignee: <b>any</b></span>
+      <span class="chip-filter">time: <b>last 24h</b></span>
+      <span class="chip-filter">+ add filter</span>
+      <div class="filter-actions">
+        <button class="btn-sm">SAVE VIEW</button>
+        <button class="btn-sm">EXPORT</button>
+        <button class="btn-sm pri">+ CREATE ALERT</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="list-col">
+      <div class="list-head">
+        <input type="checkbox">
+        <span class="grow">8 alerts · sorted by severity then time</span>
+        <span>BULK: ACK · ESCALATE · SNOOZE · RESOLVE</span>
+      </div>
+      <div class="alert-row selected">
+        <input type="checkbox" checked>
+        <span class="sev crit">CRIT</span>
+        <span class="ts">14:23:47</span>
+        <div class="title"><span class="src">payments-api · prod-apac-1</span><span class="msg">p99 latency 2.4s breach — SLO 800ms · 5m window sustained</span></div>
+        <span class="state open">OPEN</span>
+        <span class="who">yang.liu</span>
+      </div>
+      <div class="alert-row">
+        <input type="checkbox">
+        <span class="sev crit">CRIT</span>
+        <span class="ts">14:18:02</span>
+        <div class="title"><span class="src">checkout-service · prod-apac-1</span><span class="msg">error_rate 8.2% &gt; 1% SLO · correlated w/ payments-api</span></div>
+        <span class="state esc">ESC</span>
+        <span class="who">patrick.w</span>
+      </div>
+      <div class="alert-row">
+        <input type="checkbox">
+        <span class="sev crit">CRIT</span>
+        <span class="ts">13:52:14</span>
+        <div class="title"><span class="src">redis-primary · data-1</span><span class="msg">connection pool 512/512 exhausted · slowlog accumulating</span></div>
+        <span class="state ack">ACK</span>
+        <span class="who">zhang.q</span>
+      </div>
+      <div class="alert-row">
+        <input type="checkbox">
+        <span class="sev warn">WARN</span>
+        <span class="ts">13:44:58</span>
+        <div class="title"><span class="src">kafka-broker-3 · infra</span><span class="msg">consumer lag on orders.events climbed to 48k msgs</span></div>
+        <span class="state ack">ACK</span>
+        <span class="who">yang.liu</span>
+      </div>
+      <div class="alert-row">
+        <input type="checkbox">
+        <span class="sev warn">WARN</span>
+        <span class="ts">13:30:11</span>
+        <div class="title"><span class="src">edge-lb-07 · edge-apac</span><span class="msg">5xx rate 0.8% sustained 10m · likely upstream timeout</span></div>
+        <span class="state open">OPEN</span>
+        <span class="who">—</span>
+      </div>
+      <div class="alert-row">
+        <input type="checkbox">
+        <span class="sev warn">WARN</span>
+        <span class="ts">13:12:33</span>
+        <div class="title"><span class="src">pg-analytics-02 · data-1</span><span class="msg">replication lag 28s &gt; 10s threshold</span></div>
+        <span class="state res">RES</span>
+        <span class="who">zhang.q</span>
+      </div>
+      <div class="alert-row">
+        <input type="checkbox">
+        <span class="sev info">INFO</span>
+        <span class="ts">12:58:07</span>
+        <div class="title"><span class="src">runbook-engine · automation</span><span class="msg">auto-remediation restart-payments-api · success 42s</span></div>
+        <span class="state res">RES</span>
+        <span class="who">ai-agent</span>
+      </div>
+      <div class="alert-row">
+        <input type="checkbox">
+        <span class="sev info">INFO</span>
+        <span class="ts">12:41:22</span>
+        <div class="title"><span class="src">canary-deploy · checkout-v2</span><span class="msg">rollout paused at 25% · p99 regression 180ms</span></div>
+        <span class="state open">OPEN</span>
+        <span class="who">patrick.w</span>
+      </div>
+    </div>
+    <div class="detail-col">
+      <div class="detail-head">
+        <div class="detail-crumb"><span class="id">CRIT-2411</span><span>·</span><span>opened 14:23:47 UTC</span><span>·</span><span>3m 14s ago</span></div>
+        <div class="detail-title">payments-api p99 latency exceeded 800ms SLO — now sustained at 2.4 seconds</div>
+        <div class="detail-head-meta">
+          <span class="sev crit">CRIT</span>
+          <span class="state open">OPEN</span>
+          <span class="chip-filter">service: <b>payments-api</b></span>
+          <span class="chip-filter">env: <b>prod-apac-1</b></span>
+          <div class="detail-head-actions">
+            <button class="btn-sm">ACK</button>
+            <button class="btn-sm">ESCALATE</button>
+            <button class="btn-sm">SNOOZE 15m</button>
+            <button class="btn-sm pri">▶ RUN REMEDIATION</button>
+          </div>
+        </div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-section">
+          <h4>Summary <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:#a855f7;font-weight:500">↳ AI-generated · 2 sources cited</span></h4>
+          <p style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:10px">Latency p99 on <b style="color:var(--accent)">payments-api</b> in <b style="color:var(--accent)">prod-apac-1</b> crossed 800 ms SLO at 14:23:47 UTC, climbing to 2.4 s within 90 s. Root-cause signal points upstream to <b style="color:var(--accent)">redis-primary</b> connection pool exhaustion (CRIT-2406 at 13:52). Auto-remediation <b style="color:var(--accent)">restart-payments-api</b> previously ran at 12:58 and restored latency for 94 minutes; current breach appears pool-related not restart-related.</p>
+        </div>
+        <div class="detail-section">
+          <h4>Key facts</h4>
+          <dl class="kv-grid">
+            <dt>Alert ID</dt><dd class="code">CRIT-2411</dd>
+            <dt>Rule</dt><dd>payments-api.latency.p99 &gt; 800ms for 5m</dd>
+            <dt>First fired</dt><dd>2026-04-22 14:23:47 UTC</dd>
+            <dt>Trigger value</dt><dd class="code" style="color:var(--crit)">2,412 ms</dd>
+            <dt>SLO threshold</dt><dd>800 ms</dd>
+            <dt>Affected hosts</dt><dd>pay-api-01, pay-api-02, pay-api-03</dd>
+            <dt>Blast radius</dt><dd>checkout-service, auth-service (downstream)</dd>
+            <dt>Related deploy</dt><dd class="code">#8f2a1c · 11:04 UTC · "raise_pool_limit"</dd>
+          </dl>
+        </div>
+        <div class="detail-section">
+          <h4>Latency p99 · last 30m</h4>
+          <svg class="mini-chart" viewBox="0 0 600 120" preserveAspectRatio="none">
+            <defs><linearGradient id="gAL" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ef4444" stop-opacity=".45"/><stop offset="1" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs>
+            <g stroke="#1f1f22"><line x1="0" y1="60" x2="600" y2="60"/><line x1="0" y1="30" x2="600" y2="30"/><line x1="0" y1="90" x2="600" y2="90"/></g>
+            <line x1="0" y1="75" x2="600" y2="75" stroke="#f59e0b" stroke-dasharray="3 4" stroke-width="1"/>
+            <text x="6" y="73" font-family="Geist Mono" font-size="10" fill="#f59e0b">SLO 800ms</text>
+            <path fill="url(#gAL)" stroke="#ef4444" stroke-width="1.5" d="M0,80 L40,78 L80,76 L120,72 L160,74 L200,68 L240,62 L280,56 L320,45 L360,32 L400,22 L440,16 L480,14 L520,18 L560,14 L600,10 L600,120 L0,120 Z"/>
+            <circle cx="360" cy="32" r="3.5" fill="#ef4444"/>
+            <text x="366" y="28" font-family="Geist Mono" font-size="10" fill="#ef4444">breach 14:23</text>
+          </svg>
+        </div>
+        <div class="detail-section">
+          <h4>Causal graph <span style="font-family:var(--mono);font-size:10px;color:var(--dim);font-weight:500;margin-left:auto">confidence 0.94</span></h4>
+          <div class="causal-graph">
+            <div class="causal-row"><span class="causal-node warn">deploy · 8f2a1c · raise_pool_limit</span><span class="arr">→</span><span class="causal-node dep">redis.config_reload</span></div>
+            <div class="causal-row" style="padding-left:20px"><span class="arr">↳</span><span class="causal-node crit">redis-primary · pool_exhausted 512/512</span></div>
+            <div class="causal-row" style="padding-left:44px"><span class="arr">↳</span><span class="causal-node crit">payments-api · p99 breach · CRIT-2411</span></div>
+            <div class="causal-row" style="padding-left:68px"><span class="arr">↳</span><span class="causal-node crit">checkout-service · 5xx · CRIT-2412</span></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <h4>Incident timeline</h4>
+          <div class="timeline">
+            <div class="tl-item ai"><div class="tl-time">14:24:05 · 18s ago</div><div class="tl-text">Ops Assistant drafted correlation report <span class="ai-tag">AI</span> — linked <b>CRIT-2406</b> redis as upstream cause</div></div>
+            <div class="tl-item crit"><div class="tl-time">14:23:47 · 36s ago</div><div class="tl-text"><b>CRIT-2411</b> opened · p99 crossed 800 ms threshold</div></div>
+            <div class="tl-item warn"><div class="tl-time">14:18:02 · 6m ago</div><div class="tl-text"><b>CRIT-2412</b> checkout-service 5xx 8.2% — auto-escalated to <b>patrick.w</b></div></div>
+            <div class="tl-item info"><div class="tl-time">13:52:14 · 31m ago</div><div class="tl-text"><b>CRIT-2406</b> redis-primary pool exhausted · ack by <b>zhang.q</b></div></div>
+            <div class="tl-item ai"><div class="tl-time">12:58:07 · 1h 25m ago</div><div class="tl-text">Auto-remediation <b>restart-payments-api</b> executed in 42s <span class="ai-tag">AI</span></div></div>
+            <div class="tl-item info"><div class="tl-time">11:04:11 · 3h 20m ago</div><div class="tl-text">Deploy <b>#8f2a1c</b> shipped by <b>patrick.w</b> — "raise_pool_limit"</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <h4>Suggested runbook <span style="font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:500;margin-left:auto">match 0.92</span></h4>
+          <pre class="runbook"><span class="c-com"># runbooks/payments-api/pool-exhaustion.yml</span>
+<span class="c-key">name:</span>  <span class="c-str">"payments-api pool exhaustion · rolling recycle"</span>
+<span class="c-key">match:</span> incident.class == <span class="c-str">"pool_exhausted"</span>
+       <span class="c-key">and</span> service == <span class="c-str">"payments-api"</span>
+<span class="c-key">guard:</span> env == <span class="c-str">"prod"</span> <span class="c-key">and</span> business_hours
+<span class="c-key">steps:</span>
+  - <span class="c-fn">redis.drain_pool</span>(host=<span class="c-str">"redis-primary"</span>, grace=<span class="c-str">"20s"</span>)
+  - <span class="c-fn">service.restart.rolling</span>(svc=<span class="c-str">"payments-api"</span>, max=<span class="c-str">1</span>, wait=<span class="c-str">"30s"</span>)
+  - <span class="c-fn">verify</span>(metric=<span class="c-str">"p99_latency"</span>, below=<span class="c-str">"800ms"</span>, window=<span class="c-str">"3m"</span>)
+<span class="c-key">rollback:</span> <span class="c-fn">service.restart.full</span>(svc=<span class="c-str">"payments-api"</span>)</pre>
+          <div class="runbook-actions">
+            <button class="btn-sm pri">▶ EXECUTE (gated · requires 1 approval)</button>
+            <button class="btn-sm">DRY RUN</button>
+            <button class="btn-sm">OPEN IN GITLAB ↗</button>
+          </div>
+        </div>
+        <div class="detail-section">
+          <h4>Related</h4>
+          <div class="related">
+            <a href="#"><span class="t">Incident · 31m ago</span>CRIT-2406 · redis-primary pool_exhausted</a>
+            <a href="#"><span class="t">Incident · 6m ago</span>CRIT-2412 · checkout-service 5xx 8.2%</a>
+            <a href="#"><span class="t">Deploy · 3h 20m</span>#8f2a1c · raise_pool_limit (patrick.w)</a>
+            <a href="#"><span class="t">Runbook · last run 1h 25m</span>restart-payments-api · ok 42s</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</body></html>

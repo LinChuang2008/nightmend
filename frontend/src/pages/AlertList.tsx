@@ -27,6 +27,53 @@ import PageHeader from '../components/PageHeader';
 const severityColor: Record<string, string> = { critical: 'red', warning: 'orange', info: 'blue' };
 const statusColor: Record<string, string> = { firing: 'red', resolved: 'green', acknowledged: 'blue' };
 
+/** Industrial 风格的 severity / status chip（对齐 Topology 的 chip 语言） */
+const CHIP_TONE: Record<string, { color: string; bg: string; border: string }> = {
+  crit:  { color: 'var(--nm-error)',   bg: 'var(--nm-crit-tint, rgba(239,68,68,0.12))',   border: 'var(--nm-crit-border, rgba(239,68,68,0.28))' },
+  warn:  { color: 'var(--nm-warning)', bg: 'var(--nm-warn-tint, rgba(245,158,11,0.12))',  border: 'var(--nm-warn-border, rgba(245,158,11,0.28))' },
+  info:  { color: 'var(--nm-info)',    bg: 'var(--nm-info-tint, rgba(59,130,246,0.12))',  border: 'var(--nm-info-border, rgba(59,130,246,0.28))' },
+  ok:    { color: 'var(--nm-accent)',  bg: 'rgba(16,185,129,0.10)',                      border: 'rgba(16,185,129,0.28)' },
+  muted: { color: 'var(--nm-text-muted)', bg: 'rgba(113,113,122,0.10)',                  border: 'var(--nm-border)' },
+};
+
+const SEVERITY_TONE: Record<string, keyof typeof CHIP_TONE> = {
+  critical: 'crit', error: 'crit', p1: 'crit',
+  warning: 'warn', warn: 'warn', p2: 'warn',
+  info: 'info', notice: 'info', p3: 'info', low: 'info',
+};
+
+const STATUS_TONE: Record<string, keyof typeof CHIP_TONE> = {
+  firing: 'crit', open: 'crit', active: 'crit',
+  acknowledged: 'warn', acked: 'warn',
+  escalated: 'warn',
+  resolved: 'ok', recovered: 'ok', closed: 'ok', suppressed: 'muted',
+};
+
+function IndustrialChip({ tone, dot, children }: { tone: keyof typeof CHIP_TONE; dot?: boolean; children: React.ReactNode }) {
+  const c = CHIP_TONE[tone] || CHIP_TONE.muted;
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      fontFamily: 'var(--nm-font-mono)',
+      fontSize: 10.5,
+      padding: '2px 8px',
+      borderRadius: 3,
+      border: `1px solid ${c.border}`,
+      background: c.bg,
+      color: c.color,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      fontWeight: 600,
+      whiteSpace: 'nowrap',
+    }}>
+      {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, boxShadow: `0 0 6px ${c.color}` }} />}
+      {children}
+    </span>
+  );
+}
+
 export default function AlertList() {
   const { t, i18n } = useTranslation();
   const { isMobile } = useResponsive();
@@ -344,8 +391,16 @@ export default function AlertList() {
       const title = getAlertTitle(record);
       return <Tooltip title={title}><span>{title}</span></Tooltip>;
     }},
-    { title: t('alerts.severity'), dataIndex: 'severity', render: (s: string) => <Tag color={severityColor[s]}>{t(`alerts.severityLevels.${s}`) || s}</Tag> },
-    { title: t('alerts.status'), dataIndex: 'status', render: (s: string) => <Tag color={statusColor[s]}>{t(`alerts.statusTypes.${s}`) || s}</Tag> },
+    { title: t('alerts.severity'), dataIndex: 'severity', render: (s: string) => (
+      <IndustrialChip tone={SEVERITY_TONE[s] || 'muted'} dot>
+        {t(`alerts.severityLevels.${s}`) || s}
+      </IndustrialChip>
+    ) },
+    { title: t('alerts.status'), dataIndex: 'status', render: (s: string) => (
+      <IndustrialChip tone={STATUS_TONE[s] || 'muted'}>
+        {t(`alerts.statusTypes.${s}`) || s}
+      </IndustrialChip>
+    ) },
     { title: t('alerts.triggeredAt'), dataIndex: 'fired_at', render: (val: string) => (
       <Tooltip title={new Date(val).toLocaleString()}>{dayjs(val).locale(i18n.language === 'zh' ? 'zh-cn' : 'en').fromNow()}</Tooltip>
     ) },
@@ -356,12 +411,14 @@ export default function AlertList() {
         const remediationColorMap: Record<string, string> = {
           pending: 'orange', approved: 'blue', executing: 'processing',
           success: 'success', failed: 'error', rejected: 'default',
+          escalated: 'magenta', acked: 'cyan',
         };
         const color = remediationColorMap[s] || 'default';
         const labelKeyMap: Record<string, string> = {
           pending: 'remediation.statusPending', approved: 'remediation.statusApproved',
           executing: 'remediation.statusExecuting', success: 'remediation.statusSuccess',
           failed: 'remediation.statusFailed', rejected: 'remediation.statusRejected',
+          escalated: 'remediation.statusEscalated', acked: 'remediation.statusAcked',
         };
         const label = labelKeyMap[s] ? t(labelKeyMap[s]) : s;
         return <Tag color={color}>{label}</Tag>;
@@ -541,8 +598,8 @@ export default function AlertList() {
                       showQuickJumper: !isMobile,
                       simple: isMobile,
                       pageSizeOptions: ['25', '50', '100'],
-                      showTotal: (total, range) => 
-                        `${range[0]}-${range[1]} / ${total} ${t('common.total')}`,
+                      showTotal: (total, range) =>
+                        `${range[0]}-${range[1]} / ${t('common.total', { count: total })}`,
                     }}
                     scroll={isMobile ? { x: 'max-content' } : undefined}
                     locale={{ emptyText: (

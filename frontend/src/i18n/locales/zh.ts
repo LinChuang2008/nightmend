@@ -611,6 +611,8 @@ const zh = {
     statusSuccess: '已完成',
     statusFailed: '失败',
     statusRejected: '已拒绝',
+    statusEscalated: '已升级',
+    statusAcked: '已确认',
     detailTitle: '修复详情',
     alertNameLabel: '告警名称',
     hostLabel: '主机',

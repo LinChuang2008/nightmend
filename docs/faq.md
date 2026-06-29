@@ -263,4 +263,4 @@ NightMend 的自动修复系统有多重安全保障：
    docker compose restart backend
    ```
 
-> 更多开发细节请参考 [贡献指南](./contributing.md)。
+> 更多开发细节请参考 [贡献指南](./development-guide.md)。
