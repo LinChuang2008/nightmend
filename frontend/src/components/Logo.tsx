@@ -7,7 +7,7 @@
  *   - stacked: 图标在上、文字在下 —— 登录页中央
  *
  * 样式策略：
- *   直接 inline SVG，与 trademark/svg/nightmend-logo-primary.svg (FM-1)
+ *   直接 inline SVG，与仓库外合规材料库 nightmend-合规材料/trademark/svg/nightmend-logo-primary.svg (FM-1)
  *   逐字段对齐，避免 <img> 加载闪烁 + 允许 CSS 通过
  *   currentColor/--accent 覆盖主色。favicon.svg 是 16-32px 优化版，
  *   去掉了针脚，结构不同，不要用它做对齐基线。
